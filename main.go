@@ -17,16 +17,29 @@ type Departure struct {
 	VJ        string
 	Direction string
 	Datetime  time.Time
+	Route     string
 }
 
-func main() {
+type DataManager struct {
+	data *map[string][]Departure
+}
+
+func (d *DataManager) UpdateData(data map[string][]Departure) {
+	d.data = &data
+}
+
+func (d *DataManager) GetData() map[string][]Departure {
+	return *d.data
+}
+
+func LoadData(filename string) map[string][]Departure {
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
 		panic(err)
 	}
 
 	// Open CSV file
-	f, err := os.Open("extract_edylic.txt")
+	f, err := os.Open(filename)
 	if err != nil {
 		panic(err)
 	}
@@ -61,19 +74,35 @@ func main() {
 		}
 		data[departure.Stop] = append(data[departure.Stop], departure)
 	}
+
 	for _, v := range data {
 		sort.Slice(v, func(i, j int) bool {
 			return v[i].Datetime.Before(v[j].Datetime)
 		})
 	}
+	return data
+}
+
+func main() {
 	fmt.Println("finish")
+	manager := DataManager{}
+	manager.UpdateData(LoadData("extract_edylic.txt"))
 
 	r := gin.Default()
 	r.GET("/departures", func(c *gin.Context) {
 		stopID := c.Query("stop_id")
-		c.JSON(200, data[stopID])
+		c.JSON(200, manager.GetData()[stopID])
 
 	})
+
+	/*
+		go func() {
+			for {
+				manager.UpdateData(LoadData("extract_edylic.txt"))
+			}
+		}()
+	*/
+
 	r.Run()
 
 }

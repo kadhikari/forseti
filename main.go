@@ -3,21 +3,23 @@ package main
 import (
 	"encoding/csv"
 	"fmt"
-	"github.com/gin-gonic/gin"
 	"io"
 	"os"
 	"sort"
 	"time"
+
+	"github.com/gin-gonic/gin"
 )
 
 type Departure struct {
-	Line      string
-	Stop      string
-	Type      string
-	VJ        string
-	Direction string
-	Datetime  time.Time
-	Route     string
+	Line          string
+	Stop          string
+	Type          string
+	VJ            string
+	Direction     string
+	DirectionName string
+	Datetime      time.Time
+	Route         string
 }
 
 type DataManager struct {
@@ -65,12 +67,13 @@ func LoadData(filename string) map[string][]Departure {
 		}
 
 		departure := Departure{
-			Stop:      line[0],
-			Line:      line[1],
-			Type:      line[4],
-			Datetime:  dt,
-			Direction: line[6],
-			VJ:        line[7],
+			Stop:          line[0],
+			Line:          line[1],
+			Type:          line[4],
+			Datetime:      dt,
+			Direction:     line[6],
+			DirectionName: line[2],
+			VJ:            line[7],
 		}
 		data[departure.Stop] = append(data[departure.Stop], departure)
 	}

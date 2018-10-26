@@ -1,0 +1,11 @@
+language: go
+go:
+- 1.11.x
+sudo: required
+services:
+- docker
+script:
+  - export GO111MODULE=on
+  - make setup linter-install
+  - make test
+  - make

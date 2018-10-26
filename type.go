@@ -17,6 +17,25 @@ type Departure struct {
 	//Route         string
 }
 
+func NewDeparture(record []string, location *time.Location) (Departure, error) {
+	if len(record) < 7 {
+		return Departure{}, fmt.Errorf("Missing field in record")
+	}
+	dt, err := time.ParseInLocation("2006-01-02 15:04:05", record[5], location)
+	if err != nil {
+		return Departure{}, err
+	}
+
+	return Departure{
+		Stop:          record[0],
+		Line:          record[1],
+		Type:          record[4],
+		Datetime:      dt,
+		Direction:     record[6],
+		DirectionName: record[2],
+	}, nil
+}
+
 type DataManager struct {
 	departures *map[string][]Departure
 }

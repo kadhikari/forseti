@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/csv"
+	"fmt"
 	"io"
+	"net/url"
+	"os"
 	"sort"
 	"time"
 
@@ -11,24 +14,41 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
-type SftpFileConfig struct {
-	Host     string
-	User     string
-	Password string
-	File     string
+func getFile(uri url.URL) (io.Reader, error) {
+	if uri.Scheme == "sftp" {
+		return getFileWithSftp(uri)
+	} else if uri.Scheme == "file" {
+		return getFileWithFS(uri)
+	} else {
+		return nil, fmt.Errorf("Unsupported protocols %s", uri.Scheme)
+	}
+
 }
 
-func getFileWithSftp(config SftpFileConfig) (io.Reader, error) {
+func getFileWithFS(uri url.URL) (io.Reader, error) {
+	file, err := os.Open(uri.Path)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	var buffer bytes.Buffer
+	if _, err = buffer.ReadFrom(file); err != nil {
+		return nil, err
+	}
+	return &buffer, nil
+}
 
+func getFileWithSftp(uri url.URL) (io.Reader, error) {
+	password, _ := uri.User.Password()
 	sshConfig := &ssh.ClientConfig{
-		User: config.User,
+		User: uri.User.Username(),
 		Auth: []ssh.AuthMethod{
-			ssh.Password(config.Password),
+			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 	}
 
-	sshClient, err := ssh.Dial("tcp", config.Host, sshConfig)
+	sshClient, err := ssh.Dial("tcp", uri.Host, sshConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +61,7 @@ func getFileWithSftp(config SftpFileConfig) (io.Reader, error) {
 	}
 	defer client.Close()
 
-	file, err := client.Open(config.File)
+	file, err := client.Open(uri.Path)
 	if err != nil {
 		return nil, err
 	}
@@ -54,15 +74,14 @@ func getFileWithSftp(config SftpFileConfig) (io.Reader, error) {
 
 }
 
-func LoadData(file io.Reader) map[string][]Departure {
+func LoadData(file io.Reader) (map[string][]Departure, error) {
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	data := make(map[string][]Departure)
 
-	// Read File
 	reader := csv.NewReader(file)
 	reader.Comma = ';'
 	reader.FieldsPerRecord = 8
@@ -73,20 +92,11 @@ func LoadData(file io.Reader) map[string][]Departure {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			panic(err)
+			return nil, err
 		}
-		dt, err := time.ParseInLocation("2006-01-02 15:04:05", line[5], location) // aaaa-mm-jjhh:mi:ss
+		departure, err := NewDeparture(line, location)
 		if err != nil {
-			panic(err)
-		}
-
-		departure := Departure{
-			Stop:          line[0],
-			Line:          line[1],
-			Type:          line[4],
-			Datetime:      dt,
-			Direction:     line[6],
-			DirectionName: line[2],
+			return nil, err
 		}
 		data[departure.Stop] = append(data[departure.Stop], departure)
 	}
@@ -97,5 +107,18 @@ func LoadData(file io.Reader) map[string][]Departure {
 			return v[i].Datetime.Before(v[j].Datetime)
 		})
 	}
-	return data
+	return data, nil
+}
+
+func RefreshDepartures(manager *DataManager, uri url.URL) error {
+	file, err := getFile(uri)
+	if err != nil {
+		return err
+	}
+	d, err := LoadData(file)
+	if err != nil {
+		return err
+	}
+	manager.UpdateDepartures(d)
+	return nil
 }

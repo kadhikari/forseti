@@ -10,11 +10,11 @@ setup: ## Install all the build and lint dependencies
 
 .PHONY: test
 test: ## Run all the tests
-	echo 'mode: atomic' > coverage.txt && go test -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt -race -timeout=30s ./...
+	echo 'mode: atomic' > coverage.txt && FIXTUREDIR=$(CURDIR)/fixtures go test -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt -race -timeout=30s ./...
 
 .PHONY: fasttest
 fasttest: ## Run short tests
-	echo 'mode: atomic' > coverage.txt && go test -short -covermode=atomic -coverprofile=coverage.txt -race -timeout=30s ./...
+	echo 'mode: atomic' > coverage.txt && FIXTUREDIR=$(CURDIR)/fixtures go test -short -covermode=atomic -coverprofile=coverage.txt -race -timeout=30s ./...
 
 .PHONY: cover
 cover: test ## Run all the tests and opens the coverage report

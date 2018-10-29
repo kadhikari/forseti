@@ -11,8 +11,33 @@ import (
 	"time"
 
 	"github.com/pkg/sftp"
+	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
 )
+
+var (
+	departureLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "sytralrt",
+		Subsystem: "departures",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	},
+	)
+
+	departureLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "sytralrt",
+		Subsystem: "departures",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	},
+	)
+)
+
+func init() {
+	prometheus.MustRegister(departureLoadingDuration)
+	prometheus.MustRegister(departureLoadingErrors)
+}
 
 func getFile(uri url.URL) (io.Reader, error) {
 	if uri.Scheme == "sftp" {
@@ -111,14 +136,18 @@ func LoadData(file io.Reader) (map[string][]Departure, error) {
 }
 
 func RefreshDepartures(manager *DataManager, uri url.URL) error {
+	begin := time.Now()
 	file, err := getFile(uri)
 	if err != nil {
+		departureLoadingErrors.Inc()
 		return err
 	}
 	d, err := LoadData(file)
 	if err != nil {
+		departureLoadingErrors.Inc()
 		return err
 	}
 	manager.UpdateDepartures(d)
+	departureLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

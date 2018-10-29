@@ -7,12 +7,12 @@ import (
 
 // Departure represent a departure for a public transport vehicle
 type Departure struct {
-	Line          string
-	Stop          string
-	Type          string
-	Direction     string
-	DirectionName string
-	Datetime      time.Time
+	Line          string    `json:"line"`
+	Stop          string    `json:"stop"`
+	Type          string    `json:"type"`
+	Direction     string    `json:"direction"`
+	DirectionName string    `json:"direction_name"`
+	Datetime      time.Time `json:"datetime"`
 	//VJ            string
 	//Route         string
 }

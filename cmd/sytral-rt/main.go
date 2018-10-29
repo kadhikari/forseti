@@ -4,44 +4,16 @@ import (
 	"fmt"
 	"net/url"
 	"os"
-	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/contrib/ginrus"
-	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
+
+	"github.com/CanalTP/sytralrt"
 )
-
-var (
-	httpDurations = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "sytralrt",
-		Subsystem: "http",
-		Name:      "durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	},
-		[]string{"handler", "code"},
-	)
-
-	httpInFlight = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "sytralrt",
-		Subsystem: "http",
-		Name:      "in_flight",
-		Help:      "current number of http request being served",
-	},
-	)
-)
-
-func init() {
-	prometheus.MustRegister(httpDurations)
-	prometheus.MustRegister(httpInFlight)
-}
 
 type Config struct {
 	DeparturesURIStr  string        `mapstructure:"departures-uri"`
@@ -49,17 +21,6 @@ type Config struct {
 	DeparturesURI     url.URL
 	JSONLog           bool   `mapstructure:"json-log"`
 	LogLevel          string `mapstructure:"log-level"`
-}
-
-func InstrumentGin() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		begin := time.Now()
-		httpInFlight.Inc()
-		c.Next()
-		httpInFlight.Dec()
-		observer := httpDurations.With(prometheus.Labels{"handler": c.HandlerName(), "code": strconv.Itoa(c.Writer.Status())})
-		observer.Observe(time.Since(begin).Seconds())
-	}
 }
 
 func GetConfig() (Config, error) {
@@ -97,57 +58,34 @@ func main() {
 		logrus.Fatalf("Impossible to load data at startup: %s", err)
 	}
 	initLog(config.JSONLog, config.LogLevel)
-	manager := &DataManager{}
-	err = RefreshDepartures(manager, config.DeparturesURI)
+	manager := &sytralrt.DataManager{}
+	err = sytralrt.RefreshDepartures(manager, config.DeparturesURI)
 	if err != nil {
 		//TODO start without data
 		logrus.Errorf("Impossible to load data at startup: %s", err)
 	}
 
-	r := setupRouter()
-	r.GET("/departures", DeparturesHandler(manager))
-
+	r := sytralrt.SetupRouter(manager, nil)
 	go RefreshLoop(manager, config.DeparturesURI, config.DeparturesRefresh)
+
 	r.Run()
 
 }
 
-func RefreshLoop(manager *DataManager, departuresURI url.URL, departuresRefresh time.Duration) {
+func RefreshLoop(manager *sytralrt.DataManager, departuresURI url.URL, departuresRefresh time.Duration) {
 	if departuresRefresh.Seconds() < 1 {
 		logrus.Info("data refreshing is disabled")
 		return
 	}
 	for {
 		logrus.Debug("refreshing of departures data")
-		err := RefreshDepartures(manager, departuresURI)
+		err := sytralrt.RefreshDepartures(manager, departuresURI)
 		if err != nil {
 			logrus.Error("Error while reloading departures data: ", err)
 		}
 		logrus.Debug("Data updated")
 		time.Sleep(departuresRefresh)
 	}
-}
-
-func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		stopID := c.Query("stop_id")
-		departures, err := manager.GetDeparturesByStop(stopID)
-		if err != nil {
-			c.JSON(503, departures) //TODO: return a pretty error response
-			return
-		}
-		c.JSON(200, departures)
-	}
-}
-
-func setupRouter() *gin.Engine {
-	r := gin.New()
-	r.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, false))
-	r.Use(InstrumentGin())
-	r.Use(gin.Recovery())
-	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-
-	return r
 }
 
 func initLog(jsonLog bool, logLevel string) {

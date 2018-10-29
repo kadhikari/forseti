@@ -1,4 +1,4 @@
-package main
+package sytralrt
 
 import (
 	"flag"
@@ -168,6 +168,21 @@ func TestLoadFull(t *testing.T) {
 	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures["3"][3].Datetime.String())
 }
 
+func checkFirst(t *testing.T, departures []Departure) {
+	require.Len(t, departures, 4)
+	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[1].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[2].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[3].Datetime.String())
+}
+
+func checkSecond(t *testing.T, departures []Departure) {
+	require.Len(t, departures, 3)
+	assert.Equal(t, "2018-09-17 20:42:37 +0200 CEST", departures[0].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[1].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[2].Datetime.String())
+}
+
 func TestRefreshData(t *testing.T) {
 	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
 	require.Nil(t, err)
@@ -178,19 +193,63 @@ func TestRefreshData(t *testing.T) {
 	RefreshDepartures(&manager, *firstURI)
 	departures, err := manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
-	require.Len(t, departures, 4)
-
-	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[2].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[3].Datetime.String())
+	checkFirst(t, departures)
 
 	RefreshDepartures(&manager, *secondURI)
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
-	require.Len(t, departures, 3)
+	checkSecond(t, departures)
+}
 
-	assert.Equal(t, "2018-09-17 20:42:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[2].Datetime.String())
+func TestRefreshDataError(t *testing.T) {
+	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
+	require.Nil(t, err)
+
+	misssingFieldURI, err := url.Parse(fmt.Sprintf("file://%s/missingfield.txt", fixtureDir))
+	require.Nil(t, err)
+
+	invalidDateURI, err := url.Parse(fmt.Sprintf("file://%s/invaliddate.txt", fixtureDir))
+	require.Nil(t, err)
+
+	secondURI, err := url.Parse(fmt.Sprintf("file://%s/second.txt", fixtureDir))
+	require.Nil(t, err)
+
+	var manager DataManager
+
+	reader, err := getFile(*misssingFieldURI)
+	require.Nil(t, err)
+
+	_, err = LoadData(reader)
+	require.Error(t, err)
+
+	err = RefreshDepartures(&manager, *firstURI)
+	require.Nil(t, err)
+	departures, err := manager.GetDeparturesByStop("3")
+	require.Nil(t, err)
+	checkFirst(t, departures)
+
+	err = RefreshDepartures(&manager, *misssingFieldURI)
+	require.Error(t, err)
+	//data hasn't been updated
+	departures, err = manager.GetDeparturesByStop("3")
+	require.Nil(t, err)
+	checkFirst(t, departures)
+
+	err = RefreshDepartures(&manager, *secondURI)
+	require.Nil(t, err)
+	departures, err = manager.GetDeparturesByStop("3")
+	require.Nil(t, err)
+	checkSecond(t, departures)
+
+	reader, err = getFile(*invalidDateURI)
+	require.Nil(t, err)
+	_, err = LoadData(reader)
+	require.Error(t, err)
+
+	err = RefreshDepartures(&manager, *invalidDateURI)
+	require.Error(t, err)
+	departures, err = manager.GetDeparturesByStop("3")
+	require.Nil(t, err)
+	//we still get old departures
+	checkSecond(t, departures)
 }

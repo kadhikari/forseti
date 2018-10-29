@@ -10,7 +10,7 @@ setup: ## Install all the build and lint dependencies
 
 .PHONY: test
 test: ## Run all the tests
-	echo 'mode: atomic' > coverage.txt && FIXTUREDIR=$(CURDIR)/fixtures go test -covermode=atomic -coverpkg=./... -coverprofile=coverage.txt -race -timeout=30s ./...
+	echo 'mode: atomic' > coverage.txt && FIXTUREDIR=$(CURDIR)/fixtures go test -covermode=atomic -coverprofile=coverage.txt -race -timeout=30s ./...
 
 .PHONY: fasttest
 fasttest: ## Run short tests
@@ -45,7 +45,7 @@ ci: lint test ## Run all the tests and code checks
 
 .PHONY: build
 build: ## Build a version
-	go build -tags=jsoniter -v
+	go build -tags=jsoniter -v ./cmd/...
 
 .PHONY: clean
 clean: ## Remove temporary files

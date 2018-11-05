@@ -5,21 +5,19 @@ sudo: required
 services:
 - docker
 script:
-  - export GO111MODULE=on
-  - make setup linter-install
-  - make ci
-  - make
-
+- export GO111MODULE=on
+- make setup linter-install
+- make ci
+- make
 after_success:
 - export REPO=navitia/sytralrt
-- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH;
+  fi`
 - make docker
 - docker tag $REPO:$(make version) $REPO:$TAG
 - docker tag $REPO:$(make version) $REPO:travis-$TRAVIS_BUILD_NUMBER
 - if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then docker login -u $DOCKER_USER -p $DOCKER_PASS && docker push $REPO; fi
-
 env:
   global:
-  - secure: K9WAEtoTj944dQasWTi3ixNiebK0wiVqh/OldI37g4w+tddSoTvSvTq8+Dz5vUpAzDHwRrgx+EHCUOpGpntNlnEqf9GxDW9DHf8RM4l4CQVA2XqwdaonvlrZ6O0MFBriTLr0d59RSb0WdY+Gt/GmBAzuB7Q1YZmV7BS89jnzGNOzLUBAUw1RFKis0craChNOfHMy38rHFmLIphda6tmh6GqKsUo18b3yfqKhYVoIIgADtB6jLw2KGTNN7kj8bDv2DT4GCmr0oUZOE8JJh0IvizHYBK5f+PYl8vEtNiWlvR7wdfnmKKx8+KTsM55pX8puVm3X+TFE5jG8McexTmZxaEZjxcDYl0EczS5bX6LsyQuJ41x1iv0H2UwOtEKHzzft2FxTSShzxbCQUhFqZgo6Y77BaG87txtqVIaR/1XuHJeY82v/A9a8kBW6/6jKMFnCfHVRfIOeQZi8jiLgtBGLGnILiq6yDP0NGupPVSkvl/9mmlp2wlbz+BcUncAuYXM9sj2fK5DO+h+BzOFvl9iTw21mqhknCVGN/zUJS5XlqKAULVB3RNDR5fT9dUufy50bxC5YfsExSlW3vQWZz7DJIYpaud4j7M0LMwAG/x9tatZ32NV9TWDZ+/pY4eYk5VYytfhLiI0iFPKbHwzsYeRA851PoesHDhPdLN8ujeZPgXo= #DOCKER_USER
-  - secure: CXXlMRrKpksBbASW7FA9o9uFbonxl+jurRU5zfphRRCM5rEHNCG13rCCuJQlR2evAH/YDj97QOY7H8lYIUdTZGQJWcVvhK1SxLcXQZevh/+IgYAWlpVbs3G9lkz7j+4kBkCS5QRWetVnMoj9bz3zdiF2tX/+n2igNbAyhc4ElrqHKRx2pTvtLfY0npMSI08fzIwY6PvCdgkMVLFZjDzGvO1A3Su0lY/JgDieESBb61HDcMYIzTKqQGlYT92EncKjAeELyxK+szf5yNoNpziSoxu+pvFgt8j8PfBkF3bJINZnQPikbjUeXbpoVUZ39DI3xbeDb3G9ExQWzksLU/s61Yqi409QzJ0jj+hSt04AIHvKojOj2+eMugtx39tYVNeA7vgZI72xHdTKFCHB5Wp4fD627dLxIaxvJ35OUFpunVGQ2Yr7PjkiQ5/4amochlesC0lXJ5fnVijnwtR9OeCNSCmUlK7HXpPYNWJizoxVGLNyi+nHgNFmr2ZaGK1kJU2HHunXEZoqgNpjdDApSmPB20craNoo34VP0FtL7sLGHq5j5SObYMky4RQvGnRqWEeelK+Ca2tK69Jpp9o1JxEVL3t3BhCjszX/6k34JePpceAQvInlTj/bnrkauuIRVjsD5d13XzmQuBtUmeUmspi1CmhHn8xdMRlL+P6tneuEgkg= #DOCKER_PASS
-
+    - secure: "nqogy5+VrUS6Yd0hacOip0uY4KbQ3HN+I419uyFwCM6ep40f4m4NjxqYyAruBdReGnpravi6OnwzYG/pUQ2f08OHRqBFf2lZnvyZNW8e2sPYcoIrK2npWIsc4Bpm3G1xQ9+HtMRTYXoWLROCBYMzOaT+OqHaZxWI4Wt8VLOBEoGke4izdd4mRh03j5ICVAbyI6nlyYW3bK0tiKUYyQmN1hGXrTwKzWdjtLOEPidlEzPsKh6vA+803PohyV/R9nKLa/9DNq/X9UEFJoLPm66bJsKt8jmsn2MxobHoquokWdsV69s7kulgHjkjUtJSgoXMTvS3hMt4Qii53VhRHn9x6dZFJAxUmqGOGP2+dxYJCygYq3El5MfRmGb7XGRg375ObbEOh+WHMIHuDSY48fN1i9S66lZy7vKEdPGKZDWc8y0A060KYTcEEVJB1Np/Er8TC3ogJ9fmmiaUBY+XQ9/iNDfzpyPBALt42F9F09R2lLAOk98BXZz9J4+dqFBZGzdjKvLCXdvnPxkoZHGfsFhRTC4keJj43fl3hEmWIvVbgpg+kGydCzxBWlAMtVE9FFKxUkiF3DnJdpzXe9e1Eze9zGFFnmGP1pk1f+HNK1DI9JxgicXUfVQu75nX17gSnh60KDTv38qM/38iAcd5hQ/P84qgBPcQsfcV984EkhbffGc="
+    - secure: "u7AVxnKY2hTJXY/R1SVdstA+26ZytcWh2I8H0JWsbDkYEnWHHA3YurkDVtTVJg1/lMQBMHFHbzO8WEXNp2jS6aBCts2DtwG8nY/JzaClwRRefueXm4Ss5CxdZPnB72qRuSgYvJmf4zYTiiUyrTPCm3yO72wSHgUs65+xe/9Iqu9CokJQgXyPZNk3c9IJaqdm1QR2hbLGkGE4WR8JePWZigGIq8RH89nZJ8Qf8nDgdUtlrZHN3/AjkfnKhcANxgidjdyLhGLc5AII6STDnoyK2KRe41Wbth0rg14ZiHPmKJzPclhGclc3fL3im6RXAQRqazhLMuXf/w1P0j1O1QOM2NZ8ASZ2PNP4M4tfmR4mKhjFaaxa6IFpiDvaeW+LPgrHC+XUKfIIcYhKUIJgeEVdkltpI0OGXfr8y3sx6IGx6T5QwsWFq8xIsbR13KAeyknHTrkmvHIBHFtxlsDBkZWX7OTkQRH1eZga/wvuRtb0G+A2zU6eLJnZ8FEdTzBOa81SdY6SXPmXC8j+wRkCqDwBqGpUBPP7JVDCfOcPuxOb4CoN3Vmxv0EjlvKo4updOXsgv88hOHeWwKXNWlpdsNEmdTBfoHkk5uFXm+OYKb9LcVCg8Mr4uHShFgOzPdbAfPnO8m/JUmy9T6wl9jsfn3unB0Wo7BP5c8J0KjGKRr7lK+Y=" #DOCKER_USER

@@ -9,3 +9,17 @@ script:
   - make setup linter-install
   - make ci
   - make
+
+after_success:
+- export REPO=navitia/sytralrt
+- export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH; fi`
+- make docker
+- docker tag $REPO:$(make version) $REPO:$TAG
+- docker tag $REPO:$(make version) $REPO:travis-$TRAVIS_BUILD_NUMBER
+- if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then docker login -u $DOCKER_USER -p $DOCKER_PASS && docker push $REPO; fi
+
+env:
+  global:
+  - secure: K9WAEtoTj944dQasWTi3ixNiebK0wiVqh/OldI37g4w+tddSoTvSvTq8+Dz5vUpAzDHwRrgx+EHCUOpGpntNlnEqf9GxDW9DHf8RM4l4CQVA2XqwdaonvlrZ6O0MFBriTLr0d59RSb0WdY+Gt/GmBAzuB7Q1YZmV7BS89jnzGNOzLUBAUw1RFKis0craChNOfHMy38rHFmLIphda6tmh6GqKsUo18b3yfqKhYVoIIgADtB6jLw2KGTNN7kj8bDv2DT4GCmr0oUZOE8JJh0IvizHYBK5f+PYl8vEtNiWlvR7wdfnmKKx8+KTsM55pX8puVm3X+TFE5jG8McexTmZxaEZjxcDYl0EczS5bX6LsyQuJ41x1iv0H2UwOtEKHzzft2FxTSShzxbCQUhFqZgo6Y77BaG87txtqVIaR/1XuHJeY82v/A9a8kBW6/6jKMFnCfHVRfIOeQZi8jiLgtBGLGnILiq6yDP0NGupPVSkvl/9mmlp2wlbz+BcUncAuYXM9sj2fK5DO+h+BzOFvl9iTw21mqhknCVGN/zUJS5XlqKAULVB3RNDR5fT9dUufy50bxC5YfsExSlW3vQWZz7DJIYpaud4j7M0LMwAG/x9tatZ32NV9TWDZ+/pY4eYk5VYytfhLiI0iFPKbHwzsYeRA851PoesHDhPdLN8ujeZPgXo= #DOCKER_USER
+  - secure: CXXlMRrKpksBbASW7FA9o9uFbonxl+jurRU5zfphRRCM5rEHNCG13rCCuJQlR2evAH/YDj97QOY7H8lYIUdTZGQJWcVvhK1SxLcXQZevh/+IgYAWlpVbs3G9lkz7j+4kBkCS5QRWetVnMoj9bz3zdiF2tX/+n2igNbAyhc4ElrqHKRx2pTvtLfY0npMSI08fzIwY6PvCdgkMVLFZjDzGvO1A3Su0lY/JgDieESBb61HDcMYIzTKqQGlYT92EncKjAeELyxK+szf5yNoNpziSoxu+pvFgt8j8PfBkF3bJINZnQPikbjUeXbpoVUZ39DI3xbeDb3G9ExQWzksLU/s61Yqi409QzJ0jj+hSt04AIHvKojOj2+eMugtx39tYVNeA7vgZI72xHdTKFCHB5Wp4fD627dLxIaxvJ35OUFpunVGQ2Yr7PjkiQ5/4amochlesC0lXJ5fnVijnwtR9OeCNSCmUlK7HXpPYNWJizoxVGLNyi+nHgNFmr2ZaGK1kJU2HHunXEZoqgNpjdDApSmPB20craNoo34VP0FtL7sLGHq5j5SObYMky4RQvGnRqWEeelK+Ca2tK69Jpp9o1JxEVL3t3BhCjszX/6k34JePpceAQvInlTj/bnrkauuIRVjsD5d13XzmQuBtUmeUmspi1CmhHn8xdMRlL+P6tneuEgkg= #DOCKER_PASS
+

@@ -53,7 +53,7 @@ help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
 .PHONY: docker
-docker: ## build docker image
-	docker build -t navitia/sytralrt .
+docker: build ## build docker image
+	docker build -t navitia/sytralrt:$(VERSION) .
 
 .DEFAULT_GOAL := build

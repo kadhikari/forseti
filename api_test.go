@@ -44,7 +44,8 @@ func TestDeparturesApi(t *testing.T) {
 	assert.NotEmpty(response.Message)
 
 	//we load some data
-	RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI)
+	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3", nil)
 	w = httptest.NewRecorder()

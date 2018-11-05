@@ -74,6 +74,7 @@ func TestGetSFTPFile(t *testing.T) {
 	assert.Equal(t, oneline, string(b[0:len]))
 
 	reader, err = getFile(*uri)
+	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
@@ -93,6 +94,7 @@ func TestGetSFTPFS(t *testing.T) {
 	assert.Equal(t, oneline, string(b[0:len]))
 
 	reader, err = getFile(*uri)
+	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
@@ -190,12 +192,14 @@ func TestRefreshData(t *testing.T) {
 	require.Nil(t, err)
 
 	var manager DataManager
-	RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI)
+	assert.Nil(t, err)
 	departures, err := manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
-	RefreshDepartures(&manager, *secondURI)
+	err = RefreshDepartures(&manager, *secondURI)
+	assert.Nil(t, err)
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkSecond(t, departures)

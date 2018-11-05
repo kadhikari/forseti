@@ -7,5 +7,5 @@ services:
 script:
   - export GO111MODULE=on
   - make setup linter-install
-  - make test
+  - make ci
   - make

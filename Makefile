@@ -1,8 +1,8 @@
 VERSION := $(shell git describe --tag --always --dirty)
 
 .PHONY: linter-install
-linter-install: ## Install gometalinter
-	curl -L https://git.io/vp6lP | sh
+linter-install: ## Install linter
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.11.2
 
 .PHONY: setup
 setup: ## Install all the build and lint dependencies
@@ -26,26 +26,14 @@ fmt: ## Run goimports on all go files
 
 .PHONY: lint
 lint: ## Run all the linters
-	#linter disabled: gosimple, errcheck, staticcheck
-	gometalinter --vendor --disable-all \
-		--enable=deadcode \
-		--enable=ineffassign \
-		--enable=gofmt \
-		--enable=goimports \
-		--enable=misspell \
-		--enable=vet \
-		--enable=vetshadow \
-		--enable=gosec \
-		--deadline=10m \
-		./...
-#--enable=golint \
+	golangci-lint run -E gosec -E maligned -E misspell -E lll -E prealloc -E goimports -E unparam -E nakedret
 
 .PHONY: ci
 ci: lint test ## Run all the tests and code checks
 
 .PHONY: build
 build: ## Build a version
-	go build -tags=jsoniter -v ./cmd/...
+	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -tags=jsoniter -v ./cmd/...
 
 .PHONY: clean
 clean: ## Remove temporary files
@@ -63,5 +51,9 @@ version: ## display version of gormungandr
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
+
+.PHONY: docker
+docker: ## build docker image
+	docker build -t navitia/sytralrt .
 
 .DEFAULT_GOAL := build

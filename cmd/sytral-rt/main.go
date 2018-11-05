@@ -24,7 +24,8 @@ type Config struct {
 }
 
 func GetConfig() (Config, error) {
-	pflag.String("departures-uri", "", "format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://sytral:pass@172.17.0.3:22/extract_edylic.txt")
+	pflag.String("departures-uri", "",
+		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://sytral:pass@172.17.0.3:22/extract_edylic.txt")
 	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
@@ -68,7 +69,10 @@ func main() {
 	r := sytralrt.SetupRouter(manager, nil)
 	go RefreshLoop(manager, config.DeparturesURI, config.DeparturesRefresh)
 
-	r.Run()
+	err = r.Run()
+	if err != nil {
+		logrus.Fatalf("Impossible to start gin: %s", err)
+	}
 
 }
 

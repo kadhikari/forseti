@@ -70,7 +70,7 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 		Auth: []ssh.AuthMethod{
 			ssh.Password(password),
 		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
 	}
 
 	sshClient, err := ssh.Dial("tcp", uri.Host, sshConfig)

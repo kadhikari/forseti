@@ -1,5 +1,6 @@
 FROM alpine
 WORKDIR /app/
+RUN  apk add --no-cache curl
 ADD sytral-rt .
 HEALTHCHECK --interval=10s --timeout=3s CMD curl -f http://localhost:8080/status || exit 1
 ENV GIN_MODE=release

@@ -56,6 +56,12 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func StatusHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	}
+}
+
 func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
@@ -65,6 +71,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.Use(gin.Recovery())
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/departures", DeparturesHandler(manager))
+	r.GET("/status", StatusHandler(manager))
 
 	return r
 }

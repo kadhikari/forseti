@@ -2,6 +2,7 @@ package sytralrt
 
 import (
 	"fmt"
+	"sync"
 	"time"
 )
 
@@ -38,10 +39,17 @@ func NewDeparture(record []string, location *time.Location) (Departure, error) {
 
 type DataManager struct {
 	departures *map[string][]Departure
+	lastUpdate time.Time
+
+	mutex sync.Mutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
 	d.departures = &departures
+	d.lastUpdate = time.Now()
 }
 
 func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {

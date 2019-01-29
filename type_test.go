@@ -47,3 +47,17 @@ func TestNewDepartureInvalidDate(t *testing.T) {
 	_, err = NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 25:28:00", "3"}, location)
 	require.Error(err)
 }
+
+func TestDataManagerLastUpdate(t *testing.T) {
+	require := require.New(t)
+	begin := time.Now()
+
+	var manager DataManager
+	manager.UpdateDepartures(nil)
+
+	lastDataUpdate := manager.lastUpdate
+	require.True(lastDataUpdate.After(begin))
+
+	manager.UpdateDepartures(nil)
+	require.True(manager.lastUpdate.After(lastDataUpdate))
+}

@@ -16,6 +16,12 @@ type DeparturesResponse struct {
 	Departures *[]Departure `json:"departures,omitempty"` // the pointer allow us to display an empty array in json
 }
 
+// StatusResponse defines the object returned by the /status endpoint
+type StatusResponse struct {
+	Status         string    `json:"status,omitemty"`
+	LastDataUpdate time.Time `json:last_data_update`
+}
+
 var (
 	httpDurations = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "sytralrt",
@@ -58,7 +64,11 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 
 func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
+		resp := StatusResponse{
+			"ok",
+			manager.lastUpdate,
+		}
+		c.JSON(200, resp)
 	}
 }
 

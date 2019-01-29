@@ -79,7 +79,7 @@ func TestStatusApiExist(t *testing.T) {
 	var manager DataManager
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
+	SetupRouter(&manager, engine)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
@@ -108,6 +108,7 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 
 	var response StatusResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
 	require.Equal(response.Status, "ok")
 	require.True(response.LastDataUpdate.After(startTime))
 	require.True(response.LastDataUpdate.Before(time.Now()))

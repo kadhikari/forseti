@@ -40,8 +40,7 @@ func NewDeparture(record []string, location *time.Location) (Departure, error) {
 type DataManager struct {
 	departures *map[string][]Departure
 	lastUpdate time.Time
-
-	mutex sync.Mutex
+	mutex      sync.Mutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {

@@ -66,7 +66,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(200, StatusResponse{
 			"ok",
-			manager.lastUpdate,
+			manager.GetLastDataUpdate(),
 		})
 	}
 }

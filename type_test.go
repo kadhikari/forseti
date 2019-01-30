@@ -55,11 +55,11 @@ func TestDataManagerLastUpdate(t *testing.T) {
 	var manager DataManager
 	manager.UpdateDepartures(nil)
 
-	lastDataUpdate := manager.lastUpdate
-	require.True(lastDataUpdate.After(begin))
+	lastDepartureUpdate := manager.lastDepartureUpdate
+	require.True(lastDepartureUpdate.After(begin))
 
 	manager.UpdateDepartures(nil)
-	require.True(manager.lastUpdate.After(lastDataUpdate))
+	require.True(manager.lastDepartureUpdate.After(lastDepartureUpdate))
 }
 
 func TestNewParking(t *testing.T) {

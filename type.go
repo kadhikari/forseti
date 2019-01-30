@@ -144,32 +144,36 @@ func (p *parkingLineConsumer) consume(line []string, loc *time.Location) error {
 func (p *parkingLineConsumer) terminate() {}
 
 type DataManager struct {
-	departures *map[string][]Departure
-	lastUpdate time.Time
-	mutex      sync.RWMutex
+	departures          *map[string][]Departure
+	lastDepartureUpdate time.Time
+	departuresMutex     sync.RWMutex
+
+	parkings          *map[string]Parking
+	lastParkingUpdate time.Time
+	parkingsMutex     sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
 
 	d.departures = &departures
-	d.lastUpdate = time.Now()
+	d.lastDepartureUpdate = time.Now()
 }
 
-func (d *DataManager) GetLastDataUpdate() time.Time {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
+func (d *DataManager) GetLastDepartureDataUpdate() time.Time {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
 
-	return d.lastUpdate
+	return d.lastDepartureUpdate
 }
 
 func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {
 
 	var departures []Departure
 	{
-		d.mutex.RLock()
-		defer d.mutex.RUnlock()
+		d.departuresMutex.RLock()
+		defer d.departuresMutex.RUnlock()
 
 		if d.departures == nil {
 			return []Departure{}, fmt.Errorf("no departures")
@@ -183,4 +187,42 @@ func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {
 		return []Departure{}, nil
 	}
 	return departures, nil
+}
+
+func (d *DataManager) UpdateParkings(parkings map[string]Parking) {
+	d.parkingsMutex.Lock()
+	defer d.parkingsMutex.Unlock()
+
+	d.parkings = &parkings
+	d.lastParkingUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastParkingsDataUpdate() time.Time {
+	d.parkingsMutex.RLock()
+	defer d.parkingsMutex.RUnlock()
+
+	return d.lastParkingUpdate
+}
+
+func (d *DataManager) GetParkingById(id string) (*Parking, error) {
+	var (
+		parking Parking
+		found   bool
+	)
+	{
+		d.parkingsMutex.RLock()
+		defer d.parkingsMutex.RUnlock()
+
+		if d.parkings == nil {
+			return nil, fmt.Errorf("no parkings in the data")
+		}
+
+		parking, found = (*d.parkings)[id]
+	}
+
+	if found == false {
+		return nil, fmt.Errorf("No parkings found with id: %s", id)
+	}
+
+	return &parking, nil
 }

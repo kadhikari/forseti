@@ -21,21 +21,36 @@ var (
 		Name:      "load_durations_seconds",
 		Help:      "http request latency distributions.",
 		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	},
-	)
+	})
 
 	departureLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "sytralrt",
 		Subsystem: "departures",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
-	},
-	)
+	})
+
+	parkingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "sytralrt",
+		Subsystem: "parkings",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	})
+
+	parkingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "sytralrt",
+		Subsystem: "parkings",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	})
 )
 
 func init() {
 	prometheus.MustRegister(departureLoadingDuration)
 	prometheus.MustRegister(departureLoadingErrors)
+	prometheus.MustRegister(parkingsLoadingDuration)
+	prometheus.MustRegister(parkingsLoadingErrors)
 }
 
 func getFile(uri url.URL) (io.Reader, error) {
@@ -156,12 +171,37 @@ func RefreshDepartures(manager *DataManager, uri url.URL) error {
 	}
 
 	departureConsumer := makeDepartureLineConsumer()
-	err = LoadData(file, departureConsumer)
-	if err != nil {
+	if err = LoadData(file, departureConsumer); err != nil {
 		departureLoadingErrors.Inc()
 		return err
 	}
 	manager.UpdateDepartures(departureConsumer.data)
 	departureLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func RefreshParkings(manager *DataManager, uri url.URL) error {
+	begin := time.Now()
+	file, err := getFile(uri)
+	if err != nil {
+		parkingsLoadingErrors.Inc()
+		return err
+	}
+
+	parkingsConsumer := makeParkingLineConsumer()
+	loadDataOptions := LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      0,    // We might not have etereogenous lines
+		skipFirstLine: true, // First line is a header
+	}
+	err = LoadDataWithOptions(file, parkingsConsumer, loadDataOptions)
+	if err != nil {
+		parkingsLoadingErrors.Inc()
+		return err
+	}
+
+	manager.UpdateParkings(parkingsConsumer.parkings)
+	parkingsLoadingDuration.Observe(time.Since(begin).Seconds())
+
 	return nil
 }

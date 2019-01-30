@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -71,4 +72,44 @@ func TestDeparturesApi(t *testing.T) {
 	assert.Empty(response.Message)
 	require.NotNil(response.Departures)
 	require.Empty(response.Departures)
+}
+
+func TestStatusApiExist(t *testing.T) {
+	require := require.New(t)
+	var manager DataManager
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	SetupRouter(&manager, engine)
+
+	c.Request = httptest.NewRequest("GET", "/status", nil)
+	w := httptest.NewRecorder()
+	require.Equal(200, w.Code)
+}
+
+func TestStatusApiHasLastUpdateTime(t *testing.T) {
+	startTime := time.Now()
+	assert := assert.New(t)
+	require := require.New(t)
+	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
+	require.Nil(err)
+
+	var manager DataManager
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	err = RefreshDepartures(&manager, *firstURI)
+	assert.Nil(err)
+
+	c.Request = httptest.NewRequest("GET", "/status", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var response StatusResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.Equal(response.Status, "ok")
+	require.True(response.LastDataUpdate.After(startTime))
+	require.True(response.LastDataUpdate.Before(time.Now()))
 }

@@ -98,15 +98,31 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 
 }
 
+type LoadDataOptions struct {
+	skipFirstLine bool
+	delimiter     rune
+	nbFields      int
+}
+
 func LoadData(file io.Reader, lineConsumer lineConsumer) error {
+
+	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      8,
+		skipFirstLine: false,
+	})
+}
+
+func LoadDataWithOptions(file io.Reader, lineConsumer lineConsumer, options LoadDataOptions) error {
+
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
 		return err
 	}
 
 	reader := csv.NewReader(file)
-	reader.Comma = ';'
-	reader.FieldsPerRecord = 8
+	reader.Comma = options.delimiter
+	reader.FieldsPerRecord = options.nbFields
 
 	// Loop through lines & turn into object
 	for {
@@ -115,6 +131,11 @@ func LoadData(file io.Reader, lineConsumer lineConsumer) error {
 			break
 		} else if err != nil {
 			return err
+		}
+
+		if options.skipFirstLine {
+			options.skipFirstLine = false
+			continue
 		}
 
 		if err := lineConsumer.consume(line, location); err != nil {
@@ -134,14 +155,13 @@ func RefreshDepartures(manager *DataManager, uri url.URL) error {
 		return err
 	}
 
-	departureReader := makeDepartureLineConsumer()
-
-	err = LoadData(file, departureReader)
+	departureConsumer := makeDepartureLineConsumer()
+	err = LoadData(file, departureConsumer)
 	if err != nil {
 		departureLoadingErrors.Inc()
 		return err
 	}
-	manager.UpdateDepartures(departureReader.data)
+	manager.UpdateDepartures(departureConsumer.data)
 	departureLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

@@ -124,11 +124,11 @@ func NewParking(record []string, location *time.Location) (*Parking, error) {
 
 // ParkingLineConsumer constructs a parking from a slice of strings
 type parkingLineConsumer struct {
-	data map[string][]Parking
+	parkings map[string]Parking
 }
 
 func makeParkingLineConsumer() *parkingLineConsumer {
-	return &parkingLineConsumer{make(map[string][]Parking)}
+	return &parkingLineConsumer{make(map[string]Parking)}
 }
 
 func (p *parkingLineConsumer) consume(line []string, loc *time.Location) error {
@@ -137,7 +137,7 @@ func (p *parkingLineConsumer) consume(line []string, loc *time.Location) error {
 		return err
 	}
 
-	p.data[parking.ID] = append(p.data[parking.ID], *parking)
+	p.parkings[parking.ID] = *parking
 	return nil
 }
 

@@ -64,11 +64,10 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 
 func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		resp := StatusResponse{
+		c.JSON(200, StatusResponse{
 			"ok",
-			manager.lastUpdate,
-		}
-		c.JSON(200, resp)
+			manager.GetLastDataUpdate(),
+		})
 	}
 }
 

@@ -146,8 +146,7 @@ func (p *parkingLineConsumer) terminate() {}
 type DataManager struct {
 	departures *map[string][]Departure
 	lastUpdate time.Time
-
-	mutex sync.Mutex
+	mutex      sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -158,11 +157,27 @@ func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
 	d.lastUpdate = time.Now()
 }
 
+func (d *DataManager) GetLastDataUpdate() time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.lastUpdate
+}
+
 func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {
-	if d.departures == nil {
-		return []Departure{}, fmt.Errorf("no departures")
+
+	var departures []Departure
+	{
+		d.mutex.RLock()
+		defer d.mutex.RUnlock()
+
+		if d.departures == nil {
+			return []Departure{}, fmt.Errorf("no departures")
+		}
+
+		departures = (*d.departures)[stopID]
 	}
-	departures := (*d.departures)[stopID]
+
 	if departures == nil {
 		//there is no departures for this stop, we return an empty slice
 		return []Departure{}, nil

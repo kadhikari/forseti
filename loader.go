@@ -99,13 +99,44 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 
 }
 
-func LoadData(file io.Reader) (map[string][]Departure, error) {
-	location, err := time.LoadLocation("Europe/Paris")
+type lineConsumer interface {
+	consume([]string, *time.Location) error
+	terminate()
+}
+
+type departureLineConsumer struct {
+	data map[string][]Departure
+}
+
+func makeDepartureLineConsumer() *departureLineConsumer {
+	return &departureLineConsumer{make(map[string][]Departure)}
+}
+
+func (p *departureLineConsumer) consume(line []string, loc *time.Location) error {
+
+	departure, err := NewDeparture(line, loc)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	data := make(map[string][]Departure)
+	p.data[departure.Stop] = append(p.data[departure.Stop], departure)
+	return nil
+}
+
+func (p *departureLineConsumer) terminate() {
+	//sort the departures
+	for _, v := range p.data {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Datetime.Before(v[j].Datetime)
+		})
+	}
+}
+
+func LoadData(file io.Reader, lineConsumer lineConsumer) error {
+	location, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		return err
+	}
 
 	reader := csv.NewReader(file)
 	reader.Comma = ';'
@@ -117,22 +148,16 @@ func LoadData(file io.Reader) (map[string][]Departure, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return nil, err
+			return err
 		}
-		departure, err := NewDeparture(line, location)
-		if err != nil {
-			return nil, err
+
+		if err := lineConsumer.consume(line, location); err != nil {
+			return err
 		}
-		data[departure.Stop] = append(data[departure.Stop], departure)
 	}
 
-	//sort the departure
-	for _, v := range data {
-		sort.Slice(v, func(i, j int) bool {
-			return v[i].Datetime.Before(v[j].Datetime)
-		})
-	}
-	return data, nil
+	lineConsumer.terminate()
+	return nil
 }
 
 func RefreshDepartures(manager *DataManager, uri url.URL) error {
@@ -142,12 +167,15 @@ func RefreshDepartures(manager *DataManager, uri url.URL) error {
 		departureLoadingErrors.Inc()
 		return err
 	}
-	d, err := LoadData(file)
+
+	departureReader := makeDepartureLineConsumer()
+
+	err = LoadData(file, departureReader)
 	if err != nil {
 		departureLoadingErrors.Inc()
 		return err
 	}
-	manager.UpdateDepartures(d)
+	manager.UpdateDepartures(departureReader.data)
 	departureLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

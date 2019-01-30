@@ -134,7 +134,9 @@ func TestLoadData(t *testing.T) {
 	reader, err := getFileWithFS(*uri)
 	require.Nil(t, err)
 
-	departures, err := LoadData(reader)
+	consumer := makeDepartureLineConsumer()
+	departures := consumer.data
+	err = LoadData(reader, consumer)
 	require.Nil(t, err)
 	assert.Len(t, departures, 1)
 
@@ -156,7 +158,9 @@ func TestLoadFull(t *testing.T) {
 	reader, err := getFileWithFS(*uri)
 	require.Nil(t, err)
 
-	departures, err := LoadData(reader)
+	consumer := makeDepartureLineConsumer()
+	departures := consumer.data
+	err = LoadData(reader, consumer)
 	require.Nil(t, err)
 	assert.Len(t, departures, 347)
 
@@ -223,7 +227,7 @@ func TestRefreshDataError(t *testing.T) {
 	reader, err := getFile(*misssingFieldURI)
 	require.Nil(t, err)
 
-	_, err = LoadData(reader)
+	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
 	err = RefreshDepartures(&manager, *firstURI)
@@ -247,7 +251,7 @@ func TestRefreshDataError(t *testing.T) {
 
 	reader, err = getFile(*invalidDateURI)
 	require.Nil(t, err)
-	_, err = LoadData(reader)
+	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
 	err = RefreshDepartures(&manager, *invalidDateURI)

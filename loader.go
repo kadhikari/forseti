@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -97,39 +96,6 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 	}
 	return &buffer, nil
 
-}
-
-type lineConsumer interface {
-	consume([]string, *time.Location) error
-	terminate()
-}
-
-type departureLineConsumer struct {
-	data map[string][]Departure
-}
-
-func makeDepartureLineConsumer() *departureLineConsumer {
-	return &departureLineConsumer{make(map[string][]Departure)}
-}
-
-func (p *departureLineConsumer) consume(line []string, loc *time.Location) error {
-
-	departure, err := NewDeparture(line, loc)
-	if err != nil {
-		return err
-	}
-
-	p.data[departure.Stop] = append(p.data[departure.Stop], departure)
-	return nil
-}
-
-func (p *departureLineConsumer) terminate() {
-	//sort the departures
-	for _, v := range p.data {
-		sort.Slice(v, func(i, j int) bool {
-			return v[i].Datetime.Before(v[j].Datetime)
-		})
-	}
 }
 
 func LoadData(file io.Reader, lineConsumer lineConsumer) error {

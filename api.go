@@ -19,7 +19,7 @@ type DeparturesResponse struct {
 // StatusResponse defines the object returned by the /status endpoint
 type StatusResponse struct {
 	Status         string    `json:"status,omitemty"`
-	LastDataUpdate time.Time `json:last_data_update`
+	LastDataUpdate time.Time `json:"last_data_update"`
 }
 
 var (

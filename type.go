@@ -204,25 +204,24 @@ func (d *DataManager) GetLastParkingsDataUpdate() time.Time {
 	return d.lastParkingUpdate
 }
 
-func (d *DataManager) GetParkingById(id string) (*Parking, error) {
-	var (
-		parking Parking
-		found   bool
-	)
+func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
+	var ok bool
 	{
 		d.parkingsMutex.RLock()
 		defer d.parkingsMutex.RUnlock()
 
 		if d.parkings == nil {
-			return nil, fmt.Errorf("no parkings in the data")
+			e = fmt.Errorf("No parkings in the data")
+			return
 		}
 
-		parking, found = (*d.parkings)[id]
+		parkings := *d.parkings
+		p, ok = parkings[id]
 	}
 
-	if found == false {
-		return nil, fmt.Errorf("No parkings found with id: %s", id)
+	if !ok {
+		e = fmt.Errorf("No parkings found with id: %s", id)
 	}
 
-	return &parking, nil
+	return p, e
 }

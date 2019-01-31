@@ -18,8 +18,9 @@ type DeparturesResponse struct {
 
 // StatusResponse defines the object returned by the /status endpoint
 type StatusResponse struct {
-	Status         string    `json:"status,omitemty"`
-	LastDataUpdate time.Time `json:"last_data_update"`
+	Status              string    `json:"status,omitemty"`
+	LastDepartureUpdate time.Time `json:"last_departure_update"`
+	LastParkingUpdate   time.Time `json:"last_parking_update"`
 }
 
 var (
@@ -67,6 +68,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 		c.JSON(200, StatusResponse{
 			"ok",
 			manager.GetLastDepartureDataUpdate(),
+			manager.GetLastParkingsDataUpdate(),
 		})
 	}
 }

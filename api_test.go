@@ -92,6 +92,8 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	require := require.New(t)
 	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
 	require.Nil(err)
+	parkingURI, err := url.Parse(fmt.Sprintf("file://%s/parkings.txt", fixtureDir))
+	require.Nil(err)
 
 	var manager DataManager
 
@@ -99,6 +101,9 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	engine = SetupRouter(&manager, engine)
 
 	err = RefreshDepartures(&manager, *firstURI)
+	assert.Nil(err)
+
+	err = RefreshParkings(&manager, *parkingURI)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)
@@ -110,6 +115,8 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	assert.Equal(response.Status, "ok")
-	assert.True(response.LastDataUpdate.After(startTime))
-	assert.True(response.LastDataUpdate.Before(time.Now()))
+	assert.True(response.LastDepartureUpdate.After(startTime))
+	assert.True(response.LastDepartureUpdate.Before(time.Now()))
+	assert.True(response.LastParkingUpdate.After(startTime))
+	assert.True(response.LastParkingUpdate.Before(time.Now()))
 }

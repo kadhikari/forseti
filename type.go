@@ -204,6 +204,17 @@ func (d *DataManager) GetLastParkingsDataUpdate() time.Time {
 	return d.lastParkingUpdate
 }
 
+func (d *DataManager) GetParkingsByIds(ids []string) (parkings []Parking, errors []error) {
+	for _, id := range ids {
+		if p, err := d.GetParkingById(id); err == nil {
+			parkings = append(parkings, p)
+		} else {
+			errors = append(errors, err)
+		}
+	}
+	return
+}
+
 func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	var ok bool
 	{

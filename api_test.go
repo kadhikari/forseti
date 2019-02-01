@@ -3,6 +3,7 @@ package sytralrt
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -119,4 +120,41 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	assert.True(response.LastDepartureUpdate.Before(time.Now()))
 	assert.True(response.LastParkingUpdate.After(startTime))
 	assert.True(response.LastParkingUpdate.Before(time.Now()))
+}
+
+func TestParkingsAPI(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	updateTime, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 19:29:00", loc)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateParkings(map[string]Parking{
+		"riri":   {"Riri", "First of the name", updateTime, 1, 2, 3, 4},
+		"fifi":   {"Fifi", "Second of the name", updateTime, 1, 2, 3, 4},
+		"loulou": {"Loulou", "Third of the name", updateTime, 1, 2, 3, 4},
+		"donald": {"Donald", "Donald THE Duck", updateTime, 1, 2, 3, 4},
+	})
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	c.Request = httptest.NewRequest("GET", "/parkings/P+R?ids[]=donald&ids[]=picsou&ids[]=fifi", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(http.StatusOK, w.Code)
+
+	response := ParkingsResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+
+	require.Len(response.Parkings, 2)
+	assert.Equal("Donald", response.Parkings[0].ID)
+	assert.Equal("Fifi", response.Parkings[1].ID)
+
+	require.Len(response.Errors, 1)
+	assert.Contains(response.Errors[0], "picsou")
 }

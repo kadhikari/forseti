@@ -1,6 +1,7 @@
 package sytralrt
 
 import (
+	"net/http"
 	"strconv"
 	"time"
 
@@ -21,6 +22,12 @@ type StatusResponse struct {
 	Status              string    `json:"status,omitemty"`
 	LastDepartureUpdate time.Time `json:"last_departure_update"`
 	LastParkingUpdate   time.Time `json:"last_parking_update"`
+}
+
+// ParkingsResponse defines the structure returned by the /parkings endpoint
+type ParkingsResponse struct {
+	Parkings []Parking `json:"parkings,omitempty"`
+	Errors   []string  `json:"errors,omitempty"`
 }
 
 var (
@@ -49,27 +56,50 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 		stopID := c.Query("stop_id")
 		if stopID == "" {
 			response.Message = "stopID is required"
-			c.JSON(400, response)
+			c.JSON(http.StatusBadRequest, response)
 			return
 		}
 		departures, err := manager.GetDeparturesByStop(stopID)
 		if err != nil {
 			response.Message = "No data loaded"
-			c.JSON(503, response)
+			c.JSON(http.StatusServiceUnavailable, response)
 			return
 		}
 		response.Departures = &departures
-		c.JSON(200, response)
+		c.JSON(http.StatusOK, response)
 	}
 }
 
 func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		c.JSON(200, StatusResponse{
+		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
 		})
+	}
+}
+
+func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		ids, ok := c.GetQueryArray("ids[]")
+		if !ok {
+			// Display all parkings ?!
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": "no id provided. Please use /parkings/P+R?ids[]=1&ids[]=2",
+			})
+		} else {
+			parkings, errs := manager.GetParkingsByIds(ids)
+			var errStr []string
+			for _, e := range errs {
+				errStr = append(errStr, e.Error())
+			}
+			var resp = ParkingsResponse{
+				Parkings: parkings,
+				Errors:   errStr,
+			}
+			c.JSON(http.StatusOK, resp)
+		}
 	}
 }
 
@@ -83,6 +113,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
+	r.GET("/parkings/P+R", ParkingsHandler(manager))
 
 	return r
 }

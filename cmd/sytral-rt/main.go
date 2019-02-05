@@ -27,7 +27,7 @@ type Config struct {
 	LogLevel string `mapstructure:"log-level"`
 }
 
-func GetConfig() (Config, error) {
+func GetConfig() (Config, []error) {
 	pflag.String("departures-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://sytral:pass@172.17.0.3:22/extract_edylic.txt")
 	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
@@ -41,14 +41,14 @@ func GetConfig() (Config, error) {
 	var config Config
 	var err error
 	if err = viper.BindPFlags(pflag.CommandLine); err != nil {
-		return config, errors.Wrap(err, "Impossible to parse flags")
+		return config, []error{errors.Wrap(err, "Impossible to parse flags")}
 	}
 	viper.SetEnvPrefix("SYTRALRT")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 
 	if err = viper.Unmarshal(&config); err != nil {
-		return config, errors.Wrap(err, "Unmarshalling of flag failed")
+		return config, []error{errors.Wrap(err, "Unmarshalling of flag failed")}
 	}
 
 	parseURL := func(urlStr string) (*url.URL, error) {
@@ -63,20 +63,21 @@ func GetConfig() (Config, error) {
 		}
 	}
 
+	var errs []error
 	if config.DeparturesURI, err = parseURL(config.DeparturesURIStr); err != nil {
-		err = errors.Wrap(err, "Unable to parse departures data url")
+		errs = append(errs, errors.Wrap(err, "Unable to parse departures data url"))
 	}
 
 	if config.ParkingsURI, err = parseURL(config.ParkingsURIStr); err != nil {
-		err = errors.Wrap(err, "Unable to parse parkings data url")
+		errs = append(errs, errors.Wrap(err, "Unable to parse parkings data url"))
 	}
 
-	return config, err
+	return config, errs
 }
 
 func main() {
-	config, err := GetConfig()
-	if err != nil {
+	config, errs := GetConfig()
+	for _, err := range errs {
 		logrus.Fatalf("Impossible to load data at startup: %s", err)
 	}
 
@@ -84,7 +85,7 @@ func main() {
 	manager := &sytralrt.DataManager{}
 
 	if config.DeparturesURI != nil {
-		if err = sytralrt.RefreshDepartures(manager, *config.DeparturesURI); err != nil {
+		if err := sytralrt.RefreshDepartures(manager, *config.DeparturesURI); err != nil {
 			logrus.Errorf("Impossible to load departures data at startup: %s", err)
 		} else {
 			go RefreshDepartureLoop(manager, *config.DeparturesURI, config.DeparturesRefresh)
@@ -92,14 +93,14 @@ func main() {
 	}
 
 	if config.ParkingsURI != nil {
-		if err = sytralrt.RefreshParkings(manager, *config.ParkingsURI); err != nil {
+		if err := sytralrt.RefreshParkings(manager, *config.ParkingsURI); err != nil {
 			logrus.Errorf("Impossible to load parkings data at startup: %s", err)
 		} else {
 			go RefreshParkingLoop(manager, *config.ParkingsURI, config.ParkingsRefresh)
 		}
 	}
 
-	err = sytralrt.SetupRouter(manager, nil).Run()
+	err := sytralrt.SetupRouter(manager, nil).Run()
 	if err != nil {
 		logrus.Fatalf("Impossible to start gin: %s", err)
 	}

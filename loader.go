@@ -119,7 +119,7 @@ type LoadDataOptions struct {
 	nbFields      int
 }
 
-func LoadData(file io.Reader, lineConsumer lineConsumer) error {
+func LoadData(file io.Reader, lineConsumer LineConsumer) error {
 
 	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
 		delimiter:     ';',
@@ -128,7 +128,7 @@ func LoadData(file io.Reader, lineConsumer lineConsumer) error {
 	})
 }
 
-func LoadDataWithOptions(file io.Reader, lineConsumer lineConsumer, options LoadDataOptions) error {
+func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options LoadDataOptions) error {
 
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {

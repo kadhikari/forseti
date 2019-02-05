@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-type lineConsumer interface {
+type LineConsumer interface {
 	consume([]string, *time.Location) error
 	terminate()
 }
@@ -45,15 +45,15 @@ func NewDeparture(record []string, location *time.Location) (Departure, error) {
 }
 
 // DepartureLineConsumer constructs a departure from a slice of strings
-type departureLineConsumer struct {
+type DepartureLineConsumer struct {
 	data map[string][]Departure
 }
 
-func makeDepartureLineConsumer() *departureLineConsumer {
-	return &departureLineConsumer{make(map[string][]Departure)}
+func makeDepartureLineConsumer() *DepartureLineConsumer {
+	return &DepartureLineConsumer{make(map[string][]Departure)}
 }
 
-func (p *departureLineConsumer) consume(line []string, loc *time.Location) error {
+func (p *DepartureLineConsumer) consume(line []string, loc *time.Location) error {
 
 	departure, err := NewDeparture(line, loc)
 	if err != nil {
@@ -64,7 +64,7 @@ func (p *departureLineConsumer) consume(line []string, loc *time.Location) error
 	return nil
 }
 
-func (p *departureLineConsumer) terminate() {
+func (p *DepartureLineConsumer) terminate() {
 	//sort the departures
 	for _, v := range p.data {
 		sort.Slice(v, func(i, j int) bool {
@@ -123,15 +123,17 @@ func NewParking(record []string, location *time.Location) (*Parking, error) {
 }
 
 // ParkingLineConsumer constructs a parking from a slice of strings
-type parkingLineConsumer struct {
+type ParkingLineConsumer struct {
 	parkings map[string]Parking
 }
 
-func makeParkingLineConsumer() *parkingLineConsumer {
-	return &parkingLineConsumer{make(map[string]Parking)}
+func makeParkingLineConsumer() *ParkingLineConsumer {
+	return &ParkingLineConsumer{
+		parkings: make(map[string]Parking),
+	}
 }
 
-func (p *parkingLineConsumer) consume(line []string, loc *time.Location) error {
+func (p *ParkingLineConsumer) consume(line []string, loc *time.Location) error {
 	parking, err := NewParking(line, loc)
 	if err != nil {
 		return err
@@ -141,7 +143,7 @@ func (p *parkingLineConsumer) consume(line []string, loc *time.Location) error {
 	return nil
 }
 
-func (p *parkingLineConsumer) terminate() {}
+func (p *ParkingLineConsumer) terminate() {}
 
 type DataManager struct {
 	departures          *map[string][]Departure

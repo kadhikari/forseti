@@ -1,6 +1,7 @@
 package sytralrt
 
 import (
+	"sort"
 	"testing"
 	"time"
 
@@ -211,4 +212,30 @@ func TestDataManagerCanPartiallyGetParkingByIds(t *testing.T) {
 
 	require.Len(errs, 1)
 	assert.Error(errs[0])
+}
+
+func TestDataManagerGetParking(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	updateTime, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 19:29:00", loc)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateParkings(map[string]Parking{
+		"riri":   {"Riri", "First of the name", updateTime, 1, 2, 3, 4},
+		"fifi":   {"Fifi", "Second of the name", updateTime, 1, 2, 3, 4},
+		"loulou": {"Loulou", "Third of the name", updateTime, 1, 2, 3, 4},
+	})
+
+	parkings, err := manager.GetParkings()
+	require.Nil(err)
+	require.Len(parkings, 3)
+
+	sort.Sort(ByParkingId(parkings))
+	assert.Equal("Fifi", parkings[0].ID)
+	assert.Equal("Loulou", parkings[1].ID)
+	assert.Equal("Riri", parkings[2].ID)
 }

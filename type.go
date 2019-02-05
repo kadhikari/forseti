@@ -84,6 +84,12 @@ type Parking struct {
 	TotalAccessibleSpaces     int       `json:"total_space"`
 }
 
+type ByParkingId []Parking
+
+func (p ByParkingId) Len() int           { return len(p) }
+func (p ByParkingId) Less(i, j int) bool { return p[i].ID < p[j].ID }
+func (p ByParkingId) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
+
 // NewParking creates a new Parking object based on a line read from a CSV
 func NewParking(record []string, location *time.Location) (*Parking, error) {
 	if len(record) < 8 {
@@ -215,6 +221,29 @@ func (d *DataManager) GetParkingsByIds(ids []string) (parkings []Parking, errors
 		}
 	}
 	return
+}
+
+func (d *DataManager) GetParkings() (parkings []Parking, e error) {
+	var mapParkings map[string]Parking
+	{
+		d.parkingsMutex.RLock()
+		defer d.parkingsMutex.RUnlock()
+
+		if d.parkings == nil {
+			e = fmt.Errorf("No parkings in the data")
+			return
+		}
+
+		mapParkings = *d.parkings
+	}
+
+	// Convert Map of parkings to Slice !
+	parkings = make([]Parking, 0, len(mapParkings))
+	for _, p := range mapParkings {
+		parkings = append(parkings, p)
+	}
+
+	return parkings, nil
 }
 
 func (d *DataManager) GetParkingById(id string) (p Parking, e error) {

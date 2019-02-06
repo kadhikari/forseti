@@ -153,12 +153,12 @@ func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options Load
 			continue
 		}
 
-		if err := lineConsumer.consume(line, location); err != nil {
+		if err := lineConsumer.Consume(line, location); err != nil {
 			return err
 		}
 	}
 
-	lineConsumer.terminate()
+	lineConsumer.Terminate()
 	return nil
 }
 

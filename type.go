@@ -9,8 +9,8 @@ import (
 )
 
 type LineConsumer interface {
-	consume([]string, *time.Location) error
-	terminate()
+	Consume([]string, *time.Location) error
+	Terminate()
 }
 
 // Departure represent a departure for a public transport vehicle
@@ -53,7 +53,7 @@ func makeDepartureLineConsumer() *DepartureLineConsumer {
 	return &DepartureLineConsumer{make(map[string][]Departure)}
 }
 
-func (p *DepartureLineConsumer) consume(line []string, loc *time.Location) error {
+func (p *DepartureLineConsumer) Consume(line []string, loc *time.Location) error {
 
 	departure, err := NewDeparture(line, loc)
 	if err != nil {
@@ -64,7 +64,7 @@ func (p *DepartureLineConsumer) consume(line []string, loc *time.Location) error
 	return nil
 }
 
-func (p *DepartureLineConsumer) terminate() {
+func (p *DepartureLineConsumer) Terminate() {
 	//sort the departures
 	for _, v := range p.data {
 		sort.Slice(v, func(i, j int) bool {
@@ -139,7 +139,7 @@ func makeParkingLineConsumer() *ParkingLineConsumer {
 	}
 }
 
-func (p *ParkingLineConsumer) consume(line []string, loc *time.Location) error {
+func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 	parking, err := NewParking(line, loc)
 	if err != nil {
 		return err
@@ -149,7 +149,7 @@ func (p *ParkingLineConsumer) consume(line []string, loc *time.Location) error {
 	return nil
 }
 
-func (p *ParkingLineConsumer) terminate() {}
+func (p *ParkingLineConsumer) Terminate() {}
 
 type DataManager struct {
 	departures          *map[string][]Departure

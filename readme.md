@@ -28,7 +28,7 @@ Run
 ===
 Once you have build it it's fairly easy to run it:
 ```
-./sytral-rt --departures-uri file:///PATHTO/extract_edylic.txt
+./sytral-rt --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s 
 ```
 
 You can also use the pre-built docker image: navitia/sytralrt
@@ -37,8 +37,10 @@ How does it work
 ================
 The web api is powered by (gin)[https://github.com/gin-gonic/gin]
 Two routes are provided:
-  - /metrics that expose metrics in the prometheus text format
-  - /departures that return the next departures for a stop (parameter `stop_id`)
+  - `/status` exposes general information about the webservice  
+  - `/metrics` exposes metrics in the prometheus text format
+  - `/departures` returns the next departures for a stop (parameter `stop_id`)
+  - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
 
 One goroutine is handling the refresh of the data by downloading them every refresh-interval (default: 30s)
 and load them. Once these data have been loaded there is swap of pointer being done so that every new requests

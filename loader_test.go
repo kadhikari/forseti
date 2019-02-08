@@ -128,13 +128,15 @@ func TestGetSFTPFileError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestLoadData(t *testing.T) {
+func TestLoadDepartureData(t *testing.T) {
 	uri, err := url.Parse(fmt.Sprintf("file://%s/oneline.txt", fixtureDir))
 	require.Nil(t, err)
 	reader, err := getFileWithFS(*uri)
 	require.Nil(t, err)
 
-	departures, err := LoadData(reader)
+	consumer := makeDepartureLineConsumer()
+	departures := consumer.data
+	err = LoadData(reader, consumer)
 	require.Nil(t, err)
 	assert.Len(t, departures, 1)
 
@@ -156,7 +158,9 @@ func TestLoadFull(t *testing.T) {
 	reader, err := getFileWithFS(*uri)
 	require.Nil(t, err)
 
-	departures, err := LoadData(reader)
+	consumer := makeDepartureLineConsumer()
+	departures := consumer.data
+	err = LoadData(reader, consumer)
 	require.Nil(t, err)
 	assert.Len(t, departures, 347)
 
@@ -168,6 +172,40 @@ func TestLoadFull(t *testing.T) {
 	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures["3"][1].Datetime.String())
 	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures["3"][2].Datetime.String())
 	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures["3"][3].Datetime.String())
+}
+
+func TestLoadParkingData(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/parkings.txt", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
+	require.Nil(err)
+
+	consumer := makeParkingLineConsumer()
+	err = LoadDataWithOptions(reader, consumer, LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      0,
+		skipFirstLine: true,
+	})
+	require.Nil(err)
+
+	parkings := consumer.parkings
+	assert.Len(parkings, 19)
+	require.Contains(parkings, "DECC")
+
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	p := parkings["DECC"]
+	assert.Equal("DECC", p.ID)
+	assert.Equal("Décines Centre", p.Label)
+	assert.Equal(time.Date(2018, 9, 17, 19, 29, 0, 0, location), p.UpdatedTime)
+	assert.Equal(82, p.AvailableStandardSpaces)
+	assert.Equal(105, p.TotalStandardSpaces)
+	assert.Equal(0, p.AvailableAccessibleSpaces)
+	assert.Equal(3, p.TotalAccessibleSpaces)
 }
 
 func checkFirst(t *testing.T, departures []Departure) {
@@ -223,7 +261,7 @@ func TestRefreshDataError(t *testing.T) {
 	reader, err := getFile(*misssingFieldURI)
 	require.Nil(t, err)
 
-	_, err = LoadData(reader)
+	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
 	err = RefreshDepartures(&manager, *firstURI)
@@ -247,7 +285,7 @@ func TestRefreshDataError(t *testing.T) {
 
 	reader, err = getFile(*invalidDateURI)
 	require.Nil(t, err)
-	_, err = LoadData(reader)
+	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
 	err = RefreshDepartures(&manager, *invalidDateURI)

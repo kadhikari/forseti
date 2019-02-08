@@ -3,8 +3,10 @@ package sytralrt
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"sort"
 	"testing"
 	"time"
 
@@ -109,7 +111,112 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	var response StatusResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
-	require.Equal(response.Status, "ok")
-	require.True(response.LastDataUpdate.After(startTime))
-	require.True(response.LastDataUpdate.Before(time.Now()))
+	assert.Equal(response.Status, "ok")
+	assert.True(response.LastDepartureUpdate.After(startTime))
+	assert.True(response.LastDepartureUpdate.Before(time.Now()))
+}
+
+func TestStatusApiHasLastParkingUpdateTime(t *testing.T) {
+	startTime := time.Now()
+	assert := assert.New(t)
+	require := require.New(t)
+	parkingURI, err := url.Parse(fmt.Sprintf("file://%s/parkings.txt", fixtureDir))
+	require.Nil(err)
+
+	var manager DataManager
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	err = RefreshParkings(&manager, *parkingURI)
+	assert.Nil(err)
+
+	c.Request = httptest.NewRequest("GET", "/status", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var response StatusResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.True(response.LastParkingUpdate.After(startTime))
+	assert.True(response.LastParkingUpdate.Before(time.Now()))
+}
+
+func TestParkingsPRAPI(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	updateTime, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 19:29:00", loc)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateParkings(map[string]Parking{
+		"riri":   {"Riri", "First of the name", updateTime, 1, 2, 3, 4},
+		"fifi":   {"Fifi", "Second of the name", updateTime, 1, 2, 3, 4},
+		"loulou": {"Loulou", "Third of the name", updateTime, 1, 2, 3, 4},
+		"donald": {"Donald", "Donald THE Duck", updateTime, 1, 2, 3, 4},
+	})
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	c.Request = httptest.NewRequest("GET", "/parkings/P+R", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(http.StatusOK, w.Code)
+
+	response := ParkingsResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+
+	parkings := response.Parkings
+	sort.Sort(ByParkingResponseId(parkings))
+	require.Len(parkings, 4)
+	require.Len(response.Errors, 0)
+	assert.Equal("Donald", parkings[0].ID)
+	assert.Equal("Fifi", parkings[1].ID)
+	assert.Equal("Loulou", parkings[2].ID)
+	assert.Equal("Riri", parkings[3].ID)
+}
+
+func TestParkingsPRAPIwithParkingsID(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	updateTime, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 19:29:00", loc)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateParkings(map[string]Parking{
+		"riri":   {"Riri", "First of the name", updateTime, 1, 2, 3, 4},
+		"fifi":   {"Fifi", "Second of the name", updateTime, 1, 2, 3, 4},
+		"loulou": {"Loulou", "Third of the name", updateTime, 1, 2, 3, 4},
+		"donald": {"Donald", "Donald THE Duck", updateTime, 1, 2, 3, 4},
+	})
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	c.Request = httptest.NewRequest("GET", "/parkings/P+R?ids[]=donald&ids[]=picsou&ids[]=fifi", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(http.StatusOK, w.Code)
+
+	response := ParkingsResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+
+	parkings := response.Parkings
+	sort.Sort(ByParkingResponseId(parkings))
+	require.Len(parkings, 2)
+	assert.Equal("Donald", parkings[0].ID)
+	assert.Equal("Fifi", parkings[1].ID)
+
+	require.Len(response.Errors, 1)
+	assert.Contains(response.Errors[0], "picsou")
 }

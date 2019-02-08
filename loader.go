@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/url"
 	"os"
-	"sort"
 	"time"
 
 	"github.com/pkg/sftp"
@@ -22,21 +21,36 @@ var (
 		Name:      "load_durations_seconds",
 		Help:      "http request latency distributions.",
 		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	},
-	)
+	})
 
 	departureLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "sytralrt",
 		Subsystem: "departures",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
-	},
-	)
+	})
+
+	parkingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "sytralrt",
+		Subsystem: "parkings",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	})
+
+	parkingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "sytralrt",
+		Subsystem: "parkings",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	})
 )
 
 func init() {
 	prometheus.MustRegister(departureLoadingDuration)
 	prometheus.MustRegister(departureLoadingErrors)
+	prometheus.MustRegister(parkingsLoadingDuration)
+	prometheus.MustRegister(parkingsLoadingErrors)
 }
 
 func getFile(uri url.URL) (io.Reader, error) {
@@ -99,17 +113,31 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 
 }
 
-func LoadData(file io.Reader) (map[string][]Departure, error) {
+type LoadDataOptions struct {
+	skipFirstLine bool
+	delimiter     rune
+	nbFields      int
+}
+
+func LoadData(file io.Reader, lineConsumer LineConsumer) error {
+
+	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      8,
+		skipFirstLine: false,
+	})
+}
+
+func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options LoadDataOptions) error {
+
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	data := make(map[string][]Departure)
-
 	reader := csv.NewReader(file)
-	reader.Comma = ';'
-	reader.FieldsPerRecord = 8
+	reader.Comma = options.delimiter
+	reader.FieldsPerRecord = options.nbFields
 
 	// Loop through lines & turn into object
 	for {
@@ -117,22 +145,21 @@ func LoadData(file io.Reader) (map[string][]Departure, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return nil, err
+			return err
 		}
-		departure, err := NewDeparture(line, location)
-		if err != nil {
-			return nil, err
+
+		if options.skipFirstLine {
+			options.skipFirstLine = false
+			continue
 		}
-		data[departure.Stop] = append(data[departure.Stop], departure)
+
+		if err := lineConsumer.Consume(line, location); err != nil {
+			return err
+		}
 	}
 
-	//sort the departure
-	for _, v := range data {
-		sort.Slice(v, func(i, j int) bool {
-			return v[i].Datetime.Before(v[j].Datetime)
-		})
-	}
-	return data, nil
+	lineConsumer.Terminate()
+	return nil
 }
 
 func RefreshDepartures(manager *DataManager, uri url.URL) error {
@@ -142,12 +169,39 @@ func RefreshDepartures(manager *DataManager, uri url.URL) error {
 		departureLoadingErrors.Inc()
 		return err
 	}
-	d, err := LoadData(file)
-	if err != nil {
+
+	departureConsumer := makeDepartureLineConsumer()
+	if err = LoadData(file, departureConsumer); err != nil {
 		departureLoadingErrors.Inc()
 		return err
 	}
-	manager.UpdateDepartures(d)
+	manager.UpdateDepartures(departureConsumer.data)
 	departureLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func RefreshParkings(manager *DataManager, uri url.URL) error {
+	begin := time.Now()
+	file, err := getFile(uri)
+	if err != nil {
+		parkingsLoadingErrors.Inc()
+		return err
+	}
+
+	parkingsConsumer := makeParkingLineConsumer()
+	loadDataOptions := LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      0,    // We might not have etereogenous lines
+		skipFirstLine: true, // First line is a header
+	}
+	err = LoadDataWithOptions(file, parkingsConsumer, loadDataOptions)
+	if err != nil {
+		parkingsLoadingErrors.Inc()
+		return err
+	}
+
+	manager.UpdateParkings(parkingsConsumer.parkings)
+	parkingsLoadingDuration.Observe(time.Since(begin).Seconds())
+
 	return nil
 }

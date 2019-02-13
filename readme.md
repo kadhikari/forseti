@@ -45,3 +45,9 @@ Two routes are provided:
 One goroutine is handling the refresh of the data by downloading them every refresh-interval (default: 30s)
 and load them. Once these data have been loaded there is swap of pointer being done so that every new requests
 will get the new dataset.
+
+General Architecture
+================
+SytralRT is a webservice that is meant to be integrated as part of [Navitia](https://www.navitia.io) as follow: 
+
+![artchitecture](doc/architecture.png)

@@ -1,9 +1,15 @@
 package sytralrt
 
 import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
+	"os"
 	"sort"
 	"testing"
 	"time"
+
+	"encoding/xml"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -238,4 +244,76 @@ func TestDataManagerGetParking(t *testing.T) {
 	assert.Equal("Fifi", parkings[0].ID)
 	assert.Equal("Loulou", parkings[1].ID)
 	assert.Equal("Riri", parkings[2].ID)
+}
+
+func TestData(t *testing.T) {
+	assert := assert.New(t)
+
+	xmlFile, err := os.Open("/home/kadhikari/partage/temp/NET_ACCESS.XML")
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+		return
+	}
+	defer xmlFile.Close()
+	XMLdata, err := ioutil.ReadAll(xmlFile)
+	assert.Nil(err)
+
+	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
+	decoder.CharsetReader = getCharsetReader
+
+	var root Root
+	err = decoder.Decode(&root)
+	assert.Nil(err)
+
+	assert.Equal(len(root.Data.Lines), 8)
+}
+
+func TestNewEquipment(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	readLine := []string{"821", "direction Gare de Vaise, accès Gare Routière ou Parc Relais", "ASCENSEUR", "Problème technique",
+		"Accès impossible direction Gare de Vaise.", "2018-09-14", "2018-09-14", "13:00:00"}
+
+	e, err := NewEquipment(readLine, location)
+	require.Nil(err)
+	require.NotNil(e)
+
+	assert.Equal("821", e.ID)
+	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", e.Name)
+	assert.Equal("ASCENSEUR", e.EmbeddedType)
+	assert.Equal("Problème technique", e.Cause)
+	assert.Equal("Accès impossible direction Gare de Vaise.", e.Effect)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.Start)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.End)
+	assert.Equal("13:00:00", e.Hour)
+}
+
+func TestDataManagerGetEquipments(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	start, err := time.ParseInLocation("2006-01-02", "2018-09-17", loc)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateEquipments(map[string]Equipment{
+		"toto": {"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", start, start, "13:00:00"},
+		"tata": {"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", start, start, "13:00:00"},
+		"titi": {"titi", "titi paris", "ASCENSEUR", "Problème technique", "Accès", start, start, "13:00:00"},
+	})
+
+	equipments, err := manager.GetEquipments()
+	require.Nil(err)
+	require.Len(equipments, 3)
+
+	sort.Sort(ByEquipmentId(equipments))
+	assert.Equal("tata", equipments[0].ID)
+	assert.Equal("titi", equipments[1].ID)
+	assert.Equal("toto", equipments[2].ID)
 }

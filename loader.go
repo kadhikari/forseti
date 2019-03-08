@@ -3,8 +3,10 @@ package sytralrt
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/url"
 	"os"
 	"time"
@@ -12,6 +14,7 @@ import (
 	"github.com/pkg/sftp"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
+	"golang.org/x/text/encoding/charmap"
 )
 
 var (
@@ -44,6 +47,21 @@ var (
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
+
+	equipmentsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "sytralrt",
+		Subsystem: "equipments",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	})
+
+	equipmentsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "sytralrt",
+		Subsystem: "equipments",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	})
 )
 
 func init() {
@@ -51,6 +69,8 @@ func init() {
 	prometheus.MustRegister(departureLoadingErrors)
 	prometheus.MustRegister(parkingsLoadingDuration)
 	prometheus.MustRegister(parkingsLoadingErrors)
+	prometheus.MustRegister(equipmentsLoadingDuration)
+	prometheus.MustRegister(equipmentsLoadingErrors)
 }
 
 func getFile(uri url.URL) (io.Reader, error) {
@@ -162,6 +182,43 @@ func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options Load
 	return nil
 }
 
+func LoadXmlData(file io.Reader, lineConsumer LineConsumer) error {
+
+	location, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		return err
+	}
+
+	XMLdata, err := ioutil.ReadAll(file)
+	if err != nil {
+		return err
+	}
+	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
+	decoder.CharsetReader = getCharsetReader
+
+	var root Root
+	err = decoder.Decode(&root)
+	if err != nil {
+		return err
+	}
+
+	// for each root.Data.Lines.Stations create an object Equipment
+	for i := 0; i < len(root.Data.Lines); i++ {
+		for j := 0; j < len(root.Data.Lines[i].Stations); j++ {
+			for k := 0; k < len(root.Data.Lines[i].Stations[j].Equipments); k++ {
+				ed := root.Data.Lines[i].Stations[j].Equipments[k]
+				line := []string{ed.ID, ed.Name, ed.Type, ed.Cause, ed.Effect, ed.Start, ed.End, ed.Hour}
+				if err := lineConsumer.Consume(line, location); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	lineConsumer.Terminate()
+	return nil
+}
+
 func RefreshDepartures(manager *DataManager, uri url.URL) error {
 	begin := time.Now()
 	file, err := getFile(uri)
@@ -203,5 +260,33 @@ func RefreshParkings(manager *DataManager, uri url.URL) error {
 	manager.UpdateParkings(parkingsConsumer.parkings)
 	parkingsLoadingDuration.Observe(time.Since(begin).Seconds())
 
+	return nil
+}
+
+func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
+	if charset == "ISO-8859-1" {
+		return charmap.ISO8859_1.NewDecoder().Reader(input), nil
+	}
+
+	return nil, fmt.Errorf("Unknown Charset")
+}
+
+func RefreshEquipments(manager *DataManager, uri url.URL) error {
+	begin := time.Now()
+	file, err := getFile(uri)
+	if err != nil {
+		equipmentsLoadingErrors.Inc()
+		return err
+	}
+
+	equipmentConsumer := makeEquipmentLineConsumer()
+
+	err = LoadXmlData(file, equipmentConsumer)
+	if err != nil {
+		equipmentsLoadingErrors.Inc()
+		return err
+	}
+	manager.UpdateEquipments(equipmentConsumer.equipments)
+	equipmentsLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

@@ -1,6 +1,7 @@
 package sytralrt
 
 import (
+	"encoding/xml"
 	"fmt"
 	"sort"
 	"strconv"
@@ -151,6 +152,105 @@ func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 
 func (p *ParkingLineConsumer) Terminate() {}
 
+// Temporary structures used only to read FLUX xml for equipments:
+type Root struct {
+	XMLName xml.Name   `xml:"root"`
+	Data    Equipments `xml:"donnees"`
+}
+
+type Equipments struct {
+	XMLName xml.Name `xml:"donnees"`
+	Lines   []Line   `xml:"ligne"`
+}
+
+type Line struct {
+	XMLName  xml.Name  `xml:"ligne"`
+	Code     string    `xml:"code,attr"`
+	Label    string    `xml:"libelle,attr"`
+	Stations []Station `xml:"station"`
+}
+
+type Station struct {
+	XMLName    xml.Name           `xml:"station"`
+	Equipments []EquipementSource `xml:"equipement"`
+}
+
+type EquipementSource struct {
+	XMLName xml.Name `xml:"equipement"`
+	Type    string   `xml:"type,attr"`
+	ID      string   `xml:"code_client,attr"`
+	Name    string   `xml:"nom_client,attr"`
+	Cause   string   `xml:"cause,attr"`
+	Effect  string   `xml:"consequence,attr"`
+	Start   string   `xml:"date_debut_indisponibilite,attr"`
+	End     string   `xml:"date_remise_service,attr"`
+	Hour    string   `xml:"heure_remise_service,attr"`
+}
+
+// Equipment defines details of equipments in each StopArea
+type Equipment struct {
+	ID           string
+	Name         string
+	EmbeddedType string
+	Cause        string
+	Effect       string
+	Start        time.Time
+	End          time.Time
+	Hour         string
+}
+
+type ByEquipmentId []Equipment
+
+func (e ByEquipmentId) Len() int           { return len(e) }
+func (e ByEquipmentId) Less(i, j int) bool { return e[i].ID < e[j].ID }
+func (e ByEquipmentId) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+
+// NewEquipment creates a new Parking object based on a line read from a CSV
+func NewEquipment(record []string, location *time.Location) (*Equipment, error) {
+	start, err := time.ParseInLocation("2006-01-02", record[5], location)
+	if err != nil {
+		return nil, err
+	}
+	end, err := time.ParseInLocation("2006-01-02", record[6], location)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Equipment{
+		ID:           record[0],
+		Name:         record[1],
+		EmbeddedType: record[2],
+		Cause:        record[3],
+		Effect:       record[4],
+		Start:        start,
+		End:          end,
+		Hour:         record[7],
+	}, nil
+}
+
+// ParkingLineConsumer constructs a parking from a slice of strings
+type EquipmentLineConsumer struct {
+	equipments map[string]Equipment
+}
+
+func makeEquipmentLineConsumer() *EquipmentLineConsumer {
+	return &EquipmentLineConsumer{
+		equipments: make(map[string]Equipment),
+	}
+}
+
+func (e *EquipmentLineConsumer) Consume(line []string, loc *time.Location) error {
+	equipment, err := NewEquipment(line, loc)
+	if err != nil {
+		return err
+	}
+
+	e.equipments[equipment.ID] = *equipment
+	return nil
+}
+
+func (p *EquipmentLineConsumer) Terminate() {}
+
 type DataManager struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
@@ -159,6 +259,10 @@ type DataManager struct {
 	parkings          *map[string]Parking
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
+
+	equipments          *map[string]Equipment
+	lastEquipmentUpdate time.Time
+	equipmentsMutex     sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -266,4 +370,42 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	}
 
 	return p, e
+}
+
+func (d *DataManager) UpdateEquipments(equipments map[string]Equipment) {
+	d.equipmentsMutex.Lock()
+	defer d.equipmentsMutex.Unlock()
+
+	d.equipments = &equipments
+	d.lastEquipmentUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
+	d.equipmentsMutex.RLock()
+	defer d.equipmentsMutex.RUnlock()
+
+	return d.lastEquipmentUpdate
+}
+
+func (d *DataManager) GetEquipments() (equipments []Equipment, e error) {
+	var mapequipments map[string]Equipment
+	{
+		d.equipmentsMutex.RLock()
+		defer d.equipmentsMutex.RUnlock()
+
+		if d.equipments == nil {
+			e = fmt.Errorf("No equipments in the data")
+			return
+		}
+
+		mapequipments = *d.equipments
+	}
+
+	// Convert Map of equipments to Slice !
+	equipments = make([]Equipment, 0, len(mapequipments))
+	for _, ed := range mapequipments {
+		equipments = append(equipments, ed)
+	}
+
+	return equipments, nil
 }

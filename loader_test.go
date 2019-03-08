@@ -295,3 +295,34 @@ func TestRefreshDataError(t *testing.T) {
 	//we still get old departures
 	checkSecond(t, departures)
 }
+
+func TestLoadEquipmentsData(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/NET_ACCESS.XML", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
+	require.Nil(err)
+
+	consumer := makeEquipmentLineConsumer()
+	err = LoadXmlData(reader, consumer)
+	require.Nil(err)
+
+	eds := consumer.equipments
+	assert.Len(eds, 3)
+	require.Contains(eds, "821")
+
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	ed := eds["821"]
+	assert.Equal("821", ed.ID)
+	assert.Equal("ASCENSEUR", ed.EmbeddedType)
+	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", ed.Name)
+	assert.Equal("Problème technique", ed.Cause)
+	assert.Equal("Accès impossible direction Gare de Vaise.", ed.Effect)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.Start)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.End)
+	assert.Equal("13:00:00", ed.Hour)
+}

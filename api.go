@@ -22,6 +22,7 @@ type StatusResponse struct {
 	Status              string    `json:"status,omitempty"`
 	LastDepartureUpdate time.Time `json:"last_departure_update"`
 	LastParkingUpdate   time.Time `json:"last_parking_update"`
+	LastEquipMentUpdate time.Time `json:"last_equipment_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -56,6 +57,38 @@ func (p ByParkingResponseId) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 type ParkingsResponse struct {
 	Parkings []ParkingResponse `json:"records,omitempty"`
 	Errors   []string          `json:"errors,omitempty"`
+}
+
+// EquipmentResponse defines how an equipment object is represented in a response
+type EquipmentResponse struct {
+	ID           string    `json:"id"`
+	Name         string    `json:"name"`
+	EmbeddedType string    `json:"embedded_type"`
+	Cause        string    `json:"cause"`
+	Effect       string    `json:"effect"`
+	Start        time.Time `json:"begin"`
+	End          time.Time `json:"end"`
+	Hour         string    `json:"hour"`
+}
+
+// EquipmentModelToResponse converts the model of a Equipment object into it's view in the response
+func EquipmentModelToResponse(e Equipment) EquipmentResponse {
+	return EquipmentResponse{
+		ID:           e.ID,
+		Name:         e.Name,
+		EmbeddedType: e.EmbeddedType,
+		Cause:        e.Cause,
+		Effect:       e.Effect,
+		Start:        e.Start,
+		End:          e.End,
+		Hour:         e.Hour,
+	}
+}
+
+// EquipmentsResponse defines the structure returned by the /equipments endpoint
+type EquipmentsResponse struct {
+	Equipments []EquipmentResponse `json:"records,omitempty"`
+	Errors     []string            `json:"errors,omitempty"`
 }
 
 var (
@@ -104,6 +137,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			"ok",
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
+			manager.GetLastEquipmentsDataUpdate(),
 		})
 	}
 }
@@ -143,6 +177,32 @@ func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var (
+			equipments []Equipment
+			errStr     []string
+		)
+
+		// Query all equipments !
+		var err error
+		equipments, err = manager.GetEquipments()
+		if err != nil {
+			errStr = append(errStr, err.Error())
+		}
+
+		// Convert Equipments from the model to a response view
+		equipmentsResp := make([]EquipmentResponse, len(equipments))
+		for i, e := range equipments {
+			equipmentsResp[i] = EquipmentModelToResponse(e)
+		}
+		c.JSON(http.StatusOK, EquipmentsResponse{
+			Equipments: equipmentsResp,
+			Errors:     errStr,
+		})
+	}
+}
+
 func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
@@ -154,6 +214,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
+	r.GET("/equipments", EquipmentsHandler(manager))
 
 	return r
 }

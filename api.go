@@ -59,16 +59,32 @@ type ParkingsResponse struct {
 	Errors   []string          `json:"errors,omitempty"`
 }
 
-// EquipmentResponse defines how an equipment object is represented in a response
+// EquipmentResponse defines how a parking object is represent in a response
 type EquipmentResponse struct {
-	ID           string    `json:"id"`
-	Name         string    `json:"name"`
-	EmbeddedType string    `json:"embedded_type"`
-	Cause        string    `json:"cause"`
-	Effect       string    `json:"effect"`
-	Start        time.Time `json:"begin"`
-	End          time.Time `json:"end"`
-	Hour         string    `json:"hour"`
+	ID           string              `json:"id"`
+	Name         string              `json:"name"`
+	EmbeddedType string              `json:"embedded_type"`
+	CA           CurrentAvailability `json:"current_availaibity"`
+}
+
+type CurrentAvailability struct {
+	Status  string   `json:"status"`
+	Cause   CauseST  `json:"cause"`
+	Effect  EffectST `json:"effect"`
+	Periods Period   `json:"periods"`
+}
+
+type CauseST struct {
+	Label string `json:"label"`
+}
+
+type EffectST struct {
+	Label string `json:"label"`
+}
+
+type Period struct {
+	Begin time.Time `json:"begin"`
+	End   time.Time `json:"end"`
 }
 
 // EquipmentModelToResponse converts the model of a Equipment object into it's view in the response
@@ -77,17 +93,14 @@ func EquipmentModelToResponse(e Equipment) EquipmentResponse {
 		ID:           e.ID,
 		Name:         e.Name,
 		EmbeddedType: e.EmbeddedType,
-		Cause:        e.Cause,
-		Effect:       e.Effect,
-		Start:        e.Start,
-		End:          e.End,
-		Hour:         e.Hour,
+		CA: CurrentAvailability{Status: GetAvailabilityStatus(e.Start, e.End), Cause: CauseST{Label: e.Cause},
+			Effect: EffectST{Label: e.Effect}, Periods: Period{Begin: e.Start, End: e.End}},
 	}
 }
 
 // EquipmentsResponse defines the structure returned by the /equipments endpoint
 type EquipmentsResponse struct {
-	Equipments []EquipmentResponse `json:"records,omitempty"`
+	Equipments []EquipmentResponse `json:"equipments_details,omitempty"`
 	Errors     []string            `json:"errors,omitempty"`
 }
 

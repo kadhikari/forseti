@@ -34,5 +34,6 @@ require (
 	github.com/ugorji/go/codec v0.0.0-20181012064053-8333dd449516 // indirect
 	golang.org/x/crypto v0.0.0-20181015023909-0c41d7ab0a0e
 	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 // indirect
+	golang.org/x/text v0.3.0
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 )

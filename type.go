@@ -196,7 +196,6 @@ type Equipment struct {
 	Effect       string
 	Start        time.Time
 	End          time.Time
-	Hour         string
 }
 
 type ByEquipmentId []Equipment
@@ -205,26 +204,53 @@ func (e ByEquipmentId) Len() int           { return len(e) }
 func (e ByEquipmentId) Less(i, j int) bool { return e[i].ID < e[j].ID }
 func (e ByEquipmentId) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
 
+func get_type(s string) (string, error) {
+	switch {
+	case s == "ASCENSEUR":
+		return "elevator", nil
+	case s == "ESCALIER":
+		return "escalator", nil
+	default:
+		return "", fmt.Errorf("Unsupported EmbeddedType %s", s)
+	}
+}
+
 // NewEquipment creates a new Parking object based on a line read from a CSV
 func NewEquipment(record []string, location *time.Location) (*Equipment, error) {
 	start, err := time.ParseInLocation("2006-01-02", record[5], location)
 	if err != nil {
 		return nil, err
 	}
+
 	end, err := time.ParseInLocation("2006-01-02", record[6], location)
 	if err != nil {
 		return nil, err
 	}
 
+	hour, err := time.ParseInLocation("15:04:05", record[7], location)
+	if err != nil {
+		return nil, err
+	}
+
+	basehour, err := time.ParseInLocation("15:04:05", "00:00:00", location)
+	if err != nil {
+		return nil, err
+	}
+
+	etype, err := get_type(record[2])
+	if err != nil {
+		return nil, err
+	}
+
+	end = end.Add(hour.Sub(basehour))
 	return &Equipment{
 		ID:           record[0],
 		Name:         record[1],
-		EmbeddedType: record[2],
+		EmbeddedType: etype,
 		Cause:        record[3],
 		Effect:       record[4],
 		Start:        start,
 		End:          end,
-		Hour:         record[7],
 	}, nil
 }
 
@@ -408,4 +434,16 @@ func (d *DataManager) GetEquipments() (equipments []Equipment, e error) {
 	}
 
 	return equipments, nil
+}
+
+// GetAvailabilityStatus returns availability of equipment
+func GetAvailabilityStatus(start time.Time, end time.Time) string {
+	now := time.Now()
+
+	if now.Before(start) && now.After(end) {
+		return "available"
+	} else {
+		return "unavailable"
+	}
+
 }

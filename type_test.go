@@ -284,12 +284,11 @@ func TestNewEquipment(t *testing.T) {
 
 	assert.Equal("821", e.ID)
 	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", e.Name)
-	assert.Equal("ASCENSEUR", e.EmbeddedType)
+	assert.Equal("elevator", e.EmbeddedType)
 	assert.Equal("Problème technique", e.Cause)
 	assert.Equal("Accès impossible direction Gare de Vaise.", e.Effect)
 	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.Start)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.End)
-	assert.Equal("13:00:00", e.Hour)
+	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.End)
 }
 
 func TestDataManagerGetEquipments(t *testing.T) {
@@ -301,11 +300,14 @@ func TestDataManagerGetEquipments(t *testing.T) {
 	start, err := time.ParseInLocation("2006-01-02", "2018-09-17", loc)
 	require.Nil(err)
 
+	end, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 22:00:00", loc)
+	require.Nil(err)
+
 	var manager DataManager
 	manager.UpdateEquipments(map[string]Equipment{
-		"toto": {"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", start, start, "13:00:00"},
-		"tata": {"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", start, start, "13:00:00"},
-		"titi": {"titi", "titi paris", "ASCENSEUR", "Problème technique", "Accès", start, start, "13:00:00"},
+		"toto": {"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", start, end},
+		"tata": {"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", start, end},
+		"titi": {"titi", "titi paris", "ASCENSEUR", "Problème technique", "Accès", start, end},
 	})
 
 	equipments, err := manager.GetEquipments()
@@ -316,4 +318,23 @@ func TestDataManagerGetEquipments(t *testing.T) {
 	assert.Equal("tata", equipments[0].ID)
 	assert.Equal("titi", equipments[1].ID)
 	assert.Equal("toto", equipments[2].ID)
+}
+
+func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	equipmentsWithBadEType := [][]string{
+		{"toto", "toto paris", "ASC", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
+		{"tata", "tata paris", "ASC", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
+	}
+
+	for _, badETypeLine := range equipmentsWithBadEType {
+		ed, err := NewEquipment(badETypeLine, loc)
+		assert.Error(err)
+		assert.Nil(ed)
+	}
 }

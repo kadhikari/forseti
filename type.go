@@ -238,7 +238,7 @@ func NewEquipmentDetail(record []string, location *time.Location) (*EquipmentDet
 	}, nil
 }
 
-// ParkingLineConsumer constructs a parking from a slice of strings
+// EquipmentLineConsumer constructs a parking from a slice of strings
 type EquipmentLineConsumer struct {
 	equipments map[string]EquipmentDetail
 }

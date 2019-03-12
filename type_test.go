@@ -275,8 +275,8 @@ func TestNewEquipmentDetail(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	readLine := []string{"821", "direction Gare de Vaise, accès Gare Routière ou Parc Relais", "ASCENSEUR", "Problème technique",
-		"Accès impossible direction Gare de Vaise.", "2018-09-14", "2018-09-14", "13:00:00"}
+	readLine := []string{"821", "direction Gare de Vaise, accès Gare Routière ou Parc Relais", "ASCENSEUR",
+		"Problème technique", "Accès impossible direction Gare de Vaise.", "2018-09-14", "2018-09-14", "13:00:00"}
 
 	e, err := NewEquipmentDetail(readLine, location)
 	require.Nil(err)

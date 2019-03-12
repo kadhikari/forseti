@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<root xmlns="http://tempuri.org/XMLSchema.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://tempuri.org/XMLSchema.xsd net_access.xsd">
+<infos_generales date="2018-09-15" heure="12:01:31" etat_valide="true"/>
+<donnees>
+<ligne libelle="Gare de Vaise - Gare de Vénissieux" code="D">
+<station libelle="Gorge de Loup">
+<equipement type="ASCENSEUR" code_client="821" nom_client="direction Gare de Vaise, accès Gare Routière ou Parc Relais" consequence="Accès impossible direction Gare de Vaise." cause="Problème technique" date_debut_indisponibilite="2018-09-14" date_remise_service="2018-09-14" heure_remise_service="13:00:00"/>
+<equipement type="ESCALIER" code_client="8205" nom_client="sortie Place Basse (côté agence commerciale) niveau Parc Relais, jusqu'à la mezzanine niveau départ gare de bus, rue Sergent Michel Berthet" consequence="." cause="Problème technique" date_debut_indisponibilite="2018-09-14" date_remise_service="2018-09-15" heure_remise_service="23:30:00"/>
+</station>
+<station libelle="Vieux Lyon">
+<equipement type="ESCALIER" code_client="8107" nom_client="de la mezzanine niveau -3 (correspondance ligne D direction Gare de Vaise ou Gare de Vénissieux) jusqu'à la mezzanine niveau Point Contact, accès rue du Doyenné." consequence="." cause="Entretien" type_jumeau="ASCENSEUR" code_client_jumeau="812" nom_client_jumeau="direction Gare de Vénissieux, correspondance entre la ligne D et les Funiculaires, accès rue Jean Carries ou rue du Doyenné" date_debut_indisponibilite="2018-08-18" date_remise_service="2018-09-30" heure_remise_service="07:30:00"/>
+</station>
+</ligne>
+<ligne libelle="Vieux Lyon - Fourvière" code="FF">
+<station libelle="Vieux Lyon">
+<equipement type="ESCALIER" code_client="8107" nom_client="de la mezzanine niveau -3 (correspondance ligne D direction Gare de Vaise ou Gare de Vénissieux) jusqu'à la mezzanine niveau Point Contact, accès rue du Doyenné." consequence="." cause="Entretien" type_jumeau="ASCENSEUR" code_client_jumeau="812" nom_client_jumeau="direction Gare de Vénissieux, correspondance entre la ligne D et les Funiculaires, accès rue Jean Carries ou rue du Doyenné" date_debut_indisponibilite="2018-08-18" date_remise_service="2018-09-30" heure_remise_service="07:30:00"/>
+</station>
+</ligne>
+<ligne libelle="Vieux Lyon - Saint Just" code="FS">
+<station libelle="Vieux Lyon">
+<equipement type="ESCALIER" code_client="8107" nom_client="de la mezzanine niveau -3 (correspondance ligne D direction Gare de Vaise ou Gare de Vénissieux) jusqu'à la mezzanine niveau Point Contact, accès rue du Doyenné." consequence="." cause="Entretien" type_jumeau="ASCENSEUR" code_client_jumeau="812" nom_client_jumeau="direction Gare de Vénissieux, correspondance entre la ligne D et les Funiculaires, accès rue Jean Carries ou rue du Doyenné" date_debut_indisponibilite="2018-08-18" date_remise_service="2018-09-30" heure_remise_service="07:30:00"/>
+</station>
+</ligne>
+<ligne libelle="Charpennes - Gare d' Oullins" code="B">
+</ligne>
+<ligne libelle="Hôtel de Ville - Cuire" code="C">
+</ligne>
+<ligne libelle="La Doua Gaston Berger  - Hôpital Feyzin Vénissieux" code="T4">
+</ligne>
+<ligne libelle="Montrochet - IUT Feyssine" code="T1">
+</ligne>
+<ligne libelle="Perrache - Vaulx en - Velin La Soie" code="A">
+</ligne>
+</donnees>
+</root>

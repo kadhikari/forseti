@@ -268,7 +268,7 @@ func TestData(t *testing.T) {
 	assert.Equal(len(root.Data.Lines), 8)
 }
 
-func TestNewEquipment(t *testing.T) {
+func TestNewEquipmentDetail(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
@@ -278,17 +278,17 @@ func TestNewEquipment(t *testing.T) {
 	readLine := []string{"821", "direction Gare de Vaise, accès Gare Routière ou Parc Relais", "ASCENSEUR", "Problème technique",
 		"Accès impossible direction Gare de Vaise.", "2018-09-14", "2018-09-14", "13:00:00"}
 
-	e, err := NewEquipment(readLine, location)
+	e, err := NewEquipmentDetail(readLine, location)
 	require.Nil(err)
 	require.NotNil(e)
 
 	assert.Equal("821", e.ID)
 	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", e.Name)
 	assert.Equal("elevator", e.EmbeddedType)
-	assert.Equal("Problème technique", e.Cause)
-	assert.Equal("Accès impossible direction Gare de Vaise.", e.Effect)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.Start)
-	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.End)
+	assert.Equal("Problème technique", e.CurrentAvailability.Cause.Label)
+	assert.Equal("Accès impossible direction Gare de Vaise.", e.CurrentAvailability.Effect.Label)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.CurrentAvailability.Periods.Begin)
+	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.CurrentAvailability.Periods.End)
 }
 
 func TestDataManagerGetEquipments(t *testing.T) {
@@ -297,19 +297,22 @@ func TestDataManagerGetEquipments(t *testing.T) {
 
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
-	start, err := time.ParseInLocation("2006-01-02", "2018-09-17", loc)
-	require.Nil(err)
-
-	end, err := time.ParseInLocation("2006-01-02 15:04:05", "2018-09-17 22:00:00", loc)
-	require.Nil(err)
 
 	var manager DataManager
-	manager.UpdateEquipments(map[string]Equipment{
-		"toto": {"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", start, end},
-		"tata": {"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", start, end},
-		"titi": {"titi", "titi paris", "ASCENSEUR", "Problème technique", "Accès", start, end},
-	})
+	equipmentMaps := make(map[string]EquipmentDetail)
 
+	equipmentsData := [][]string{
+		{"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
+		{"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
+		{"titi", "titi paris", "ESCALIER", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
+	}
+
+	for _, edLine := range equipmentsData {
+		ed, err := NewEquipmentDetail(edLine, loc)
+		require.Nil(err)
+		equipmentMaps[ed.ID] = *ed
+	}
+	manager.UpdateEquipments(equipmentMaps)
 	equipments, err := manager.GetEquipments()
 	require.Nil(err)
 	require.Len(equipments, 3)
@@ -333,7 +336,7 @@ func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
 	}
 
 	for _, badETypeLine := range equipmentsWithBadEType {
-		ed, err := NewEquipment(badETypeLine, loc)
+		ed, err := NewEquipmentDetail(badETypeLine, loc)
 		assert.Error(err)
 		assert.Nil(ed)
 	}

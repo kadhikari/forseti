@@ -203,11 +203,10 @@ func LoadXmlData(file io.Reader, lineConsumer LineConsumer) error {
 	}
 
 	// for each root.Data.Lines.Stations create an object Equipment
-	for i := 0; i < len(root.Data.Lines); i++ {
-		for j := 0; j < len(root.Data.Lines[i].Stations); j++ {
-			for k := 0; k < len(root.Data.Lines[i].Stations[j].Equipments); k++ {
-				ed := root.Data.Lines[i].Stations[j].Equipments[k]
-				line := []string{ed.ID, ed.Name, ed.Type, ed.Cause, ed.Effect, ed.Start, ed.End, ed.Hour}
+	for _, l := range root.Data.Lines {
+		for _, s := range l.Stations {
+			for _, e := range s.Equipments {
+				line := []string{e.ID, e.Name, e.Type, e.Cause, e.Effect, e.Start, e.End, e.Hour}
 				if err := lineConsumer.Consume(line, location); err != nil {
 					return err
 				}

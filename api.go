@@ -22,7 +22,7 @@ type StatusResponse struct {
 	Status              string    `json:"status,omitempty"`
 	LastDepartureUpdate time.Time `json:"last_departure_update"`
 	LastParkingUpdate   time.Time `json:"last_parking_update"`
-	LastEquipMentUpdate time.Time `json:"last_equipment_update"`
+	LastEquipmentUpdate time.Time `json:"last_equipment_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -59,49 +59,10 @@ type ParkingsResponse struct {
 	Errors   []string          `json:"errors,omitempty"`
 }
 
-// EquipmentResponse defines how a parking object is represent in a response
-type EquipmentResponse struct {
-	ID           string              `json:"id"`
-	Name         string              `json:"name"`
-	EmbeddedType string              `json:"embedded_type"`
-	CA           CurrentAvailability `json:"current_availaibity"`
-}
-
-type CurrentAvailability struct {
-	Status  string   `json:"status"`
-	Cause   CauseST  `json:"cause"`
-	Effect  EffectST `json:"effect"`
-	Periods Period   `json:"periods"`
-}
-
-type CauseST struct {
-	Label string `json:"label"`
-}
-
-type EffectST struct {
-	Label string `json:"label"`
-}
-
-type Period struct {
-	Begin time.Time `json:"begin"`
-	End   time.Time `json:"end"`
-}
-
-// EquipmentModelToResponse converts the model of a Equipment object into it's view in the response
-func EquipmentModelToResponse(e Equipment) EquipmentResponse {
-	return EquipmentResponse{
-		ID:           e.ID,
-		Name:         e.Name,
-		EmbeddedType: e.EmbeddedType,
-		CA: CurrentAvailability{Status: GetAvailabilityStatus(e.Start, e.End), Cause: CauseST{Label: e.Cause},
-			Effect: EffectST{Label: e.Effect}, Periods: Period{Begin: e.Start, End: e.End}},
-	}
-}
-
 // EquipmentsResponse defines the structure returned by the /equipments endpoint
 type EquipmentsResponse struct {
-	Equipments []EquipmentResponse `json:"equipments_details,omitempty"`
-	Errors     []string            `json:"errors,omitempty"`
+	Equipments []EquipmentDetail `json:"equipments_details,omitempty"`
+	Error      string            `json:"errors,omitempty"`
 }
 
 var (
@@ -193,25 +154,18 @@ func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
 func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var (
-			equipments []Equipment
-			errStr     []string
+			equipments []EquipmentDetail
+			errStr     = ""
 		)
-
-		// Query all equipments !
 		var err error
 		equipments, err = manager.GetEquipments()
 		if err != nil {
-			errStr = append(errStr, err.Error())
+			errStr = err.Error()
 		}
 
-		// Convert Equipments from the model to a response view
-		equipmentsResp := make([]EquipmentResponse, len(equipments))
-		for i, e := range equipments {
-			equipmentsResp[i] = EquipmentModelToResponse(e)
-		}
 		c.JSON(http.StatusOK, EquipmentsResponse{
-			Equipments: equipmentsResp,
-			Errors:     errStr,
+			Equipments: equipments,
+			Error:      errStr,
 		})
 	}
 }

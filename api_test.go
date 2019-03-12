@@ -246,5 +246,5 @@ func TestEquipmentsAPI(t *testing.T) {
 	require.NotNil(response.Equipments)
 	require.NotEmpty(response.Equipments)
 	assert.Len(response.Equipments, 3)
-	assert.Empty(response.Errors)
+	assert.Empty(response.Error)
 }

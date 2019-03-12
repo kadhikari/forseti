@@ -1,7 +1,6 @@
 package sytralrt
 
 import (
-	"encoding/xml"
 	"fmt"
 	"sort"
 	"strconv"
@@ -152,57 +151,39 @@ func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 
 func (p *ParkingLineConsumer) Terminate() {}
 
-// Temporary structures used only to read FLUX xml for equipments:
-type Root struct {
-	XMLName xml.Name   `xml:"root"`
-	Data    Equipments `xml:"donnees"`
+// EquipmentDetail defines how a equipment object is represented in a response
+type EquipmentDetail struct {
+	ID                  string              `json:"id"`
+	Name                string              `json:"name"`
+	EmbeddedType        string              `json:"embedded_type"`
+	CurrentAvailability CurrentAvailability `json:"current_availaibity"`
 }
 
-type Equipments struct {
-	XMLName xml.Name `xml:"donnees"`
-	Lines   []Line   `xml:"ligne"`
-}
-
-type Line struct {
-	XMLName  xml.Name  `xml:"ligne"`
-	Code     string    `xml:"code,attr"`
-	Label    string    `xml:"libelle,attr"`
-	Stations []Station `xml:"station"`
-}
-
-type Station struct {
-	XMLName    xml.Name           `xml:"station"`
-	Equipments []EquipementSource `xml:"equipement"`
-}
-
-type EquipementSource struct {
-	XMLName xml.Name `xml:"equipement"`
-	Type    string   `xml:"type,attr"`
-	ID      string   `xml:"code_client,attr"`
-	Name    string   `xml:"nom_client,attr"`
-	Cause   string   `xml:"cause,attr"`
-	Effect  string   `xml:"consequence,attr"`
-	Start   string   `xml:"date_debut_indisponibilite,attr"`
-	End     string   `xml:"date_remise_service,attr"`
-	Hour    string   `xml:"heure_remise_service,attr"`
-}
-
-// Equipment defines details of equipments in each StopArea
-type Equipment struct {
-	ID           string
-	Name         string
-	EmbeddedType string
-	Cause        string
-	Effect       string
-	Start        time.Time
-	End          time.Time
-}
-
-type ByEquipmentId []Equipment
+type ByEquipmentId []EquipmentDetail
 
 func (e ByEquipmentId) Len() int           { return len(e) }
 func (e ByEquipmentId) Less(i, j int) bool { return e[i].ID < e[j].ID }
 func (e ByEquipmentId) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
+
+type CurrentAvailability struct {
+	Status  string `json:"status"`
+	Cause   Cause  `json:"cause"`
+	Effect  Effect `json:"effect"`
+	Periods Period `json:"periods"`
+}
+
+type Cause struct {
+	Label string `json:"label"`
+}
+
+type Effect struct {
+	Label string `json:"label"`
+}
+
+type Period struct {
+	Begin time.Time `json:"begin"`
+	End   time.Time `json:"end"`
+}
 
 func get_type(s string) (string, error) {
 	switch {
@@ -215,8 +196,8 @@ func get_type(s string) (string, error) {
 	}
 }
 
-// NewEquipment creates a new Parking object based on a line read from a CSV
-func NewEquipment(record []string, location *time.Location) (*Equipment, error) {
+// NewEquipmentDetail creates a new Equipment object based on a line read from a CSV
+func NewEquipmentDetail(record []string, location *time.Location) (*EquipmentDetail, error) {
 	start, err := time.ParseInLocation("2006-01-02", record[5], location)
 	if err != nil {
 		return nil, err
@@ -242,31 +223,34 @@ func NewEquipment(record []string, location *time.Location) (*Equipment, error) 
 		return nil, err
 	}
 
+	now := time.Now()
 	end = end.Add(hour.Sub(basehour))
-	return &Equipment{
+
+	return &EquipmentDetail{
 		ID:           record[0],
 		Name:         record[1],
 		EmbeddedType: etype,
-		Cause:        record[3],
-		Effect:       record[4],
-		Start:        start,
-		End:          end,
+		CurrentAvailability: CurrentAvailability{
+			Status:  GetAvailabilityStatus(start, end, now),
+			Cause:   Cause{Label: record[3]},
+			Effect:  Effect{Label: record[4]},
+			Periods: Period{Begin: start, End: end}},
 	}, nil
 }
 
 // ParkingLineConsumer constructs a parking from a slice of strings
 type EquipmentLineConsumer struct {
-	equipments map[string]Equipment
+	equipments map[string]EquipmentDetail
 }
 
 func makeEquipmentLineConsumer() *EquipmentLineConsumer {
 	return &EquipmentLineConsumer{
-		equipments: make(map[string]Equipment),
+		equipments: make(map[string]EquipmentDetail),
 	}
 }
 
 func (e *EquipmentLineConsumer) Consume(line []string, loc *time.Location) error {
-	equipment, err := NewEquipment(line, loc)
+	equipment, err := NewEquipmentDetail(line, loc)
 	if err != nil {
 		return err
 	}
@@ -286,7 +270,7 @@ type DataManager struct {
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
 
-	equipments          *map[string]Equipment
+	equipments          *map[string]EquipmentDetail
 	lastEquipmentUpdate time.Time
 	equipmentsMutex     sync.RWMutex
 }
@@ -398,7 +382,7 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	return p, e
 }
 
-func (d *DataManager) UpdateEquipments(equipments map[string]Equipment) {
+func (d *DataManager) UpdateEquipments(equipments map[string]EquipmentDetail) {
 	d.equipmentsMutex.Lock()
 	defer d.equipmentsMutex.Unlock()
 
@@ -413,8 +397,8 @@ func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
 	return d.lastEquipmentUpdate
 }
 
-func (d *DataManager) GetEquipments() (equipments []Equipment, e error) {
-	var mapequipments map[string]Equipment
+func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
+	var mapequipments map[string]EquipmentDetail
 	{
 		d.equipmentsMutex.RLock()
 		defer d.equipmentsMutex.RUnlock()
@@ -428,7 +412,7 @@ func (d *DataManager) GetEquipments() (equipments []Equipment, e error) {
 	}
 
 	// Convert Map of equipments to Slice !
-	equipments = make([]Equipment, 0, len(mapequipments))
+	equipments = make([]EquipmentDetail, 0, len(mapequipments))
 	for _, ed := range mapequipments {
 		equipments = append(equipments, ed)
 	}
@@ -437,9 +421,7 @@ func (d *DataManager) GetEquipments() (equipments []Equipment, e error) {
 }
 
 // GetAvailabilityStatus returns availability of equipment
-func GetAvailabilityStatus(start time.Time, end time.Time) string {
-	now := time.Now()
-
+func GetAvailabilityStatus(start time.Time, end time.Time, now time.Time) string {
 	if now.Before(start) && now.After(end) {
 		return "available"
 	} else {

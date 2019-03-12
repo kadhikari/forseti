@@ -28,7 +28,8 @@ Run
 ===
 Once you have build it it's fairly easy to run it:
 ```
-./sytral-rt --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s 
+./sytral-rt --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/sytralrt/fixtures/NET_ACCESS.XML --equipments-refresh=2s
+
 ```
 
 You can also use the pre-built docker image: navitia/sytralrt
@@ -41,6 +42,7 @@ Two routes are provided:
   - `/metrics` exposes metrics in the prometheus text format
   - `/departures` returns the next departures for a stop (parameter `stop_id`)
   - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
+  - `/equipments` returns informations on Equipments in StopAreas.
 
 One goroutine is handling the refresh of the data by downloading them every refresh-interval (default: 30s)
 and load them. Once these data have been loaded there is swap of pointer being done so that every new requests

@@ -287,8 +287,7 @@ func RefreshEquipments(manager *DataManager, uri url.URL) error {
 		return err
 	}
 
-	equipments := make([]EquipmentDetail, 0)
-	equipments, err = LoadXmlData(file)
+	equipments, err := LoadXmlData(file)
 	if err != nil {
 		equipmentsLoadingErrors.Inc()
 		return err

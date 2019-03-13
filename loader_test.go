@@ -305,8 +305,7 @@ func TestLoadEquipmentsData(t *testing.T) {
 	reader, err := getFileWithFS(*uri)
 	require.Nil(err)
 
-	eds := make([]EquipmentDetail, 0)
-	eds, err = LoadXmlData(reader)
+	eds, err := LoadXmlData(reader)
 	require.Nil(err)
 
 	assert.Len(eds, 3)

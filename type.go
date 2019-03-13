@@ -159,12 +159,6 @@ type EquipmentDetail struct {
 	CurrentAvailability CurrentAvailability `json:"current_availaibity"`
 }
 
-type ByEquipmentId []EquipmentDetail
-
-func (e ByEquipmentId) Len() int           { return len(e) }
-func (e ByEquipmentId) Less(i, j int) bool { return e[i].ID < e[j].ID }
-func (e ByEquipmentId) Swap(i, j int)      { e[i], e[j] = e[j], e[i] }
-
 type CurrentAvailability struct {
 	Status  string `json:"status"`
 	Cause   Cause  `json:"cause"`
@@ -185,7 +179,7 @@ type Period struct {
 	End   time.Time `json:"end"`
 }
 
-func get_type(s string) (string, error) {
+func EmbeddedType(s string) (string, error) {
 	switch {
 	case s == "ASCENSEUR":
 		return "elevator", nil
@@ -213,25 +207,25 @@ func NewEquipmentDetail(record []string, location *time.Location) (*EquipmentDet
 		return nil, err
 	}
 
-	basehour, err := time.ParseInLocation("15:04:05", "00:00:00", location)
+	baseHour, err := time.ParseInLocation("15:04:05", "00:00:00", location)
 	if err != nil {
 		return nil, err
 	}
 
-	etype, err := get_type(record[2])
+	etype, err := EmbeddedType(record[2])
 	if err != nil {
 		return nil, err
 	}
 
 	now := time.Now()
-	end = end.Add(hour.Sub(basehour))
+	end = end.Add(hour.Sub(baseHour))
 
 	return &EquipmentDetail{
 		ID:           record[0],
 		Name:         record[1],
 		EmbeddedType: etype,
 		CurrentAvailability: CurrentAvailability{
-			Status:  GetAvailabilityStatus(start, end, now),
+			Status:  GetEquipmentStatus(start, end, now),
 			Cause:   Cause{Label: record[3]},
 			Effect:  Effect{Label: record[4]},
 			Periods: Period{Begin: start, End: end}},
@@ -398,7 +392,7 @@ func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
 }
 
 func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
-	var mapequipments map[string]EquipmentDetail
+	var mapEquipments map[string]EquipmentDetail
 	{
 		d.equipmentsMutex.RLock()
 		defer d.equipmentsMutex.RUnlock()
@@ -408,12 +402,12 @@ func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
 			return
 		}
 
-		mapequipments = *d.equipments
+		mapEquipments = *d.equipments
 	}
 
 	// Convert Map of equipments to Slice !
-	equipments = make([]EquipmentDetail, 0, len(mapequipments))
-	for _, ed := range mapequipments {
+	equipments = make([]EquipmentDetail, 0, len(mapEquipments))
+	for _, ed := range mapEquipments {
 		equipments = append(equipments, ed)
 	}
 
@@ -421,7 +415,7 @@ func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
 }
 
 // GetAvailabilityStatus returns availability of equipment
-func GetAvailabilityStatus(start time.Time, end time.Time, now time.Time) string {
+func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
 	if now.Before(start) && now.After(end) {
 		return "available"
 	} else {

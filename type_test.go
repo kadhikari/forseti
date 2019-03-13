@@ -248,11 +248,11 @@ func TestDataManagerGetParking(t *testing.T) {
 
 func TestData(t *testing.T) {
 	assert := assert.New(t)
-
-	xmlFile, err := os.Open("/home/kadhikari/partage/temp/NET_ACCESS.XML")
+	fileName := fmt.Sprintf("/%s/NET_ACCESS.XML", fixtureDir)
+	xmlFile, err := os.Open(fileName)
 	if err != nil {
 		fmt.Println("Error opening file:", err)
-		return
+		require.Fail(t, err.Error())
 	}
 	defer xmlFile.Close()
 	XMLdata, err := ioutil.ReadAll(xmlFile)
@@ -317,10 +317,9 @@ func TestDataManagerGetEquipments(t *testing.T) {
 	require.Nil(err)
 	require.Len(equipments, 3)
 
-	sort.Sort(ByEquipmentId(equipments))
-	assert.Equal("tata", equipments[0].ID)
-	assert.Equal("titi", equipments[1].ID)
-	assert.Equal("toto", equipments[2].ID)
+	assert.Equal("toto", equipments[0].ID)
+	assert.Equal("tata", equipments[1].ID)
+	assert.Equal("titi", equipments[2].ID)
 }
 
 func TestEquipmentsWithBadEmbeddedType(t *testing.T) {

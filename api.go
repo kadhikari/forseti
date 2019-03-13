@@ -153,20 +153,16 @@ func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
 
 func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var (
-			equipments []EquipmentDetail
-			errStr     = ""
-		)
-		var err error
-		equipments, err = manager.GetEquipments()
-		if err != nil {
-			errStr = err.Error()
-		}
+		response := EquipmentsResponse{}
 
-		c.JSON(http.StatusOK, EquipmentsResponse{
-			Equipments: equipments,
-			Error:      errStr,
-		})
+		equipments, err := manager.GetEquipments()
+		if err != nil {
+			response.Error = "No data loaded"
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+		response.Equipments = equipments
+		c.JSON(http.StatusOK, response)
 	}
 }
 

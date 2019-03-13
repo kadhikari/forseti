@@ -385,7 +385,7 @@ func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
 	return equipmentDetails, nil
 }
 
-// GetAvailabilityStatus returns availability of equipment
+// GetEquipmentStatus returns availability of equipment
 func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
 	if now.Before(start) || now.After(end) {
 		return "available"

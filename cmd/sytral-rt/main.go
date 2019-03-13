@@ -106,7 +106,7 @@ func main() {
 
 	err = sytralrt.RefreshEquipments(manager, config.EquipmentsURI)
 	if err != nil {
-		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.EquipmentsURIStr)
+		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
 
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh)

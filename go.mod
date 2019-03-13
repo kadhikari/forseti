@@ -32,8 +32,9 @@ require (
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
 	github.com/ugorji/go/codec v0.0.0-20181012064053-8333dd449516 // indirect
-	golang.org/x/crypto v0.0.0-20181015023909-0c41d7ab0a0e
-	golang.org/x/net v0.0.0-20181023162649-9b4f9f5ad519 // indirect
+	golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2
+	golang.org/x/sys v0.0.0-20190312061237-fead79001313 // indirect
 	golang.org/x/text v0.3.0
+	golang.org/x/tools v0.0.0-20190312151545-0bb0c0a6e846 // indirect
 	gopkg.in/go-playground/validator.v8 v8.18.2 // indirect
 )

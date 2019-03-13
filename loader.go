@@ -182,16 +182,16 @@ func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options Load
 	return nil
 }
 
-func LoadXmlData(file io.Reader, lineConsumer LineConsumer) error {
+func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 
 	location, err := time.LoadLocation("Europe/Paris")
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	XMLdata, err := ioutil.ReadAll(file)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
 	decoder.CharsetReader = getCharsetReader
@@ -199,23 +199,32 @@ func LoadXmlData(file io.Reader, lineConsumer LineConsumer) error {
 	var root Root
 	err = decoder.Decode(&root)
 	if err != nil {
-		return err
+		return nil, err
 	}
+
+	equipments := make(map[string]EquipmentDetail)
 
 	// for each root.Data.Lines.Stations create an object Equipment
 	for _, l := range root.Data.Lines {
 		for _, s := range l.Stations {
 			for _, e := range s.Equipments {
-				line := []string{e.ID, e.Name, e.Type, e.Cause, e.Effect, e.Start, e.End, e.Hour}
-				if err := lineConsumer.Consume(line, location); err != nil {
-					return err
+				//line := []string{e.ID, e.Name, e.Type, e.Cause, e.Effect, e.Start, e.End, e.Hour}
+				ed, err := NewEquipmentDetail(e, location)
+				if err != nil {
+					return nil, err
 				}
+				equipments[ed.ID] = *ed
 			}
 		}
 	}
 
-	lineConsumer.Terminate()
-	return nil
+	// Transform the map to array of EquipmentDetail
+	equipmentDetails := make([]EquipmentDetail, 0)
+	for _, ed := range equipments {
+		equipmentDetails = append(equipmentDetails, ed)
+	}
+
+	return equipmentDetails, nil
 }
 
 func RefreshDepartures(manager *DataManager, uri url.URL) error {
@@ -278,14 +287,13 @@ func RefreshEquipments(manager *DataManager, uri url.URL) error {
 		return err
 	}
 
-	equipmentConsumer := makeEquipmentLineConsumer()
-
-	err = LoadXmlData(file, equipmentConsumer)
+	equipments := make([]EquipmentDetail, 0)
+	equipments, err = LoadXmlData(file)
 	if err != nil {
 		equipmentsLoadingErrors.Inc()
 		return err
 	}
-	manager.UpdateEquipments(equipmentConsumer.equipments)
+	manager.UpdateEquipments(equipments)
 	equipmentsLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

@@ -274,11 +274,11 @@ func TestNewEquipmentDetail(t *testing.T) {
 
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
+	es := EquipementSource{ID: "821", Name: "direction Gare de Vaise, accès Gare Routière ou Parc Relais",
+		Type: "ASCENSEUR", Cause: "Problème technique", Effect: "Accès impossible direction Gare de Vaise.",
+		Start: "2018-09-14", End: "2018-09-14", Hour: "13:00:00"}
+	e, err := NewEquipmentDetail(es, location)
 
-	readLine := []string{"821", "direction Gare de Vaise, accès Gare Routière ou Parc Relais", "ASCENSEUR",
-		"Problème technique", "Accès impossible direction Gare de Vaise.", "2018-09-14", "2018-09-14", "13:00:00"}
-
-	e, err := NewEquipmentDetail(readLine, location)
 	require.Nil(err)
 	require.NotNil(e)
 
@@ -299,27 +299,31 @@ func TestDataManagerGetEquipments(t *testing.T) {
 	require.Nil(err)
 
 	var manager DataManager
-	equipmentMaps := make(map[string]EquipmentDetail)
+	equipments := make([]EquipmentDetail, 0)
+	ess := make([]EquipementSource, 0)
+	es := EquipementSource{ID: "toto", Name: "toto paris", Type: "ASCENSEUR", Cause: "Problème technique",
+		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
+	ess = append(ess, es)
+	es = EquipementSource{ID: "tata", Name: "tata paris", Type: "ASCENSEUR", Cause: "Problème technique",
+		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
+	ess = append(ess, es)
+	es = EquipementSource{ID: "titi", Name: "toto paris", Type: "ASCENSEUR", Cause: "Problème technique",
+		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
+	ess = append(ess, es)
 
-	equipmentsData := [][]string{
-		{"toto", "toto paris", "ASCENSEUR", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
-		{"tata", "tata paris", "ESCALIER", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
-		{"titi", "titi paris", "ESCALIER", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
-	}
-
-	for _, edLine := range equipmentsData {
-		ed, err := NewEquipmentDetail(edLine, loc)
+	for _, es := range ess {
+		ed, err := NewEquipmentDetail(es, loc)
 		require.Nil(err)
-		equipmentMaps[ed.ID] = *ed
+		equipments = append(equipments, *ed)
 	}
-	manager.UpdateEquipments(equipmentMaps)
-	equipments, err := manager.GetEquipments()
+	manager.UpdateEquipments(equipments)
+	equipDetails, err := manager.GetEquipments()
 	require.Nil(err)
 	require.Len(equipments, 3)
 
-	assert.Equal("toto", equipments[0].ID)
-	assert.Equal("tata", equipments[1].ID)
-	assert.Equal("titi", equipments[2].ID)
+	assert.Equal("toto", equipDetails[0].ID)
+	assert.Equal("tata", equipDetails[1].ID)
+	assert.Equal("titi", equipDetails[2].ID)
 }
 
 func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
@@ -329,13 +333,16 @@ func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	equipmentsWithBadEType := [][]string{
-		{"toto", "toto paris", "ASC", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
-		{"tata", "tata paris", "ASC", "Problème technique", "Accès", "2018-09-17", "2018-09-18", "23:30:00"},
-	}
+	equipmentsWithBadEType := make([]EquipementSource, 0)
+	es := EquipementSource{ID: "toto", Name: "toto paris", Type: "ASC", Cause: "Problème technique",
+		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
+	equipmentsWithBadEType = append(equipmentsWithBadEType, es)
+	es = EquipementSource{ID: "tata", Name: "tata paris", Type: "ASC", Cause: "Problème technique",
+		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
+	equipmentsWithBadEType = append(equipmentsWithBadEType, es)
 
-	for _, badETypeLine := range equipmentsWithBadEType {
-		ed, err := NewEquipmentDetail(badETypeLine, loc)
+	for _, badEType := range equipmentsWithBadEType {
+		ed, err := NewEquipmentDetail(badEType, loc)
 		assert.Error(err)
 		assert.Nil(ed)
 	}

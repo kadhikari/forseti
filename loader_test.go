@@ -305,22 +305,25 @@ func TestLoadEquipmentsData(t *testing.T) {
 	reader, err := getFileWithFS(*uri)
 	require.Nil(err)
 
-	consumer := makeEquipmentLineConsumer()
-	err = LoadXmlData(reader, consumer)
+	eds := make([]EquipmentDetail, 0)
+	eds, err = LoadXmlData(reader)
 	require.Nil(err)
 
-	eds := consumer.equipments
 	assert.Len(eds, 3)
-	require.Contains(eds, "821")
 
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
-
-	ed := eds["821"]
+	for _, ed := range eds {
+		if ed.ID == "821" {
+			break
+		}
+	}
+	ed := eds[0]
 	assert.Equal("821", ed.ID)
 	assert.Equal("elevator", ed.EmbeddedType)
 	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", ed.Name)
 	assert.Equal("Problème technique", ed.CurrentAvailability.Cause.Label)
+	assert.Equal("available", ed.CurrentAvailability.Status)
 	assert.Equal("Accès impossible direction Gare de Vaise.", ed.CurrentAvailability.Effect.Label)
 	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.CurrentAvailability.Periods.Begin)
 	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), ed.CurrentAvailability.Periods.End)

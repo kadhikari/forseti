@@ -190,6 +190,49 @@ func EmbeddedType(s string) (string, error) {
 	}
 }
 
+// NewEquipmentDetail creates a new EquipmentDetail object from the object EquipementSource
+func NewEquipmentDetail(es EquipementSource, location *time.Location) (*EquipmentDetail, error) {
+	start, err := time.ParseInLocation("2006-01-02", es.Start, location)
+	if err != nil {
+		return nil, err
+	}
+
+	end, err := time.ParseInLocation("2006-01-02", es.End, location)
+	if err != nil {
+		return nil, err
+	}
+
+	hour, err := time.ParseInLocation("15:04:05", es.Hour, location)
+	if err != nil {
+		return nil, err
+	}
+
+	baseHour, err := time.ParseInLocation("15:04:05", "00:00:00", location)
+	if err != nil {
+		return nil, err
+	}
+
+	etype, err := EmbeddedType(es.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	now := time.Now()
+	end = end.Add(hour.Sub(baseHour))
+
+	return &EquipmentDetail{
+		ID:           es.ID,
+		Name:         es.Name,
+		EmbeddedType: etype,
+		CurrentAvailability: CurrentAvailability{
+			Status:  GetEquipmentStatus(start, end, now),
+			Cause:   Cause{Label: es.Cause},
+			Effect:  Effect{Label: es.Effect},
+			Periods: Period{Begin: start, End: end}},
+	}, nil
+}
+
+/*
 // NewEquipmentDetail creates a new Equipment object based on a line read from a CSV
 func NewEquipmentDetail(record []string, location *time.Location) (*EquipmentDetail, error) {
 	start, err := time.ParseInLocation("2006-01-02", record[5], location)
@@ -231,27 +274,30 @@ func NewEquipmentDetail(record []string, location *time.Location) (*EquipmentDet
 			Periods: Period{Begin: start, End: end}},
 	}, nil
 }
+*/
 
 // EquipmentLineConsumer constructs a parking from a slice of strings
 type EquipmentLineConsumer struct {
-	equipments map[string]EquipmentDetail
+	equipments []EquipmentDetail
 }
 
 func makeEquipmentLineConsumer() *EquipmentLineConsumer {
 	return &EquipmentLineConsumer{
-		equipments: make(map[string]EquipmentDetail),
+		equipments: []EquipmentDetail{},
 	}
 }
 
+/*
 func (e *EquipmentLineConsumer) Consume(line []string, loc *time.Location) error {
 	equipment, err := NewEquipmentDetail(line, loc)
 	if err != nil {
 		return err
 	}
 
-	e.equipments[equipment.ID] = *equipment
+	e.equipments = append(e.equipments, *equipment)
 	return nil
 }
+*/
 
 func (p *EquipmentLineConsumer) Terminate() {}
 
@@ -264,7 +310,7 @@ type DataManager struct {
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
 
-	equipments          *map[string]EquipmentDetail
+	equipments          *[]EquipmentDetail
 	lastEquipmentUpdate time.Time
 	equipmentsMutex     sync.RWMutex
 }
@@ -376,7 +422,7 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	return p, e
 }
 
-func (d *DataManager) UpdateEquipments(equipments map[string]EquipmentDetail) {
+func (d *DataManager) UpdateEquipments(equipments []EquipmentDetail) {
 	d.equipmentsMutex.Lock()
 	defer d.equipmentsMutex.Unlock()
 
@@ -392,7 +438,7 @@ func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
 }
 
 func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
-	var mapEquipments map[string]EquipmentDetail
+	var equipmentDetails []EquipmentDetail
 	{
 		d.equipmentsMutex.RLock()
 		defer d.equipmentsMutex.RUnlock()
@@ -402,21 +448,15 @@ func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
 			return
 		}
 
-		mapEquipments = *d.equipments
+		equipmentDetails = *d.equipments
 	}
 
-	// Convert Map of equipments to Slice !
-	equipments = make([]EquipmentDetail, 0, len(mapEquipments))
-	for _, ed := range mapEquipments {
-		equipments = append(equipments, ed)
-	}
-
-	return equipments, nil
+	return equipmentDetails, nil
 }
 
 // GetAvailabilityStatus returns availability of equipment
 func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
-	if now.Before(start) && now.After(end) {
+	if now.Before(start) || now.After(end) {
 		return "available"
 	} else {
 		return "unavailable"

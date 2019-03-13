@@ -312,12 +312,13 @@ func TestLoadEquipmentsData(t *testing.T) {
 
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
-	for _, ed := range eds {
-		if ed.ID == "821" {
+	var ed EquipmentDetail
+	for _, e := range eds {
+		if e.ID == "821" {
+			ed = e
 			break
 		}
 	}
-	ed := eds[0]
 	assert.Equal("821", ed.ID)
 	assert.Equal("elevator", ed.EmbeddedType)
 	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", ed.Name)

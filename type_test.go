@@ -274,10 +274,11 @@ func TestNewEquipmentDetail(t *testing.T) {
 
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
+	updatedAt := time.Now()
 	es := EquipementSource{ID: "821", Name: "direction Gare de Vaise, accès Gare Routière ou Parc Relais",
 		Type: "ASCENSEUR", Cause: "Problème technique", Effect: "Accès impossible direction Gare de Vaise.",
 		Start: "2018-09-14", End: "2018-09-14", Hour: "13:00:00"}
-	e, err := NewEquipmentDetail(es, location)
+	e, err := NewEquipmentDetail(es, updatedAt, location)
 
 	require.Nil(err)
 	require.NotNil(e)
@@ -287,8 +288,9 @@ func TestNewEquipmentDetail(t *testing.T) {
 	assert.Equal("elevator", e.EmbeddedType)
 	assert.Equal("Problème technique", e.CurrentAvailability.Cause.Label)
 	assert.Equal("Accès impossible direction Gare de Vaise.", e.CurrentAvailability.Effect.Label)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.CurrentAvailability.Periods.Begin)
-	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.CurrentAvailability.Periods.End)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.CurrentAvailability.Periods[0].Begin)
+	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.CurrentAvailability.Periods[0].End)
+	assert.Equal(updatedAt, e.CurrentAvailability.UpdatedAt)
 }
 
 func TestDataManagerGetEquipments(t *testing.T) {
@@ -310,9 +312,10 @@ func TestDataManagerGetEquipments(t *testing.T) {
 	es = EquipementSource{ID: "titi", Name: "toto paris", Type: "ASCENSEUR", Cause: "Problème technique",
 		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
 	ess = append(ess, es)
+	updatedAt := time.Now()
 
 	for _, es := range ess {
-		ed, err := NewEquipmentDetail(es, loc)
+		ed, err := NewEquipmentDetail(es, updatedAt, loc)
 		require.Nil(err)
 		equipments = append(equipments, *ed)
 	}
@@ -340,9 +343,10 @@ func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
 	es = EquipementSource{ID: "tata", Name: "tata paris", Type: "ASC", Cause: "Problème technique",
 		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
 	equipmentsWithBadEType = append(equipmentsWithBadEType, es)
+	updatedAt := time.Now()
 
 	for _, badEType := range equipmentsWithBadEType {
-		ed, err := NewEquipmentDetail(badEType, loc)
+		ed, err := NewEquipmentDetail(badEType, updatedAt, loc)
 		assert.Error(err)
 		assert.Nil(ed)
 	}

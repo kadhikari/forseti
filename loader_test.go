@@ -325,6 +325,7 @@ func TestLoadEquipmentsData(t *testing.T) {
 	assert.Equal("Problème technique", ed.CurrentAvailability.Cause.Label)
 	assert.Equal("available", ed.CurrentAvailability.Status)
 	assert.Equal("Accès impossible direction Gare de Vaise.", ed.CurrentAvailability.Effect.Label)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.CurrentAvailability.Periods.Begin)
-	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), ed.CurrentAvailability.Periods.End)
+	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].Begin)
+	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].End)
+	assert.Equal(time.Date(2018, 9, 15, 12, 1, 31, 0, location), ed.CurrentAvailability.UpdatedAt)
 }

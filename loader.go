@@ -182,6 +182,24 @@ func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options Load
 	return nil
 }
 
+// CalculateDate adds date and hour parts
+func CalculateDate(info Info, location *time.Location) (time.Time, error) {
+	date, err := time.ParseInLocation("2006-01-02", info.Date, location)
+	if err != nil {
+		return time.Now(), err
+	}
+
+	hour, err := time.ParseInLocation("15:04:05", info.Hour, location)
+	if err != nil {
+		return time.Now(), err
+	}
+
+	// Add time part to end date
+	date = hour.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
+
+	return date, nil
+}
+
 func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 
 	location, err := time.LoadLocation("Europe/Paris")
@@ -203,13 +221,13 @@ func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 	}
 
 	equipments := make(map[string]EquipmentDetail)
-
+	//Calculate updated_at from Info.Date and Info.Hour
+	updated_at, err := CalculateDate(root.Info, location)
 	// for each root.Data.Lines.Stations create an object Equipment
 	for _, l := range root.Data.Lines {
 		for _, s := range l.Stations {
 			for _, e := range s.Equipments {
-				//line := []string{e.ID, e.Name, e.Type, e.Cause, e.Effect, e.Start, e.End, e.Hour}
-				ed, err := NewEquipmentDetail(e, location)
+				ed, err := NewEquipmentDetail(e, updated_at, location)
 				if err != nil {
 					return nil, err
 				}

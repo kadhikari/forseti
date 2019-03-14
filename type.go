@@ -160,10 +160,11 @@ type EquipmentDetail struct {
 }
 
 type CurrentAvailability struct {
-	Status  string `json:"status"`
-	Cause   Cause  `json:"cause"`
-	Effect  Effect `json:"effect"`
-	Periods Period `json:"periods"`
+	Status    string    `json:"status"`
+	Cause     Cause     `json:"cause"`
+	Effect    Effect    `json:"effect"`
+	Periods   []Period  `json:"periods"`
+	UpdatedAt time.Time `json:"perupdated_atiods"`
 }
 
 type Cause struct {
@@ -191,7 +192,7 @@ func EmbeddedType(s string) (string, error) {
 }
 
 // NewEquipmentDetail creates a new EquipmentDetail object from the object EquipementSource
-func NewEquipmentDetail(es EquipementSource, location *time.Location) (*EquipmentDetail, error) {
+func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time.Location) (*EquipmentDetail, error) {
 	start, err := time.ParseInLocation("2006-01-02", es.Start, location)
 	if err != nil {
 		return nil, err
@@ -207,28 +208,25 @@ func NewEquipmentDetail(es EquipementSource, location *time.Location) (*Equipmen
 		return nil, err
 	}
 
-	baseHour, err := time.ParseInLocation("15:04:05", "00:00:00", location)
-	if err != nil {
-		return nil, err
-	}
+	// Add time part to end date
+	end = hour.AddDate(end.Year(), int(end.Month())-1, end.Day()-1)
 
 	etype, err := EmbeddedType(es.Type)
 	if err != nil {
 		return nil, err
 	}
-
 	now := time.Now()
-	end = end.Add(hour.Sub(baseHour))
 
 	return &EquipmentDetail{
 		ID:           es.ID,
 		Name:         es.Name,
 		EmbeddedType: etype,
 		CurrentAvailability: CurrentAvailability{
-			Status:  GetEquipmentStatus(start, end, now),
-			Cause:   Cause{Label: es.Cause},
-			Effect:  Effect{Label: es.Effect},
-			Periods: Period{Begin: start, End: end}},
+			Status:    GetEquipmentStatus(start, end, now),
+			Cause:     Cause{Label: es.Cause},
+			Effect:    Effect{Label: es.Effect},
+			Periods:   []Period{Period{Begin: start, End: end}},
+			UpdatedAt: updatedAt},
 	}, nil
 }
 

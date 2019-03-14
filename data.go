@@ -5,7 +5,14 @@ import "encoding/xml"
 // Temporary structures used only to read FLUX xml for equipments:
 type Root struct {
 	XMLName xml.Name   `xml:"root"`
+	Info    Info       `xml:"infos_generales"`
 	Data    Equipments `xml:"donnees"`
+}
+
+type Info struct {
+	XMLName xml.Name `xml:"infos_generales"`
+	Date    string   `xml:"date,attr"`
+	Hour    string   `xml:"heure,attr"`
 }
 
 type Equipments struct {

@@ -164,7 +164,7 @@ type CurrentAvailability struct {
 	Cause     Cause     `json:"cause"`
 	Effect    Effect    `json:"effect"`
 	Periods   []Period  `json:"periods"`
-	UpdatedAt time.Time `json:"perupdated_atiods"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 type Cause struct {

@@ -222,12 +222,15 @@ func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 
 	equipments := make(map[string]EquipmentDetail)
 	//Calculate updated_at from Info.Date and Info.Hour
-	updated_at, err := CalculateDate(root.Info, location)
+	updatedAt, err := CalculateDate(root.Info, location)
+	if err != nil {
+		return nil, err
+	}
 	// for each root.Data.Lines.Stations create an object Equipment
 	for _, l := range root.Data.Lines {
 		for _, s := range l.Stations {
 			for _, e := range s.Equipments {
-				ed, err := NewEquipmentDetail(e, updated_at, location)
+				ed, err := NewEquipmentDetail(e, updatedAt, location)
 				if err != nil {
 					return nil, err
 				}

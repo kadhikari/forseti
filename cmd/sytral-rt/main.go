@@ -23,6 +23,10 @@ type Config struct {
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
 	ParkingsURI     url.URL
 
+	EquipmentsURIStr  string        `mapstructure:"equipments-uri"`
+	EquipmentsRefresh time.Duration `mapstructure:"equipments-refresh"`
+	EquipmentsURI     url.URL
+
 	JSONLog  bool   `mapstructure:"json-log"`
 	LogLevel string `mapstructure:"log-level"`
 }
@@ -43,6 +47,9 @@ func GetConfig() (Config, error) {
 	pflag.String("parkings-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("parkings-refresh", 30*time.Second, "time between refresh of parkings data")
+	pflag.String("equipments-uri", "",
+		"format: [scheme:][//[userinfo@]host][/]path")
+	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
 	pflag.Parse()
@@ -59,13 +66,14 @@ func GetConfig() (Config, error) {
 		return config, errors.Wrap(err, "Unmarshalling of flag failed")
 	}
 
-	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr) {
+	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
 	for configURIStr, configURI := range map[string]*url.URL{
 		config.DeparturesURIStr: &config.DeparturesURI,
 		config.ParkingsURIStr:   &config.ParkingsURI,
+		config.EquipmentsURIStr: &config.EquipmentsURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -96,8 +104,14 @@ func main() {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
 	}
 
+	err = sytralrt.RefreshEquipments(manager, config.EquipmentsURI)
+	if err != nil {
+		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
+	}
+
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh)
+	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh)
 
 	err = sytralrt.SetupRouter(manager, nil).Run()
 	if err != nil {
@@ -128,6 +142,17 @@ func RefreshParkingLoop(manager *sytralrt.DataManager, parkingsURI url.URL, park
 		}
 		logrus.Debug("Parking data updated")
 		time.Sleep(parkingsRefresh)
+	}
+}
+
+func RefreshEquipmentLoop(manager *sytralrt.DataManager, equipmentsURI url.URL, equipmentsRefresh time.Duration) {
+	for {
+		err := sytralrt.RefreshEquipments(manager, equipmentsURI)
+		if err != nil {
+			logrus.Error("Error while reloading equipment data: ", err)
+		}
+		logrus.Debug("Equipment data updated")
+		time.Sleep(equipmentsRefresh)
 	}
 }
 

@@ -23,6 +23,7 @@ type StatusResponse struct {
 	Version             string    `json:"version,omitempty"`
 	LastDepartureUpdate time.Time `json:"last_departure_update"`
 	LastParkingUpdate   time.Time `json:"last_parking_update"`
+	LastEquipmentUpdate time.Time `json:"last_equipment_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -57,6 +58,12 @@ func (p ByParkingResponseId) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 type ParkingsResponse struct {
 	Parkings []ParkingResponse `json:"records,omitempty"`
 	Errors   []string          `json:"errors,omitempty"`
+}
+
+// EquipmentsResponse defines the structure returned by the /equipments endpoint
+type EquipmentsResponse struct {
+	Equipments []EquipmentDetail `json:"equipments_details,omitempty"`
+	Error      string            `json:"errors,omitempty"`
 }
 
 var (
@@ -106,6 +113,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			SytralRTVersion,
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
+			manager.GetLastEquipmentsDataUpdate(),
 		})
 	}
 }
@@ -145,6 +153,21 @@ func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		response := EquipmentsResponse{}
+
+		equipments, err := manager.GetEquipments()
+		if err != nil {
+			response.Error = "No data loaded"
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+		response.Equipments = equipments
+		c.JSON(http.StatusOK, response)
+	}
+}
+
 func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
@@ -156,6 +179,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
+	r.GET("/equipments", EquipmentsHandler(manager))
 
 	return r
 }

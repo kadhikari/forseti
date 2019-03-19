@@ -151,6 +151,85 @@ func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 
 func (p *ParkingLineConsumer) Terminate() {}
 
+// EquipmentDetail defines how a equipment object is represented in a response
+type EquipmentDetail struct {
+	ID                  string              `json:"id"`
+	Name                string              `json:"name"`
+	EmbeddedType        string              `json:"embedded_type"`
+	CurrentAvailability CurrentAvailability `json:"current_availaibity"`
+}
+
+type CurrentAvailability struct {
+	Status    string    `json:"status"`
+	Cause     Cause     `json:"cause"`
+	Effect    Effect    `json:"effect"`
+	Periods   []Period  `json:"periods"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type Cause struct {
+	Label string `json:"label"`
+}
+
+type Effect struct {
+	Label string `json:"label"`
+}
+
+type Period struct {
+	Begin time.Time `json:"begin"`
+	End   time.Time `json:"end"`
+}
+
+func EmbeddedType(s string) (string, error) {
+	switch {
+	case s == "ASCENSEUR":
+		return "elevator", nil
+	case s == "ESCALIER":
+		return "escalator", nil
+	default:
+		return "", fmt.Errorf("Unsupported EmbeddedType %s", s)
+	}
+}
+
+// NewEquipmentDetail creates a new EquipmentDetail object from the object EquipementSource
+func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time.Location) (*EquipmentDetail, error) {
+	start, err := time.ParseInLocation("2006-01-02", es.Start, location)
+	if err != nil {
+		return nil, err
+	}
+
+	end, err := time.ParseInLocation("2006-01-02", es.End, location)
+	if err != nil {
+		return nil, err
+	}
+
+	hour, err := time.ParseInLocation("15:04:05", es.Hour, location)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add time part to end date
+	end = hour.AddDate(end.Year(), int(end.Month())-1, end.Day()-1)
+
+	etype, err := EmbeddedType(es.Type)
+	if err != nil {
+		return nil, err
+	}
+	now := time.Now()
+
+	return &EquipmentDetail{
+		ID:           es.ID,
+		Name:         es.Name,
+		EmbeddedType: etype,
+		CurrentAvailability: CurrentAvailability{
+			Status:    GetEquipmentStatus(start, end, now),
+			Cause:     Cause{Label: es.Cause},
+			Effect:    Effect{Label: es.Effect},
+			Periods:   []Period{Period{Begin: start, End: end}},
+			UpdatedAt: updatedAt},
+	}, nil
+}
+
 type DataManager struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
@@ -159,6 +238,10 @@ type DataManager struct {
 	parkings          *map[string]Parking
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
+
+	equipments          *[]EquipmentDetail
+	lastEquipmentUpdate time.Time
+	equipmentsMutex     sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -266,4 +349,46 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	}
 
 	return p, e
+}
+
+func (d *DataManager) UpdateEquipments(equipments []EquipmentDetail) {
+	d.equipmentsMutex.Lock()
+	defer d.equipmentsMutex.Unlock()
+
+	d.equipments = &equipments
+	d.lastEquipmentUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
+	d.equipmentsMutex.RLock()
+	defer d.equipmentsMutex.RUnlock()
+
+	return d.lastEquipmentUpdate
+}
+
+func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
+	var equipmentDetails []EquipmentDetail
+	{
+		d.equipmentsMutex.RLock()
+		defer d.equipmentsMutex.RUnlock()
+
+		if d.equipments == nil {
+			e = fmt.Errorf("No equipments in the data")
+			return
+		}
+
+		equipmentDetails = *d.equipments
+	}
+
+	return equipmentDetails, nil
+}
+
+// GetEquipmentStatus returns availability of equipment
+func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
+	if now.Before(start) || now.After(end) {
+		return "available"
+	} else {
+		return "unavailable"
+	}
+
 }

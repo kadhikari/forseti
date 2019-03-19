@@ -220,3 +220,31 @@ func TestParkingsPRAPIwithParkingsID(t *testing.T) {
 	require.Len(response.Errors, 1)
 	assert.Contains(response.Errors[0], "picsou")
 }
+
+func TestEquipmentsAPI(t *testing.T) {
+	assert := assert.New(t)
+	require := require.New(t)
+	equipmentURI, err := url.Parse(fmt.Sprintf("file://%s/NET_ACCESS.XML", fixtureDir))
+	require.Nil(err)
+
+	var manager DataManager
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	err = RefreshEquipments(&manager, *equipmentURI)
+	assert.Nil(err)
+
+	c.Request = httptest.NewRequest("GET", "/equipments", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var response EquipmentsResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.NotNil(response.Equipments)
+	require.NotEmpty(response.Equipments)
+	assert.Len(response.Equipments, 3)
+	assert.Empty(response.Error)
+}

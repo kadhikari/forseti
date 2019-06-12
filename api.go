@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
@@ -175,6 +176,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, false))
 	r.Use(instrumentGin())
 	r.Use(gin.Recovery())
+	pprof.Register(r)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))

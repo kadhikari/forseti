@@ -19,6 +19,8 @@ var fixtureDir string
 
 const oneline = "1;87A;Mions Bourdelle;11 min;E;2018-09-17 20:28:00;35998;87A-022AM:5:2:12\r\n"
 
+var defaultTimeout time.Duration = time.Second * 10
+
 func TestMain(m *testing.M) {
 
 	fixtureDir = os.Getenv("FIXTUREDIR")
@@ -60,20 +62,29 @@ func TestMain(m *testing.M) {
 	os.Exit(code)
 }
 
+func TestGetSFTPFileTimeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping test Docker in short mode.")
+	}
+	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/oneline.txt", sftpPort))
+	require.Nil(t, err)
+	_, err = getFileWithSftp(*uri, time.Microsecond)
+	require.NotNil(t, err)
+}
 func TestGetSFTPFile(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test Docker in short mode.")
 	}
 	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	reader, err := getFileWithSftp(*uri)
+	reader, err := getFileWithSftp(*uri, defaultTimeout)
 	require.Nil(t, err)
 	b := make([]byte, 100)
 	len, err := reader.Read(b)
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
 
-	reader, err = getFile(*uri)
+	reader, err = getFile(*uri, defaultTimeout)
 	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
@@ -93,7 +104,7 @@ func TestGetSFTPFS(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
 
-	reader, err = getFile(*uri)
+	reader, err = getFile(*uri, defaultTimeout)
 	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
@@ -107,24 +118,24 @@ func TestGetSFTPFileError(t *testing.T) {
 	}
 	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:wrongpass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri)
+	_, err = getFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
 
-	_, err = getFile(*uri)
+	_, err = getFile(*uri, defaultTimeout)
 	require.Error(t, err)
 
 	uri, err = url.Parse(fmt.Sprintf("sftp://monuser:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri)
+	_, err = getFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
-	_, err = getFile(*uri)
+	_, err = getFile(*uri, defaultTimeout)
 	require.Error(t, err)
 
 	uri, err = url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/not.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri)
+	_, err = getFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
-	_, err = getFile(*uri)
+	_, err = getFile(*uri, defaultTimeout)
 	require.Error(t, err)
 }
 
@@ -230,13 +241,13 @@ func TestRefreshData(t *testing.T) {
 	require.Nil(t, err)
 
 	var manager DataManager
-	err = RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	assert.Nil(t, err)
 	departures, err := manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
-	err = RefreshDepartures(&manager, *secondURI)
+	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
 	assert.Nil(t, err)
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
@@ -258,37 +269,37 @@ func TestRefreshDataError(t *testing.T) {
 
 	var manager DataManager
 
-	reader, err := getFile(*misssingFieldURI)
+	reader, err := getFile(*misssingFieldURI, defaultTimeout)
 	require.Nil(t, err)
 
 	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
-	err = RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	require.Nil(t, err)
 	departures, err := manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
-	err = RefreshDepartures(&manager, *misssingFieldURI)
+	err = RefreshDepartures(&manager, *misssingFieldURI, defaultTimeout)
 	require.Error(t, err)
 	//data hasn't been updated
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
-	err = RefreshDepartures(&manager, *secondURI)
+	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
 	require.Nil(t, err)
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)
 	checkSecond(t, departures)
 
-	reader, err = getFile(*invalidDateURI)
+	reader, err = getFile(*invalidDateURI, defaultTimeout)
 	require.Nil(t, err)
 	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
 
-	err = RefreshDepartures(&manager, *invalidDateURI)
+	err = RefreshDepartures(&manager, *invalidDateURI, defaultTimeout)
 	require.Error(t, err)
 	departures, err = manager.GetDeparturesByStop("3")
 	require.Nil(t, err)

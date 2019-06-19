@@ -73,9 +73,9 @@ func init() {
 	prometheus.MustRegister(equipmentsLoadingErrors)
 }
 
-func getFile(uri url.URL) (io.Reader, error) {
+func getFile(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
 	if uri.Scheme == "sftp" {
-		return getFileWithSftp(uri)
+		return getFileWithSftp(uri, connectionTimeout)
 	} else if uri.Scheme == "file" {
 		return getFileWithFS(uri)
 	} else {
@@ -97,7 +97,7 @@ func getFileWithFS(uri url.URL) (io.Reader, error) {
 	return &buffer, nil
 }
 
-func getFileWithSftp(uri url.URL) (io.Reader, error) {
+func getFileWithSftp(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
 	password, _ := uri.User.Password()
 	sshConfig := &ssh.ClientConfig{
 		User: uri.User.Username(),
@@ -105,6 +105,7 @@ func getFileWithSftp(uri url.URL) (io.Reader, error) {
 			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
+		Timeout:         connectionTimeout,
 	}
 
 	sshClient, err := ssh.Dial("tcp", uri.Host, sshConfig)
@@ -248,9 +249,9 @@ func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 	return equipmentDetails, nil
 }
 
-func RefreshDepartures(manager *DataManager, uri url.URL) error {
+func RefreshDepartures(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	file, err := getFile(uri)
+	file, err := getFile(uri, connectionTimeout)
 	if err != nil {
 		departureLoadingErrors.Inc()
 		return err
@@ -266,9 +267,9 @@ func RefreshDepartures(manager *DataManager, uri url.URL) error {
 	return nil
 }
 
-func RefreshParkings(manager *DataManager, uri url.URL) error {
+func RefreshParkings(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	file, err := getFile(uri)
+	file, err := getFile(uri, connectionTimeout)
 	if err != nil {
 		parkingsLoadingErrors.Inc()
 		return err
@@ -300,9 +301,9 @@ func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 	return nil, fmt.Errorf("Unknown Charset")
 }
 
-func RefreshEquipments(manager *DataManager, uri url.URL) error {
+func RefreshEquipments(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	file, err := getFile(uri)
+	file, err := getFile(uri, connectionTimeout)
 	if err != nil {
 		equipmentsLoadingErrors.Inc()
 		return err

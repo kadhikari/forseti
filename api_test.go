@@ -47,7 +47,7 @@ func TestDeparturesApi(t *testing.T) {
 	assert.NotEmpty(response.Message)
 
 	//we load some data
-	err = RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3", nil)
@@ -100,7 +100,7 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
 
-	err = RefreshDepartures(&manager, *firstURI)
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)
@@ -128,7 +128,7 @@ func TestStatusApiHasLastParkingUpdateTime(t *testing.T) {
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
 
-	err = RefreshParkings(&manager, *parkingURI)
+	err = RefreshParkings(&manager, *parkingURI, defaultTimeout)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)
@@ -232,7 +232,7 @@ func TestEquipmentsAPI(t *testing.T) {
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
 
-	err = RefreshEquipments(&manager, *equipmentURI)
+	err = RefreshEquipments(&manager, *equipmentURI, defaultTimeout)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/equipments", nil)

@@ -27,8 +27,9 @@ type Config struct {
 	EquipmentsRefresh time.Duration `mapstructure:"equipments-refresh"`
 	EquipmentsURI     url.URL
 
-	JSONLog  bool   `mapstructure:"json-log"`
-	LogLevel string `mapstructure:"log-level"`
+	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
+	JSONLog           bool          `mapstructure:"json-log"`
+	LogLevel          string        `mapstructure:"log-level"`
 }
 
 func noneOf(args ...string) bool {
@@ -50,6 +51,7 @@ func GetConfig() (Config, error) {
 	pflag.String("equipments-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
+	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
 	pflag.Parse()
@@ -94,24 +96,24 @@ func main() {
 	initLog(config.JSONLog, config.LogLevel)
 	manager := &sytralrt.DataManager{}
 
-	err = sytralrt.RefreshDepartures(manager, config.DeparturesURI)
+	err = sytralrt.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load departures data at startup: %s (%s)", err, config.DeparturesURIStr)
 	}
 
-	err = sytralrt.RefreshParkings(manager, config.ParkingsURI)
+	err = sytralrt.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
 	}
 
-	err = sytralrt.RefreshEquipments(manager, config.EquipmentsURI)
+	err = sytralrt.RefreshEquipments(manager, config.EquipmentsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
 
-	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh)
-	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh)
-	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh)
+	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
+	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
+	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
 
 	err = sytralrt.SetupRouter(manager, nil).Run()
 	if err != nil {
@@ -119,13 +121,15 @@ func main() {
 	}
 }
 
-func RefreshDepartureLoop(manager *sytralrt.DataManager, departuresURI url.URL, departuresRefresh time.Duration) {
+func RefreshDepartureLoop(manager *sytralrt.DataManager,
+	departuresURI url.URL,
+	departuresRefresh, connectionTimeout time.Duration) {
 	if departuresRefresh.Seconds() < 1 {
 		logrus.Info("data refreshing is disabled")
 		return
 	}
 	for {
-		err := sytralrt.RefreshDepartures(manager, departuresURI)
+		err := sytralrt.RefreshDepartures(manager, departuresURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading departures data: ", err)
 		}
@@ -134,9 +138,11 @@ func RefreshDepartureLoop(manager *sytralrt.DataManager, departuresURI url.URL, 
 	}
 }
 
-func RefreshParkingLoop(manager *sytralrt.DataManager, parkingsURI url.URL, parkingsRefresh time.Duration) {
+func RefreshParkingLoop(manager *sytralrt.DataManager,
+	parkingsURI url.URL,
+	parkingsRefresh, connectionTimeout time.Duration) {
 	for {
-		err := sytralrt.RefreshParkings(manager, parkingsURI)
+		err := sytralrt.RefreshParkings(manager, parkingsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading parking data: ", err)
 		}
@@ -145,9 +151,11 @@ func RefreshParkingLoop(manager *sytralrt.DataManager, parkingsURI url.URL, park
 	}
 }
 
-func RefreshEquipmentLoop(manager *sytralrt.DataManager, equipmentsURI url.URL, equipmentsRefresh time.Duration) {
+func RefreshEquipmentLoop(manager *sytralrt.DataManager,
+	equipmentsURI url.URL,
+	equipmentsRefresh, connectionTimeout time.Duration) {
 	for {
-		err := sytralrt.RefreshEquipments(manager, equipmentsURI)
+		err := sytralrt.RefreshEquipments(manager, equipmentsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading equipment data: ", err)
 		}

@@ -144,7 +144,7 @@ func LoadData(file io.Reader, lineConsumer LineConsumer) error {
 
 	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
 		delimiter:     ';',
-		nbFields:      8,
+		nbFields:      0, // do not check record size in csv.reader
 		skipFirstLine: false,
 	})
 }

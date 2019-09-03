@@ -273,6 +273,9 @@ func TestMultipleStopsID(t *testing.T) {
 	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[6].Datetime.String())
 	assert.Equal(t, "2018-09-17 21:02:55 +0200 CEST", departures[7].Datetime.String())
 
+	departures, err = manager.GetDeparturesByStops([]string{"3", "832813923", "4"})
+	require.Nil(t, err)
+	require.Len(t, departures, 8)
 }
 
 func TestRefreshDataError(t *testing.T) {

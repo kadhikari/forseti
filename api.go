@@ -90,13 +90,13 @@ var (
 func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := DeparturesResponse{}
-		stopID := c.Query("stop_id")
-		if stopID == "" {
+		stopID, found := c.GetQueryArray("stop_id")
+		if !found {
 			response.Message = "stopID is required"
 			c.JSON(http.StatusBadRequest, response)
 			return
 		}
-		departures, err := manager.GetDeparturesByStop(stopID)
+		departures, err := manager.GetDeparturesByStops(stopID)
 		if err != nil {
 			response.Message = "No data loaded"
 			c.JSON(http.StatusServiceUnavailable, response)

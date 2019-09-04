@@ -48,9 +48,9 @@ func (d *DirectionType) UnmarshalJSON(b []byte) error {
 
 func ParseDirectionType(value string) DirectionType {
 	switch value {
-	case "ALL":
+	case "ALL": //Aller => forward in french
 		return DirectionTypeForward
-	case "RET":
+	case "RET": // Retour => backward in french
 		return DirectionTypeBackward
 	default:
 		return DirectionTypeUnknown
@@ -64,7 +64,7 @@ func ParseDirectionTypeFromNavitia(value string) (DirectionType, error) {
 		return DirectionTypeForward, nil
 	case "backward":
 		return DirectionTypeBackward, nil
-	case "":
+	case "", "both":
 		return DirectionTypeBoth, nil
 	case "unknown":
 		return DirectionTypeUnknown, nil

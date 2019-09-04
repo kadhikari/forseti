@@ -43,7 +43,8 @@ func TestNewDepartureWithDirectionType(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	d, err := NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "ALL"}, location)
+	d, err := NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "ALL"},
+		location)
 	require.Nil(err)
 
 	assert.Equal("1", d.Stop)
@@ -56,7 +57,8 @@ func TestNewDepartureWithDirectionType(t *testing.T) {
 	//Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location)
 	assert.Equal(time.Date(2018, 9, 17, 20, 28, 0, 0, location), d.Datetime)
 
-	d, err = NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "RET"}, location)
+	d, err = NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "RET"},
+		location)
 	require.Nil(err)
 
 	assert.Equal("1", d.Stop)
@@ -412,9 +414,9 @@ func TestParseDirectionTypeFromNavitia(t *testing.T) {
 	assert.Nil(err)
 	assert.Equal(DirectionTypeBoth, r)
 
-	r, err = ParseDirectionTypeFromNavitia("foo")
+	_, err = ParseDirectionTypeFromNavitia("foo")
 	assert.NotNil(err)
-	r, err = ParseDirectionTypeFromNavitia("ALL")
+	_, err = ParseDirectionTypeFromNavitia("ALL")
 	assert.NotNil(err)
 }
 

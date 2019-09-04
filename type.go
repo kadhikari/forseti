@@ -334,7 +334,9 @@ func (d *DataManager) GetLastDepartureDataUpdate() time.Time {
 func (d *DataManager) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
 	return d.GetDeparturesByStopsAndDirectionType(stopsID, DirectionTypeBoth)
 }
-func (d *DataManager) GetDeparturesByStopsAndDirectionType(stopsID []string, directionType DirectionType) ([]Departure, error) {
+func (d *DataManager) GetDeparturesByStopsAndDirectionType(
+	stopsID []string,
+	directionType DirectionType) ([]Departure, error) {
 
 	var departures []Departure
 	{

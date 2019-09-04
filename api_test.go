@@ -21,6 +21,9 @@ func TestDeparturesApi(t *testing.T) {
 	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
 	require.Nil(err)
 
+	multipleURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
+	require.Nil(err)
+
 	var manager DataManager
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
@@ -61,6 +64,7 @@ func TestDeparturesApi(t *testing.T) {
 	assert.Empty(response.Message)
 	require.NotNil(response.Departures)
 	assert.NotEmpty(response.Departures)
+	assert.Len(*response.Departures, 4)
 
 	//these is no stop 5 in our dataset
 	c.Request = httptest.NewRequest("GET", "/departures?stop_id=5", nil)
@@ -74,6 +78,23 @@ func TestDeparturesApi(t *testing.T) {
 	assert.Empty(response.Message)
 	require.NotNil(response.Departures)
 	require.Empty(response.Departures)
+
+	//load data with more than one stops
+	err = RefreshDepartures(&manager, *multipleURI, defaultTimeout)
+	assert.Nil(err)
+
+	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	response = DeparturesResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.Empty(response.Message)
+	require.NotNil(response.Departures)
+	assert.NotEmpty(response.Departures)
+	assert.Len(*response.Departures, 8)
 }
 
 func TestStatusApiExist(t *testing.T) {

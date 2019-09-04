@@ -259,7 +259,7 @@ func (d *DataManager) GetLastDepartureDataUpdate() time.Time {
 	return d.lastDepartureUpdate
 }
 
-func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {
+func (d *DataManager) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
 
 	var departures []Departure
 	{
@@ -269,14 +269,18 @@ func (d *DataManager) GetDeparturesByStop(stopID string) ([]Departure, error) {
 		if d.departures == nil {
 			return []Departure{}, fmt.Errorf("no departures")
 		}
-
-		departures = (*d.departures)[stopID]
+		for _, stopID := range stopsID {
+			departures = append(departures, (*d.departures)[stopID]...)
+		}
 	}
 
 	if departures == nil {
 		//there is no departures for this stop, we return an empty slice
 		return []Departure{}, nil
 	}
+	sort.Slice(departures, func(i, j int) bool {
+		return departures[i].Datetime.Before(departures[j].Datetime)
+	})
 	return departures, nil
 }
 

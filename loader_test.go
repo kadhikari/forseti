@@ -243,15 +243,39 @@ func TestRefreshData(t *testing.T) {
 	var manager DataManager
 	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	assert.Nil(t, err)
-	departures, err := manager.GetDeparturesByStop("3")
+	departures, err := manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
 	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
 	assert.Nil(t, err)
-	departures, err = manager.GetDeparturesByStop("3")
+	departures, err = manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	checkSecond(t, departures)
+}
+
+func TestMultipleStopsID(t *testing.T) {
+	firstURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
+	require.Nil(t, err)
+
+	var manager DataManager
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
+	assert.Nil(t, err)
+	departures, err := manager.GetDeparturesByStops([]string{"3", "4"})
+	require.Nil(t, err)
+	require.Len(t, departures, 8)
+	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:32:37 +0200 CEST", departures[1].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[2].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:39:37 +0200 CEST", departures[3].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[4].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:55:55 +0200 CEST", departures[5].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[6].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:02:55 +0200 CEST", departures[7].Datetime.String())
+
+	departures, err = manager.GetDeparturesByStops([]string{"3", "832813923", "4"})
+	require.Nil(t, err)
+	require.Len(t, departures, 8)
 }
 
 func TestRefreshDataError(t *testing.T) {
@@ -277,20 +301,20 @@ func TestRefreshDataError(t *testing.T) {
 
 	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
 	require.Nil(t, err)
-	departures, err := manager.GetDeparturesByStop("3")
+	departures, err := manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
 	err = RefreshDepartures(&manager, *misssingFieldURI, defaultTimeout)
 	require.Error(t, err)
 	//data hasn't been updated
-	departures, err = manager.GetDeparturesByStop("3")
+	departures, err = manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	checkFirst(t, departures)
 
 	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
 	require.Nil(t, err)
-	departures, err = manager.GetDeparturesByStop("3")
+	departures, err = manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	checkSecond(t, departures)
 
@@ -301,7 +325,7 @@ func TestRefreshDataError(t *testing.T) {
 
 	err = RefreshDepartures(&manager, *invalidDateURI, defaultTimeout)
 	require.Error(t, err)
-	departures, err = manager.GetDeparturesByStop("3")
+	departures, err = manager.GetDeparturesByStops([]string{"3"})
 	require.Nil(t, err)
 	//we still get old departures
 	checkSecond(t, departures)

@@ -278,6 +278,36 @@ func TestMultipleStopsID(t *testing.T) {
 	require.Len(t, departures, 8)
 }
 
+func TestByDirectionType(t *testing.T) {
+	firstURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
+	require.Nil(t, err)
+
+	var manager DataManager
+	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
+	assert.Nil(t, err)
+	departures, err := manager.GetDeparturesByStopsAndDirectionType([]string{"3", "4"}, DirectionTypeForward)
+	require.Nil(t, err)
+	require.Len(t, departures, 4)
+	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[0].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:39:37 +0200 CEST", departures[1].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[2].Datetime.String())
+	assert.Equal(t, "2018-09-17 21:02:55 +0200 CEST", departures[3].Datetime.String())
+
+	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"3"}, DirectionTypeBackward)
+	require.Nil(t, err)
+	require.Len(t, departures, 2)
+	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
+	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[1].Datetime.String())
+
+	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"5"}, DirectionTypeForward)
+	require.Nil(t, err)
+	require.Len(t, departures, 4)
+
+	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"5"}, DirectionTypeBackward)
+	require.Nil(t, err)
+	require.Len(t, departures, 0)
+}
+
 func TestRefreshDataError(t *testing.T) {
 	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
 	require.Nil(t, err)

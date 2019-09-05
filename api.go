@@ -96,7 +96,13 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 			c.JSON(http.StatusBadRequest, response)
 			return
 		}
-		departures, err := manager.GetDeparturesByStops(stopID)
+		directionType, err := ParseDirectionTypeFromNavitia(c.Query("direction_type"))
+		if err != nil {
+			response.Message = err.Error()
+			c.JSON(http.StatusBadRequest, response)
+			return
+		}
+		departures, err := manager.GetDeparturesByStopsAndDirectionType(stopID, directionType)
 		if err != nil {
 			response.Message = "No data loaded"
 			c.JSON(http.StatusServiceUnavailable, response)

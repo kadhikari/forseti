@@ -30,6 +30,44 @@ func TestNewDeparture(t *testing.T) {
 	assert.Equal("dest", d.DirectionName)
 	assert.Equal("3", d.Direction)
 	assert.Equal("E", d.Type)
+	assert.Equal(DirectionTypeUnknown, d.DirectionType)
+
+	//Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location)
+	assert.Equal(time.Date(2018, 9, 17, 20, 28, 0, 0, location), d.Datetime)
+}
+
+func TestNewDepartureWithDirectionType(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	d, err := NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "ALL"},
+		location)
+	require.Nil(err)
+
+	assert.Equal("1", d.Stop)
+	assert.Equal("2", d.Line)
+	assert.Equal("dest", d.DirectionName)
+	assert.Equal("3", d.Direction)
+	assert.Equal("E", d.Type)
+	assert.Equal(DirectionTypeForward, d.DirectionType)
+
+	//Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location)
+	assert.Equal(time.Date(2018, 9, 17, 20, 28, 0, 0, location), d.Datetime)
+
+	d, err = NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "RET"},
+		location)
+	require.Nil(err)
+
+	assert.Equal("1", d.Stop)
+	assert.Equal("2", d.Line)
+	assert.Equal("dest", d.DirectionName)
+	assert.Equal("3", d.Direction)
+	assert.Equal("E", d.Type)
+	assert.Equal(DirectionTypeBackward, d.DirectionType)
+
 	//Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location)
 	assert.Equal(time.Date(2018, 9, 17, 20, 28, 0, 0, location), d.Datetime)
 }
@@ -350,4 +388,49 @@ func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
 		assert.Error(err)
 		assert.Nil(ed)
 	}
+}
+
+func TestParseDirectionType(t *testing.T) {
+	assert := assert.New(t)
+
+	assert.Equal(DirectionTypeForward, ParseDirectionType("ALL"))
+	assert.Equal(DirectionTypeBackward, ParseDirectionType("RET"))
+	assert.Equal(DirectionTypeUnknown, ParseDirectionType(""))
+	assert.Equal(DirectionTypeUnknown, ParseDirectionType("foo"))
+}
+
+func TestParseDirectionTypeFromNavitia(t *testing.T) {
+	assert := assert.New(t)
+
+	r, err := ParseDirectionTypeFromNavitia("forward")
+	assert.Nil(err)
+	assert.Equal(DirectionTypeForward, r)
+
+	r, err = ParseDirectionTypeFromNavitia("backward")
+	assert.Nil(err)
+	assert.Equal(DirectionTypeBackward, r)
+
+	r, err = ParseDirectionTypeFromNavitia("")
+	assert.Nil(err)
+	assert.Equal(DirectionTypeBoth, r)
+
+	_, err = ParseDirectionTypeFromNavitia("foo")
+	assert.NotNil(err)
+	_, err = ParseDirectionTypeFromNavitia("ALL")
+	assert.NotNil(err)
+}
+
+func TestKeepDirection(t *testing.T) {
+	assert := assert.New(t)
+	assert.True(keepDirection(DirectionTypeForward, DirectionTypeForward))
+	assert.False(keepDirection(DirectionTypeForward, DirectionTypeBackward))
+	assert.True(keepDirection(DirectionTypeForward, DirectionTypeBoth))
+
+	assert.False(keepDirection(DirectionTypeBackward, DirectionTypeForward))
+	assert.True(keepDirection(DirectionTypeBackward, DirectionTypeBackward))
+	assert.True(keepDirection(DirectionTypeBackward, DirectionTypeBoth))
+
+	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeBackward))
+	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeForward))
+	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeBoth))
 }

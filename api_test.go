@@ -95,6 +95,50 @@ func TestDeparturesApi(t *testing.T) {
 	require.NotNil(response.Departures)
 	assert.NotEmpty(response.Departures)
 	assert.Len(*response.Departures, 8)
+
+	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=both", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	response = DeparturesResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.Empty(response.Message)
+	require.NotNil(response.Departures)
+	assert.NotEmpty(response.Departures)
+	assert.Len(*response.Departures, 8)
+
+	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=forward", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	response = DeparturesResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.Empty(response.Message)
+	require.NotNil(response.Departures)
+	assert.NotEmpty(response.Departures)
+	assert.Len(*response.Departures, 4)
+
+	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=backward", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	response = DeparturesResponse{}
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.Empty(response.Message)
+	require.NotNil(response.Departures)
+	assert.NotEmpty(response.Departures)
+	assert.Len(*response.Departures, 2)
+
+	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=aller", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(400, w.Code)
 }
 
 func TestStatusApiExist(t *testing.T) {

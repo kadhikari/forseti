@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/CanalTP/forseti"
+	"github.com/kadhikari/forseti"
 )
 
 type Config struct {
@@ -94,7 +94,7 @@ func main() {
 	}
 
 	initLog(config.JSONLog, config.LogLevel)
-	manager := &sytralrt.DataManager{}
+	manager := &forseti.DataManager{}
 
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {

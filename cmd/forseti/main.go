@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/CanalTP/sytralrt"
+	"github.com/CanalTP/forseti"
 )
 
 type Config struct {
@@ -43,7 +43,7 @@ func noneOf(args ...string) bool {
 
 func GetConfig() (Config, error) {
 	pflag.String("departures-uri", "",
-		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://sytral:pass@172.17.0.3:22/extract_edylic.txt")
+		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt")
 	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("parkings-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path")
@@ -60,7 +60,7 @@ func GetConfig() (Config, error) {
 	if err := viper.BindPFlags(pflag.CommandLine); err != nil {
 		return config, errors.Wrap(err, "Impossible to parse flags")
 	}
-	viper.SetEnvPrefix("SYTRALRT")
+	viper.SetEnvPrefix("FORSETI")
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer("-", "_"))
 
@@ -96,17 +96,17 @@ func main() {
 	initLog(config.JSONLog, config.LogLevel)
 	manager := &sytralrt.DataManager{}
 
-	err = sytralrt.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
+	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load departures data at startup: %s (%s)", err, config.DeparturesURIStr)
 	}
 
-	err = sytralrt.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
+	err = forseti.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
 	}
 
-	err = sytralrt.RefreshEquipments(manager, config.EquipmentsURI, config.ConnectionTimeout)
+	err = forseti.RefreshEquipments(manager, config.EquipmentsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
@@ -115,13 +115,13 @@ func main() {
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
 
-	err = sytralrt.SetupRouter(manager, nil).Run()
+	err = forseti.SetupRouter(manager, nil).Run()
 	if err != nil {
 		logrus.Fatalf("Impossible to start gin: %s", err)
 	}
 }
 
-func RefreshDepartureLoop(manager *sytralrt.DataManager,
+func RefreshDepartureLoop(manager *forseti.DataManager,
 	departuresURI url.URL,
 	departuresRefresh, connectionTimeout time.Duration) {
 	if departuresRefresh.Seconds() < 1 {
@@ -129,7 +129,7 @@ func RefreshDepartureLoop(manager *sytralrt.DataManager,
 		return
 	}
 	for {
-		err := sytralrt.RefreshDepartures(manager, departuresURI, connectionTimeout)
+		err := forseti.RefreshDepartures(manager, departuresURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading departures data: ", err)
 		}
@@ -138,11 +138,11 @@ func RefreshDepartureLoop(manager *sytralrt.DataManager,
 	}
 }
 
-func RefreshParkingLoop(manager *sytralrt.DataManager,
+func RefreshParkingLoop(manager *forseti.DataManager,
 	parkingsURI url.URL,
 	parkingsRefresh, connectionTimeout time.Duration) {
 	for {
-		err := sytralrt.RefreshParkings(manager, parkingsURI, connectionTimeout)
+		err := forseti.RefreshParkings(manager, parkingsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading parking data: ", err)
 		}
@@ -151,11 +151,11 @@ func RefreshParkingLoop(manager *sytralrt.DataManager,
 	}
 }
 
-func RefreshEquipmentLoop(manager *sytralrt.DataManager,
+func RefreshEquipmentLoop(manager *forseti.DataManager,
 	equipmentsURI url.URL,
 	equipmentsRefresh, connectionTimeout time.Duration) {
 	for {
-		err := sytralrt.RefreshEquipments(manager, equipmentsURI, connectionTimeout)
+		err := forseti.RefreshEquipments(manager, equipmentsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading equipment data: ", err)
 		}

@@ -10,7 +10,7 @@ script:
 - make ci
 - make
 after_success:
-- export REPO=navitia/sytralrt
+- export REPO=navitia/forseti
 - export TAG=`if [ "$TRAVIS_BRANCH" == "master" ]; then echo "latest"; else echo $TRAVIS_BRANCH;
   fi`
 - make docker

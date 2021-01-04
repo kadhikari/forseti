@@ -1,4 +1,4 @@
-package sytralrt
+package forseti
 
 import (
 	"net/http"
@@ -69,7 +69,7 @@ type EquipmentsResponse struct {
 
 var (
 	httpDurations = prometheus.NewHistogramVec(prometheus.HistogramOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "http",
 		Name:      "durations_seconds",
 		Help:      "http request latency distributions.",
@@ -79,7 +79,7 @@ var (
 	)
 
 	httpInFlight = prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "http",
 		Name:      "in_flight",
 		Help:      "current number of http request being served",
@@ -117,7 +117,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
-			SytralRTVersion,
+			ForsetiVersion,
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
 			manager.GetLastEquipmentsDataUpdate(),

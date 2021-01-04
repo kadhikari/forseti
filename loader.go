@@ -1,4 +1,4 @@
-package sytralrt
+package forseti
 
 import (
 	"bytes"
@@ -19,7 +19,7 @@ import (
 
 var (
 	departureLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "departures",
 		Name:      "load_durations_seconds",
 		Help:      "http request latency distributions.",
@@ -27,14 +27,14 @@ var (
 	})
 
 	departureLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "departures",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
 
 	parkingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "parkings",
 		Name:      "load_durations_seconds",
 		Help:      "http request latency distributions.",
@@ -42,14 +42,14 @@ var (
 	})
 
 	parkingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "parkings",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
 
 	equipmentsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "equipments",
 		Name:      "load_durations_seconds",
 		Help:      "http request latency distributions.",
@@ -57,7 +57,7 @@ var (
 	})
 
 	equipmentsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "sytralrt",
+		Namespace: "forseti",
 		Subsystem: "equipments",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",

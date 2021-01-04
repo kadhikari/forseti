@@ -1,3 +1,3 @@
-package sytralrt
+package forseti
 
-var SytralRTVersion = "undefined"
+var ForsetiVersion = "undefined"

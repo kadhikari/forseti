@@ -11,7 +11,7 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 
-	"github.com/kadhikari/forseti"
+	"github.com/CanalTP/forseti"
 )
 
 type Config struct {

@@ -1,4 +1,4 @@
-package sytralrt
+package forseti
 
 import (
 	"flag"
@@ -41,8 +41,8 @@ func TestMain(m *testing.M) {
 	opts := dockertest.RunOptions{
 		Repository: "atmoz/sftp",
 		Tag:        "alpine",
-		Cmd:        []string{"sytral:pass"},
-		Mounts:     []string{fmt.Sprintf("%s:/home/sytral", fixtureDir)},
+		Cmd:        []string{"forseti:pass"},
+		Mounts:     []string{fmt.Sprintf("%s:/home/forseti", fixtureDir)},
 	}
 	resource, err := pool.RunWithOptions(&opts)
 	if err != nil {
@@ -66,7 +66,7 @@ func TestGetSFTPFileTimeout(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test Docker in short mode.")
 	}
-	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/oneline.txt", sftpPort))
+	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
 	_, err = getFileWithSftp(*uri, time.Microsecond)
 	require.NotNil(t, err)
@@ -75,7 +75,7 @@ func TestGetSFTPFile(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test Docker in short mode.")
 	}
-	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/oneline.txt", sftpPort))
+	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
 	reader, err := getFileWithSftp(*uri, defaultTimeout)
 	require.Nil(t, err)
@@ -116,7 +116,7 @@ func TestGetSFTPFileError(t *testing.T) {
 	if testing.Short() {
 		t.Skip("skipping test Docker in short mode.")
 	}
-	uri, err := url.Parse(fmt.Sprintf("sftp://sytral:wrongpass@localhost:%s/oneline.txt", sftpPort))
+	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:wrongpass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
 	_, err = getFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
@@ -131,7 +131,7 @@ func TestGetSFTPFileError(t *testing.T) {
 	_, err = getFile(*uri, defaultTimeout)
 	require.Error(t, err)
 
-	uri, err = url.Parse(fmt.Sprintf("sftp://sytral:pass@localhost:%s/not.txt", sftpPort))
+	uri, err = url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/not.txt", sftpPort))
 	require.Nil(t, err)
 	_, err = getFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)

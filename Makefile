@@ -33,7 +33,7 @@ ci: lint test ## Run all the tests and code checks
 
 .PHONY: build
 build: ## Build a version
-	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/CanalTP/sytralrt.SytralRTVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
+	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/CanalTP/forseti.ForsetiVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
 
 .PHONY: clean
 clean: ## Remove temporary files
@@ -54,6 +54,6 @@ help:
 
 .PHONY: docker
 docker: build ## build docker image
-	docker build -t navitia/sytralrt:$(VERSION) .
+	docker build -t navitia/forseti:$(VERSION) .
 
 .DEFAULT_GOAL := build

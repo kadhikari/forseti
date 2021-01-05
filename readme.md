@@ -1,4 +1,4 @@
-Sytral-rt
+forseti
 ===========
 This project aims to provide jormungandr with realtime data provided by the Sytral.
 Realtime data is available as csv files that needs to be downloaded by FTP.
@@ -28,11 +28,11 @@ Run
 ===
 Once you have build it it's fairly easy to run it:
 ```
-./sytral-rt --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/sytralrt/fixtures/NET_ACCESS.XML --equipments-refresh=2s
+./forseti --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/forseti/fixtures/NET_ACCESS.XML --equipments-refresh=2s
 
 ```
 
-You can also use the pre-built docker image: navitia/sytralrt
+You can also use the pre-built docker image: navitia/forseti
 
 How does it work
 ================
@@ -50,6 +50,6 @@ will get the new dataset.
 
 General Architecture
 ================
-SytralRT is a webservice that is meant to be integrated as part of [Navitia](https://www.navitia.io) as follow: 
+Forseti is a webservice that is meant to be integrated as part of [Navitia](https://www.navitia.io) as follow: 
 
 ![artchitecture](doc/architecture.png)

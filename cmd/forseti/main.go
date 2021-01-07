@@ -124,7 +124,7 @@ func main() {
 func RefreshDepartureLoop(manager *forseti.DataManager,
 	departuresURI url.URL,
 	departuresRefresh, connectionTimeout time.Duration) {
-	if (len(departuresURI.String()) == 0 || departuresRefresh.Seconds() < 1) {
+	if (len(departuresURI.String()) == 0 || departuresRefresh.Seconds() <= 0) {
 		logrus.Debug("Departure data refreshing is disabled")
 		return
 	}
@@ -141,7 +141,7 @@ func RefreshDepartureLoop(manager *forseti.DataManager,
 func RefreshParkingLoop(manager *forseti.DataManager,
 	parkingsURI url.URL,
 	parkingsRefresh, connectionTimeout time.Duration) {
-	if (len(parkingsURI.String()) == 0 || parkingsRefresh.Seconds() < 1){
+	if (len(parkingsURI.String()) == 0 || parkingsRefresh.Seconds() <= 0){
 		logrus.Debug("Parking data refreshing is disabled")
 		return
 	}
@@ -158,7 +158,7 @@ func RefreshParkingLoop(manager *forseti.DataManager,
 func RefreshEquipmentLoop(manager *forseti.DataManager,
 	equipmentsURI url.URL,
 	equipmentsRefresh, connectionTimeout time.Duration) {
-	if (len(equipmentsURI.String()) == 0 || equipmentsRefresh.Seconds() < 1){
+	if (len(equipmentsURI.String()) == 0 || equipmentsRefresh.Seconds() <= 0){
 		logrus.Debug("Equipment data refreshing is disabled")
 		return
 	}

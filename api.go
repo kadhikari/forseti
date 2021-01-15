@@ -20,11 +20,12 @@ type DeparturesResponse struct {
 
 // StatusResponse defines the object returned by the /status endpoint
 type StatusResponse struct {
-	Status              string    `json:"status,omitempty"`
-	Version             string    `json:"version,omitempty"`
-	LastDepartureUpdate time.Time `json:"last_departure_update"`
-	LastParkingUpdate   time.Time `json:"last_parking_update"`
-	LastEquipmentUpdate time.Time `json:"last_equipment_update"`
+	Status              	string    `json:"status,omitempty"`
+	Version             	string    `json:"version,omitempty"`
+	LastDepartureUpdate 	time.Time `json:"last_departure_update"`
+	LastParkingUpdate   	time.Time `json:"last_parking_update"`
+	LastEquipmentUpdate 	time.Time `json:"last_equipment_update"`
+	LastFreeFloatingUpdate 	time.Time `json:"last_free_floating_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -64,6 +65,12 @@ type ParkingsResponse struct {
 // EquipmentsResponse defines the structure returned by the /equipments endpoint
 type EquipmentsResponse struct {
 	Equipments []EquipmentDetail `json:"equipments_details,omitempty"`
+	Error      string            `json:"errors,omitempty"`
+}
+
+// FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
+type FreeFloatingsResponse struct {
+	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
 	Error      string            `json:"errors,omitempty"`
 }
 
@@ -121,6 +128,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
 			manager.GetLastEquipmentsDataUpdate(),
+			manager.GetLastFreeFloatingsDataUpdate(),
 		})
 	}
 }
@@ -175,6 +183,21 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		response := FreeFloatingsResponse{}
+
+		freeFloatings, err := manager.GetFreeFloatings()
+		if err != nil {
+			response.Error = "No data loaded"
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+		response.FreeFloatings = freeFloatings
+		c.JSON(http.StatusOK, response)
+	}
+}
+
 func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
@@ -183,11 +206,13 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.Use(instrumentGin())
 	r.Use(gin.Recovery())
 	pprof.Register(r)
+	fmt.Println("request: ", r)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
 	r.GET("/equipments", EquipmentsHandler(manager))
+	r.GET("/free_floatings", FreeFloatingsHandler(manager))
 
 	return r
 }

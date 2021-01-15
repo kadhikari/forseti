@@ -27,6 +27,11 @@ type Config struct {
 	EquipmentsRefresh time.Duration `mapstructure:"equipments-refresh"`
 	EquipmentsURI     url.URL
 
+	FreeFloatingsURIStr  string        `mapstructure:"free-floatings-uri"`
+	FreeFloatingsRefresh time.Duration `mapstructure:"free-floatings-refresh"`
+	FreeFloatingsURI     url.URL
+	FreeFloatingsToken  string        `mapstructure:"free-floatings-token"`
+
 	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
 	JSONLog           bool          `mapstructure:"json-log"`
 	LogLevel          string        `mapstructure:"log-level"`
@@ -51,6 +56,9 @@ func GetConfig() (Config, error) {
 	pflag.String("equipments-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
+	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("free-floatings-token", "", "token for Fluctéo")
+	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
@@ -68,7 +76,7 @@ func GetConfig() (Config, error) {
 		return config, errors.Wrap(err, "Unmarshalling of flag failed")
 	}
 
-	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr) {
+	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -76,6 +84,7 @@ func GetConfig() (Config, error) {
 		config.DeparturesURIStr: &config.DeparturesURI,
 		config.ParkingsURIStr:   &config.ParkingsURI,
 		config.EquipmentsURIStr: &config.EquipmentsURI,
+		config.FreeFloatingsURIStr: &config.FreeFloatingsURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -111,9 +120,15 @@ func main() {
 		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
 
+	err = forseti.RefreshFreeFloatings(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.ConnectionTimeout)
+	if err != nil {
+		logrus.Errorf("Impossible to load free_floatings data at startup: %s (%s)", err, config.FreeFloatingsURIStr)
+	}
+
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
+	go RefreshFreeFloatingLoop(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.FreeFloatingsRefresh, config.ConnectionTimeout)
 
 	err = forseti.SetupRouter(manager, nil).Run()
 	if err != nil {
@@ -169,6 +184,24 @@ func RefreshEquipmentLoop(manager *forseti.DataManager,
 		}
 		logrus.Debug("Equipment data updated")
 		time.Sleep(equipmentsRefresh)
+	}
+}
+
+func RefreshFreeFloatingLoop(manager *forseti.DataManager,
+	freeFloatingsURI url.URL,
+	freeFloatingsToken string,
+	freeFloatingsRefresh,
+	connectionTimeout time.Duration) {
+	if (len(freeFloatingsURI.String()) == 0 || freeFloatingsRefresh.Seconds() <= 0){
+		logrus.Debug("FreeFloating data refreshing is disabled")
+	}
+	for {
+		err := forseti.RefreshFreeFloatings(manager, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
+		if err != nil {
+			logrus.Error("Error while reloading equipment data: ", err)
+		}
+		logrus.Debug("Free_floating data updated")
+		time.Sleep(freeFloatingsRefresh)
 	}
 }
 

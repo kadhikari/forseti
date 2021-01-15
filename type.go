@@ -302,6 +302,35 @@ func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time
 	}, nil
 }
 
+//FreeFloating defines how the object is represented in a response
+type Coord struct {
+	Lat float32 `json:"lat,omitempty"`
+	Lon float32 `json:"lon,omitempty"`
+}
+
+type FreeFloating struct {
+	Public_id string `json:"product_id,omitempty"`
+	ProviderName string `json:"provider_name,omitempty"`
+	Id string `json:"id,omitempty"`
+	Coord Coord `json:"coord,omitempty"`
+	Propulsion string `json:"propulsion,omitempty"`
+	Battery int `json:"battery,omitempty"`
+	Deeplink string `json:"deeplink,omitempty"`
+}
+
+// NewFreeFloating creates a new EquipmentDetail object from the object EquipementSource
+func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
+	return &FreeFloating{
+		Public_id:		ve.Public_id,
+		ProviderName: 	ve.Provider.Name,
+		Id:				ve.Id,
+		Coord:			Coord{Lat: ve.Latitude, Lon: ve.Longitude},
+		Propulsion:		ve.Propulsion,
+		Battery:		ve.Battery,
+		Deeplink:		ve.Deeplink,
+	}, nil
+}
+
 type DataManager struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
@@ -314,6 +343,10 @@ type DataManager struct {
 	equipments          *[]EquipmentDetail
 	lastEquipmentUpdate time.Time
 	equipmentsMutex     sync.RWMutex
+
+	freeFloatings          *[]FreeFloating
+	lastFreeFloatingUpdate time.Time
+	freeFloatingsMutex     sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -490,4 +523,36 @@ func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
 		return "unavailable"
 	}
 
+}
+
+func (d *DataManager) UpdateFreeFloating(freeFloatings []FreeFloating) {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	d.freeFloatings = &freeFloatings
+	d.lastFreeFloatingUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
+	d.freeFloatingsMutex.RLock()
+	defer d.freeFloatingsMutex.RUnlock()
+
+	return d.lastFreeFloatingUpdate
+}
+
+func (d *DataManager) GetFreeFloatings() (freeFloatings []FreeFloating, e error) {
+	var ffs []FreeFloating
+	{
+		d.freeFloatingsMutex.RLock()
+		defer d.freeFloatingsMutex.RUnlock()
+
+		if d.freeFloatings == nil {
+			e = fmt.Errorf("No free-floatings in the data")
+			return
+		}
+
+		ffs = *d.freeFloatings
+	}
+
+	return ffs, nil
 }

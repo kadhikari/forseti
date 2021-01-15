@@ -10,7 +10,8 @@ import (
 	"net/url"
 	"os"
 	"time"
-
+	"net/http"
+	"encoding/json"
 	"github.com/pkg/sftp"
 	"github.com/prometheus/client_golang/prometheus"
 	"golang.org/x/crypto/ssh"
@@ -62,6 +63,21 @@ var (
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
+
+	freeFloatingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "forseti",
+		Subsystem: "free_floatings",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	})
+
+	freeFloatingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "forseti",
+		Subsystem: "free_floatings",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	})
 )
 
 func init() {
@@ -71,6 +87,8 @@ func init() {
 	prometheus.MustRegister(parkingsLoadingErrors)
 	prometheus.MustRegister(equipmentsLoadingDuration)
 	prometheus.MustRegister(equipmentsLoadingErrors)
+	prometheus.MustRegister(freeFloatingsLoadingDuration)
+	prometheus.MustRegister(freeFloatingsLoadingErrors)
 }
 
 func getFile(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
@@ -304,6 +322,7 @@ func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 func RefreshEquipments(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
 	file, err := getFile(uri, connectionTimeout)
+
 	if err != nil {
 		equipmentsLoadingErrors.Inc()
 		return err
@@ -316,5 +335,65 @@ func RefreshEquipments(manager *DataManager, uri url.URL, connectionTimeout time
 	}
 	manager.UpdateEquipments(equipments)
 	equipmentsLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func CallHttpClient(siteHost, token string ) (*http.Response, error){
+	client := &http.Client{}
+	data := url.Values{}
+	data.Set("query", "query($id: Int!) {area(id: $id) {vehicles{public_id: publicId, provider{name}, id, type, attributes ,latitude: lat, longitude: lng, propulsion, battery, deeplink } } }")
+	data.Set("variables", `{"id": 6}`)
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1?access_token=%s", siteHost, token), bytes.NewBufferString(data.Encode()))
+	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
+	if err != nil {
+		return nil, err
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	return resp, nil
+}
+
+func LoadFreeFloatingData (resp *http.Response) ([]FreeFloating, error) {
+	// Read response body in json
+	fmt.Println("************** Reading response body in json  ***********")
+	data := &Data{}
+	decoder := json.NewDecoder(resp.Body)
+	err := decoder.Decode(data)
+	if err != nil {
+        return nil, err
+	}
+
+	freeFloatings := make([]FreeFloating, 0)
+	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
+		ff, err := NewFreeFloating(data.Data.Area.Vehicles[i])
+		if err != nil {
+			return nil, err
+		}
+		freeFloatings = append(freeFloatings, *ff)
+	}
+	return freeFloatings, nil
+}
+
+func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, connectionTimeout time.Duration) error {
+	begin := time.Now()
+	fmt.Println("*** RefreshFreeFloatings ***")
+	resp, err := CallHttpClient(uri.String(), token)
+
+	if err != nil {
+		freeFloatingsLoadingErrors.Inc()
+		return err
+	}
+
+	freeFloatings, err := LoadFreeFloatingData(resp)
+	if err != nil {
+		freeFloatingsLoadingErrors.Inc()
+		return err
+	}
+	fmt.Println("freeFloatings size: ", len(freeFloatings))
+
+	manager.UpdateFreeFloating(freeFloatings)
+	freeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

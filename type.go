@@ -338,6 +338,7 @@ type FreeFloating struct {
 	Propulsion string `json:"propulsion,omitempty"`
 	Battery int `json:"battery,omitempty"`
 	Deeplink string `json:"deeplink,omitempty"`
+	Attributes [] string `json:"attributes,omitempty"`
 }
 
 // NewFreeFloating creates a new EquipmentDetail object from the object EquipementSource
@@ -351,6 +352,7 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
 		Propulsion:		ve.Propulsion,
 		Battery:		ve.Battery,
 		Deeplink:		ve.Deeplink,
+		Attributes:		ve.Attributes,
 	}, nil
 }
 

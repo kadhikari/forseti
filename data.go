@@ -70,4 +70,5 @@ type Vehicle struct {
 	Propulsion string `json:"propulsion,omitempty"`
 	Battery int `json:"battery,omitempty"`
 	Deeplink string `json:"deeplink,omitempty"`
+	Attributes []string `json:"attributes,omitempty"`
 }

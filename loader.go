@@ -357,7 +357,6 @@ func CallHttpClient(siteHost, token string ) (*http.Response, error){
 
 func LoadFreeFloatingData (resp *http.Response) ([]FreeFloating, error) {
 	// Read response body in json
-	fmt.Println("************** Reading response body in json  ***********")
 	data := &Data{}
 	decoder := json.NewDecoder(resp.Body)
 	err := decoder.Decode(data)

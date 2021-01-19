@@ -10,6 +10,13 @@ import (
 	"time"
 )
 
+type Parameter struct {
+	distance int
+	latitude float64
+	longitude float64
+	count int
+}
+
 type DirectionType int
 
 const (
@@ -304,8 +311,8 @@ func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time
 
 //FreeFloating defines how the object is represented in a response
 type Coord struct {
-	Lat float32 `json:"lat,omitempty"`
-	Lon float32 `json:"lon,omitempty"`
+	Lat float64 `json:"lat,omitempty"`
+	Lon float64 `json:"lon,omitempty"`
 }
 
 type FreeFloating struct {
@@ -540,7 +547,7 @@ func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
 	return d.lastFreeFloatingUpdate
 }
 
-func (d *DataManager) GetFreeFloatings() (freeFloatings []FreeFloating, e error) {
+func (d *DataManager) GetFreeFloatings(param * Parameter) (freeFloatings []FreeFloating, e error) {
 	var ffs []FreeFloating
 	{
 		d.freeFloatingsMutex.RLock()

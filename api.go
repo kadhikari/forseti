@@ -4,7 +4,8 @@ import (
 	"net/http"
 	"strconv"
 	"time"
-
+	"strings"
+	"fmt"
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -183,11 +184,43 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func initParameters(c *gin.Context) (param *Parameter, err error) {
+	var longitude, latitude float64
+	var e error
+	p := Parameter{}
+	countStr := c.DefaultQuery("count", "10")
+	p.count = stringToInt(countStr, 10)
+	distanceStr := c.DefaultQuery("distance", "100")
+	p.distance = stringToInt(distanceStr, 100)
+	coordStr := c.Query("coord")
+	coord := strings.Split(coordStr, ";")
+	if len(coord) == 2 {
+		longitudeStr := coord[0]
+		latitudeStr := coord[1]
+		longitude, e = strconv.ParseFloat(longitudeStr, 32)
+		if e != nil {
+			err = fmt.Errorf("Bad request on coordinate longitude")
+			return nil, err
+		}
+		latitude, e = strconv.ParseFloat(latitudeStr, 32)
+		if e != nil {
+			err = fmt.Errorf("Bad request on coordinate latitude")
+			return nil, err
+		}
+		p.longitude = longitude
+		p.latitude = latitude
+		calculatedDistance := coordDistance(p.latitude, p.longitude, 48.845128, 2.372607)
+		fmt.Println("** Distance: ", calculatedDistance)
+	}
+	return &p, nil
+}
+
 func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		var err error
+		parameter, err := initParameters(c)
 		response := FreeFloatingsResponse{}
-
-		freeFloatings, err := manager.GetFreeFloatings()
+		freeFloatings, err := manager.GetFreeFloatings(parameter)
 		if err != nil {
 			response.Error = "No data loaded"
 			c.JSON(http.StatusServiceUnavailable, response)
@@ -206,7 +239,6 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.Use(instrumentGin())
 	r.Use(gin.Recovery())
 	pprof.Register(r)
-	fmt.Println("request: ", r)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))

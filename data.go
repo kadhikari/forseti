@@ -64,6 +64,7 @@ type Vehicle struct {
 	Public_id string `json:"product_id,omitempty"`
 	Provider ProviderNode `json:"provider,omitempty"`
 	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
 	Latitude float64 `json:"latitude,omitempty"`
 	Longitude float64 `json:"longitude,omitempty"`
 	Propulsion string `json:"propulsion,omitempty"`

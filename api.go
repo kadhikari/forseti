@@ -184,6 +184,14 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func updateParameterTypes(param * Parameter, types []string) {
+	for _, value := range types {
+		if isTypeValid(value) {
+			param.types = append(param.types, value)
+		}
+	}
+}
+
 func initParameters(c *gin.Context) (param *Parameter, err error) {
 	var longitude, latitude float64
 	var e error
@@ -192,6 +200,10 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 	p.count = stringToInt(countStr, 10)
 	distanceStr := c.DefaultQuery("distance", "100")
 	p.distance = stringToInt(distanceStr, 100)
+
+	types, _ := c.Request.URL.Query()["type[]"]
+	updateParameterTypes(&p, types)
+
 	coordStr := c.Query("coord")
 	coord := strings.Split(coordStr, ";")
 	if len(coord) == 2 {
@@ -209,8 +221,6 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 		}
 		p.longitude = longitude
 		p.latitude = latitude
-		calculatedDistance := coordDistance(p.latitude, p.longitude, 48.845128, 2.372607)
-		fmt.Println("** Distance: ", calculatedDistance)
 	}
 	return &p, nil
 }

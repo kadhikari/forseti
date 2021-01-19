@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 )
 
 type Parameter struct {
@@ -15,6 +16,19 @@ type Parameter struct {
 	latitude float64
 	longitude float64
 	count int
+	types [] string
+}
+
+func typeOk(ff FreeFloating, types [] string) bool {
+	if len(types) == 0 {
+		return true
+	}
+	for _, value := range types {
+		if strings.EqualFold(ff.Type, value) {
+            return true
+        }
+	}
+	return false
 }
 
 type DirectionType int
@@ -319,6 +333,7 @@ type FreeFloating struct {
 	Public_id string `json:"product_id,omitempty"`
 	ProviderName string `json:"provider_name,omitempty"`
 	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
 	Coord Coord `json:"coord,omitempty"`
 	Propulsion string `json:"propulsion,omitempty"`
 	Battery int `json:"battery,omitempty"`
@@ -331,6 +346,7 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
 		Public_id:		ve.Public_id,
 		ProviderName: 	ve.Provider.Name,
 		Id:				ve.Id,
+		Type:			ve.Type,
 		Coord:			Coord{Lat: ve.Latitude, Lon: ve.Longitude},
 		Propulsion:		ve.Propulsion,
 		Battery:		ve.Battery,
@@ -548,7 +564,7 @@ func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
 }
 
 func (d *DataManager) GetFreeFloatings(param * Parameter) (freeFloatings []FreeFloating, e error) {
-	var ffs []FreeFloating
+	resp := make([]FreeFloating, 0)
 	{
 		d.freeFloatingsMutex.RLock()
 		defer d.freeFloatingsMutex.RUnlock()
@@ -557,9 +573,44 @@ func (d *DataManager) GetFreeFloatings(param * Parameter) (freeFloatings []FreeF
 			e = fmt.Errorf("No free-floatings in the data")
 			return
 		}
+		// Implementation of filters: distance, type[]
+		ffMap := make(map[float64] FreeFloating)
+		for _, ff := range *d.freeFloatings {
+			// Filter on type[]
+			keep := typeOk(ff, param.types)
 
-		ffs = *d.freeFloatings
+			if keep == false {
+				continue
+			}
+
+			// Calculate distance from coord in the request
+			distance := coordDistance(param.latitude, param.longitude, ff.Coord.Lat, ff.Coord.Lon)
+			if int(distance) > param.distance {
+				continue
+			}
+
+			// Keep the wanted object
+			if keep == true {
+				ffMap[distance] = ff
+			}
+		}
+
+		// sort freefloating map on key (distance)
+		keys := make([]float64, len(ffMap))
+    	i := 0
+		for k := range ffMap {
+			keys[i] = k
+			i++
+		}
+		sort.Float64s(keys)
+
+		// Finally filter on count
+		for _, k := range keys {
+			resp = append(resp, ffMap[k])
+			if len(resp) == param.count {
+				break
+			}
+		}
 	}
-
-	return ffs, nil
+	return resp, nil
 }

@@ -7,7 +7,6 @@ import (
 	"os"
 	"testing"
 	"time"
-
 	"github.com/ory/dockertest"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -393,4 +392,22 @@ func TestLoadEquipmentsData(t *testing.T) {
 	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].Begin)
 	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].End)
 	assert.Equal(time.Date(2018, 9, 15, 12, 1, 31, 0, location), ed.CurrentAvailability.UpdatedAt)
+}
+
+func TestLoadFreeFloatings(t *testing.T) {
+	/*
+	require := require.New(t)
+	assert := assert.New(t)
+	urlStr := "https://flow-api.fluctuo.com"
+	token := "Here comes the token"
+
+	resp, err := CallHttpClient(urlStr, token)
+	require.Nil(err)
+
+	freeFloatings, err := LoadFreeFloatingData(resp)
+	require.Nil(err)
+
+	assert.NotEqual(len(freeFloatings), 0)
+	assert.NotEmpty(freeFloatings[0].Id)
+	*/
 }

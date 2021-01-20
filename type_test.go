@@ -434,3 +434,67 @@ func TestKeepDirection(t *testing.T) {
 	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeForward))
 	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeBoth))
 }
+
+func TestNewNewFreeFloating(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	provider := ProviderNode {Name: "Pony"}
+	ff := Vehicle{Public_id: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
+	Latitude: 45.180335, Longitude:  5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
+	f, err := NewFreeFloating(ff)
+
+	require.Nil(err)
+	require.NotNil(f)
+
+	assert.Equal("NSCBH3", f.Public_id)
+	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ", f.Id)
+	assert.Equal("Pony", f.ProviderName)
+	assert.Equal("BIKE", f.Type)
+	assert.Equal(45.180335, f.Coord.Lat)
+	assert.Equal(5.7069425, f.Coord.Lon)
+	assert.Equal("ASSIST", f.Propulsion)
+	assert.Equal(85, f.Battery)
+	assert.Equal("http://test", f.Deeplink)
+}
+
+func TestDataManagerGetFreeFloatings(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	var manager DataManager
+	p1 := ProviderNode {Name: "Pony"}
+	p2 := ProviderNode {Name: "Tier"}
+
+	vehicles := make([]Vehicle, 0)
+	freeFloatings := make([]FreeFloating, 0)
+	v := Vehicle{Public_id: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
+		Latitude: 48.847232, Longitude:  2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
+	vehicles = append(vehicles, v)
+	v = Vehicle{Public_id: "718WSK", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==4b", Type: "SCOOTER",
+		Latitude: 48.847299, Longitude:  2.37772, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test2"}
+	vehicles = append(vehicles, v)
+	v = Vehicle{Public_id: "0JT9J6", Provider: p2, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==55c", Type: "SCOOTER",
+		Latitude: 48.847326, Longitude:  2.377734, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test3"}
+	vehicles = append(vehicles, v)
+
+	for _, vehicle := range vehicles {
+		ff, err := NewFreeFloating(vehicle)
+		require.Nil(err)
+		freeFloatings = append(freeFloatings, *ff)
+	}
+	manager.UpdateFreeFloating(freeFloatings)
+	// init parameters:
+	types := make([]string, 0)
+	types = append(types, "STATION")
+	types = append(types, "SCOOTER")
+	p:= Parameter{distance: 500, latitude: 48.846781, longitude:2.37715, count: 10, types: types}
+	free_floatings, err := manager.GetFreeFloatings(&p)
+	require.Nil(err)
+	require.Len(free_floatings, 2)
+
+	assert.Equal("718WSK", free_floatings[0].Public_id)
+	assert.Equal("Pony", free_floatings[0].ProviderName)
+	assert.Equal("SCOOTER", free_floatings[0].Type)
+	assert.Equal("0JT9J6", free_floatings[1].Public_id)
+	assert.Equal("Tier", free_floatings[1].ProviderName)
+}

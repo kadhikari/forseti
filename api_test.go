@@ -313,3 +313,50 @@ func TestEquipmentsAPI(t *testing.T) {
 	assert.Len(response.Equipments, 3)
 	assert.Empty(response.Error)
 }
+
+func TestFreeFloatingsAPI(t *testing.T) {
+	/*
+	assert := assert.New(t)
+	require := require.New(t)
+	urlStr := "https://flow-api.fluctuo.com"
+	token := "here comes the token"
+
+	freeFloatingURI, err := url.Parse(urlStr)
+	require.Nil(err)
+
+	var manager DataManager
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	err = RefreshFreeFloatings(&manager, *freeFloatingURI, token, defaultTimeout)
+	assert.Nil(err)
+
+	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var response FreeFloatingsResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.NotNil(response.FreeFloatings)
+	require.NotEmpty(response.FreeFloatings)
+	assert.NotEqual(len(response.FreeFloatings), 0)
+	assert.Empty(response.Error)
+	*/
+}
+
+func TestParameterTypes(t *testing.T) {
+	// valid types : {"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER"}
+	assert := assert.New(t)
+	p := Parameter{}
+	types := make([]string, 0)
+	types = append(types, "STATION")
+	types = append(types, "toto")
+	types = append(types, "MOTORSCOOTER")
+	types = append(types, "OTHER")
+
+	updateParameterTypes(&p, types)
+	assert.Len(p.types, 3)
+}

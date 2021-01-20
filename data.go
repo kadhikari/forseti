@@ -61,7 +61,7 @@ type ProviderNode struct {
 }
 
 type Vehicle struct {
-	Public_id string `json:"product_id,omitempty"`
+	Public_id string `json:"public_id,omitempty"`
 	Provider ProviderNode `json:"provider,omitempty"`
 	Id string `json:"id,omitempty"`
 	Type string `json:"type,omitempty"`

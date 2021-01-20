@@ -72,7 +72,7 @@ type EquipmentsResponse struct {
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
 type FreeFloatingsResponse struct {
 	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
-	Error      string            `json:"errors,omitempty"`
+	Error      string            `json:"error,omitempty"`
 }
 
 var (
@@ -205,18 +205,22 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 	updateParameterTypes(&p, types)
 
 	coordStr := c.Query("coord")
+	if len(coordStr) == 0 {
+		err = fmt.Errorf("Bad request: coord is mandatory")
+		return nil, err
+	}
 	coord := strings.Split(coordStr, ";")
 	if len(coord) == 2 {
 		longitudeStr := coord[0]
 		latitudeStr := coord[1]
 		longitude, e = strconv.ParseFloat(longitudeStr, 32)
 		if e != nil {
-			err = fmt.Errorf("Bad request on coordinate longitude")
+			err = fmt.Errorf("Bad request: error on coord longitude value")
 			return nil, err
 		}
 		latitude, e = strconv.ParseFloat(latitudeStr, 32)
 		if e != nil {
-			err = fmt.Errorf("Bad request on coordinate latitude")
+			err = fmt.Errorf("Bad request: error on coord latitude value")
 			return nil, err
 		}
 		p.longitude = longitude
@@ -228,8 +232,13 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var err error
-		parameter, err := initParameters(c)
 		response := FreeFloatingsResponse{}
+		parameter, err := initParameters(c)
+		if err != nil {
+			response.Error = err.Error()
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
 		freeFloatings, err := manager.GetFreeFloatings(parameter)
 		if err != nil {
 			response.Error = "No data loaded"

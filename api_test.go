@@ -9,7 +9,7 @@ import (
 	"sort"
 	"testing"
 	"time"
-
+	"io/ioutil"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -314,25 +314,33 @@ func TestEquipmentsAPI(t *testing.T) {
 	assert.Empty(response.Error)
 }
 
-func TestFreeFloatingsAPI(t *testing.T) {
-	/*
-	// To be finalized
-	assert := assert.New(t)
+func TestFreeFloatingsAPIFromFile(t *testing.T) {
 	require := require.New(t)
-	urlStr := "https://flow-api.fluctuo.com"
-	token := "here comes the token"
+	assert := assert.New(t)
 
-	freeFloatingURI, err := url.Parse(urlStr)
+	// Load freefloatings from json file
+	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
 	require.Nil(err)
 
-	var manager DataManager
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
 
+	data := &Data{}
+	err = json.Unmarshal([]byte(jsonData), data)
+	require.Nil(err)
+
+	freeFloatings, err := LoadFreeFloatingData(data)
+	require.Nil(err)
+
+	// Test api
+	var manager DataManager
+	manager.UpdateFreeFloating(freeFloatings)
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
 
-	err = RefreshFreeFloatings(&manager, *freeFloatingURI, token, defaultTimeout)
-	assert.Nil(err)
-
+	// Request with coord in parameter
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -342,10 +350,28 @@ func TestFreeFloatingsAPI(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	require.NotNil(response.FreeFloatings)
-	require.NotEmpty(response.FreeFloatings)
-	assert.NotEqual(len(response.FreeFloatings), 0)
+	assert.Len(response.FreeFloatings, 3)
 	assert.Empty(response.Error)
-	*/
+
+	// Request with coord, count in parameter
+	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=2", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.NotNil(response.FreeFloatings)
+	assert.Len(response.FreeFloatings, 2)
+
+	// Request with coord, type[] in parameter
+	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&type[]=BIKE&type[]=toto", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.NotNil(response.FreeFloatings)
+	assert.Len(response.FreeFloatings, 1)
 }
 
 func TestParameterTypes(t *testing.T) {

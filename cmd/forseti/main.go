@@ -57,7 +57,7 @@ func GetConfig() (Config, error) {
 		"format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("free-floatings-token", "", "token for Fluctéo")
+	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
@@ -198,7 +198,7 @@ func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 	for {
 		err := forseti.RefreshFreeFloatings(manager, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
 		if err != nil {
-			logrus.Error("Error while reloading equipment data: ", err)
+			logrus.Error("Error while reloading freefloating data: ", err)
 		}
 		logrus.Debug("Free_floating data updated")
 		time.Sleep(freeFloatingsRefresh)

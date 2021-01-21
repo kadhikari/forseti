@@ -341,7 +341,7 @@ type FreeFloating struct {
 	Attributes [] string `json:"attributes,omitempty"`
 }
 
-// NewFreeFloating creates a new EquipmentDetail object from the object EquipementSource
+// NewFreeFloating creates a new FreeFloating object from the object Vehicle
 func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
 	return &FreeFloating{
 		PublicId:		ve.PublicId,

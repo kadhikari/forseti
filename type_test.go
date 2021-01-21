@@ -435,7 +435,7 @@ func TestKeepDirection(t *testing.T) {
 	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeBoth))
 }
 
-func TestNewNewFreeFloating(t *testing.T) {
+func TestNewFreeFloating(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 	provider := ProviderNode {Name: "Pony"}

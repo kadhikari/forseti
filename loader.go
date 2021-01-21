@@ -370,7 +370,6 @@ func LoadFreeFloatingData (data *Data) ([]FreeFloating, error) {
 
 func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	fmt.Println("*** RefreshFreeFloatings ***")
 	resp, err := CallHttpClient(uri.String(), token)
 
 	if err != nil {
@@ -391,7 +390,6 @@ func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, conne
 		freeFloatingsLoadingErrors.Inc()
 		return err
 	}
-	fmt.Println("freeFloatings size: ", len(freeFloatings))
 
 	manager.UpdateFreeFloating(freeFloatings)
 	freeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())

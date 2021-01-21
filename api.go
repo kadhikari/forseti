@@ -231,7 +231,6 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 
 func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var err error
 		response := FreeFloatingsResponse{}
 		parameter, err := initParameters(c)
 		if err != nil {

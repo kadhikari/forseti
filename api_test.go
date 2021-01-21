@@ -314,11 +314,11 @@ func TestEquipmentsAPI(t *testing.T) {
 	assert.Empty(response.Error)
 }
 
-func TestFreeFloatingsAPIFromFile(t *testing.T) {
+func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	// Load freefloatings from json file
+	// Load freefloatings from a json file
 	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
 	require.Nil(err)
 	reader, err := getFileWithFS(*uri)
@@ -334,19 +334,29 @@ func TestFreeFloatingsAPIFromFile(t *testing.T) {
 	freeFloatings, err := LoadFreeFloatingData(data)
 	require.Nil(err)
 
-	// Test api
 	var manager DataManager
 	manager.UpdateFreeFloating(freeFloatings)
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
 
-	// Request with coord in parameter
-	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781", nil)
+	// Request without any parameter (coord is mandatory)
+	c.Request = httptest.NewRequest("GET", "/free_floatings", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
+	require.Equal(503, w.Code)
 
 	var response FreeFloatingsResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	assert.Len(response.FreeFloatings, 0)
+	assert.Equal("Bad request: coord is mandatory",response.Error)
+
+	// Request with coord in parameter
+	response.Error = ""
+	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	require.NotNil(response.FreeFloatings)
@@ -362,6 +372,7 @@ func TestFreeFloatingsAPIFromFile(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(response.FreeFloatings)
 	assert.Len(response.FreeFloatings, 2)
+	assert.Empty(response.Error)
 
 	// Request with coord, type[] in parameter
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&type[]=BIKE&type[]=toto", nil)
@@ -376,6 +387,7 @@ func TestFreeFloatingsAPIFromFile(t *testing.T) {
 
 func TestParameterTypes(t *testing.T) {
 	// valid types : {"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER"}
+	// As toto is not a valid type it will not be added in types
 	assert := assert.New(t)
 	p := Parameter{}
 	types := make([]string, 0)

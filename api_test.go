@@ -316,6 +316,7 @@ func TestEquipmentsAPI(t *testing.T) {
 
 func TestFreeFloatingsAPI(t *testing.T) {
 	/*
+	// To be finalized
 	assert := assert.New(t)
 	require := require.New(t)
 	urlStr := "https://flow-api.fluctuo.com"

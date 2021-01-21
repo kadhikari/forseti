@@ -198,8 +198,8 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 	p := Parameter{}
 	countStr := c.DefaultQuery("count", "10")
 	p.count = stringToInt(countStr, 10)
-	distanceStr := c.DefaultQuery("distance", "100")
-	p.distance = stringToInt(distanceStr, 100)
+	distanceStr := c.DefaultQuery("distance", "500")
+	p.distance = stringToInt(distanceStr, 500)
 
 	types, _ := c.Request.URL.Query()["type[]"]
 	updateParameterTypes(&p, types)

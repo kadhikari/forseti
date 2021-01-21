@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"os"
 	"testing"
+	"io/ioutil"
+	"encoding/json"
 	"time"
 	"github.com/ory/dockertest"
 	log "github.com/sirupsen/logrus"
@@ -394,21 +396,36 @@ func TestLoadEquipmentsData(t *testing.T) {
 	assert.Equal(time.Date(2018, 9, 15, 12, 1, 31, 0, location), ed.CurrentAvailability.UpdatedAt)
 }
 
-func TestLoadFreeFloatings(t *testing.T) {
-	/*
-	// To be finalized
+func TestLoadFreeFloatingsFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	urlStr := "https://flow-api.fluctuo.com"
-	token := "Here comes the token"
 
-	resp, err := CallHttpClient(urlStr, token)
+	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
 	require.Nil(err)
 
-	freeFloatings, err := LoadFreeFloatingData(resp)
+	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
+	data := &Data{}
+	err = json.Unmarshal([]byte(jsonData), data)
+	require.Nil(err)
+
+	freeFloatings, err := LoadFreeFloatingData(data)
+
+	require.Nil(err)
 	assert.NotEqual(len(freeFloatings), 0)
+	assert.Len(freeFloatings, 3)
 	assert.NotEmpty(freeFloatings[0].Id)
-	*/
+	assert.Equal("NSCBH3", freeFloatings[0].PublicId)
+	assert.Equal("Pony", freeFloatings[0].ProviderName)
+	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ==", freeFloatings[0].Id)
+	assert.Equal("BIKE", freeFloatings[0].Type)
+	assert.Equal("ASSIST", freeFloatings[0].Propulsion)
+	assert.Equal(55, freeFloatings[0].Battery)
+	assert.Equal("http://test1", freeFloatings[0].Deeplink)
+	assert.Equal(48.847232, freeFloatings[0].Coord.Lat)
+	assert.Equal(2.377601, freeFloatings[0].Coord.Lon)
+	assert.Equal([]string{"ELECTRIC"}, freeFloatings[0].Attributes)
 }

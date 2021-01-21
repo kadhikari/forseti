@@ -1,0 +1,56 @@
+{
+  "data": {
+    "area": {
+      "vehicles": [
+        {
+          "publicId": "NSCBH3",
+          "provider": {
+            "name": "Pony"
+          },
+          "id": "cG9ueTpCSUtFOjEwMDQ0MQ==",
+          "type": "BIKE",
+          "attributes": [
+            "ELECTRIC"
+          ],
+          "latitude": 48.847232,
+          "longitude": 2.377601,
+          "propulsion": "ASSIST",
+          "battery": 55,
+          "deeplink": "http://test1"
+        },
+        {
+          "publicId": "718WSK",
+          "provider": {
+            "name": "Pony"
+          },
+          "id": "cG9ueTpCSUtFOjEwMDQ0NA==",
+          "type": "SCOOTER",
+          "attributes": [
+            "ELECTRIC"
+          ],
+          "latitude": 48.847299,
+          "longitude": 2.37772,
+          "propulsion": "ELECTRIC",
+          "battery": 94,
+          "deeplink": "http://test2"
+        },
+        {
+          "publicId": "0JT9J6",
+          "provider": {
+            "name": "Tier"
+          },
+          "id": "cG9ueTpCSUtFOjEwMDUzMQ==",
+          "type": "SCOOTER",
+          "attributes": [
+            "ELECTRIC"
+          ],
+          "latitude": 48.847326,
+          "longitude": 2.377734,
+          "propulsion": "ELECTRIC",
+          "battery": 17,
+          "deeplink": "http://test3"
+        }
+      ]
+    }
+  }
+}

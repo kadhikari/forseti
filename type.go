@@ -330,7 +330,7 @@ type Coord struct {
 }
 
 type FreeFloating struct {
-	Public_id string `json:"product_id,omitempty"`
+	PublicId string `json:"public_id,omitempty"`
 	ProviderName string `json:"provider_name,omitempty"`
 	Id string `json:"id,omitempty"`
 	Type string `json:"type,omitempty"`
@@ -344,7 +344,7 @@ type FreeFloating struct {
 // NewFreeFloating creates a new EquipmentDetail object from the object EquipementSource
 func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
 	return &FreeFloating{
-		Public_id:		ve.Public_id,
+		PublicId:		ve.PublicId,
 		ProviderName: 	ve.Provider.Name,
 		Id:				ve.Id,
 		Type:			ve.Type,

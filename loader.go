@@ -341,7 +341,7 @@ func RefreshEquipments(manager *DataManager, uri url.URL, connectionTimeout time
 func CallHttpClient(siteHost, token string ) (*http.Response, error){
 	client := &http.Client{}
 	data := url.Values{}
-	data.Set("query", "query($id: Int!) {area(id: $id) {vehicles{public_id: publicId, provider{name}, id, type, attributes ,latitude: lat, longitude: lng, propulsion, battery, deeplink } } }")
+	data.Set("query", "query($id: Int!) {area(id: $id) {vehicles{publicId, provider{name}, id, type, attributes ,latitude: lat, longitude: lng, propulsion, battery, deeplink } } }")
 	data.Set("variables", `{"id": 6}`)
 	req, err := http.NewRequest("POST", fmt.Sprintf("%s/v1?access_token=%s", siteHost, token), bytes.NewBufferString(data.Encode()))
 	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
@@ -355,15 +355,8 @@ func CallHttpClient(siteHost, token string ) (*http.Response, error){
 	return resp, nil
 }
 
-func LoadFreeFloatingData (resp *http.Response) ([]FreeFloating, error) {
+func LoadFreeFloatingData (data *Data) ([]FreeFloating, error) {
 	// Read response body in json
-	data := &Data{}
-	decoder := json.NewDecoder(resp.Body)
-	err := decoder.Decode(data)
-	if err != nil {
-        return nil, err
-	}
-
 	freeFloatings := make([]FreeFloating, 0)
 	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
 		ff, err := NewFreeFloating(data.Data.Area.Vehicles[i])
@@ -385,7 +378,15 @@ func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, conne
 		return err
 	}
 
-	freeFloatings, err := LoadFreeFloatingData(resp)
+	data := &Data{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(data)
+	if err != nil {
+		freeFloatingsLoadingErrors.Inc()
+        return err
+	}
+
+	freeFloatings, err := LoadFreeFloatingData(data)
 	if err != nil {
 		freeFloatingsLoadingErrors.Inc()
 		return err

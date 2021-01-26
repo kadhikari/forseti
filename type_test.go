@@ -480,9 +480,9 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	}
 	manager.UpdateFreeFloating(freeFloatings)
 	// init parameters:
-	types := make([]string, 0)
-	types = append(types, "STATION")
-	types = append(types, "SCOOTER")
+	types := make([]FreeFloatingType, 0)
+	types = append(types, StationType)
+	types = append(types, ScooterType)
 	coord := Coord{Lat: 48.846781, Lon: 2.37715}
 	p:= FreeFloatingRequestParameter{distance: 500, coord: coord, count: 10, types: types}
 	free_floatings, err := manager.GetFreeFloatings(&p)

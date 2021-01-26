@@ -11,19 +11,53 @@ import (
 	"strings"
 )
 
+type FreeFloatingType int
+const (
+	BikeType FreeFloatingType = iota
+	ScooterType
+	MotorScooterType
+	StationType
+	CarType
+	OtherType
+	UnknownType
+)
+
+func (f FreeFloatingType) String() string {
+	return [...]string{"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER", "UNKNOWN"}[f]
+}
+
 type FreeFloatingRequestParameter struct {
 	distance int
 	coord Coord
 	count int
-	types [] string
+	types [] FreeFloatingType
 }
 
-func typeOk(ff FreeFloating, types [] string) bool {
+func ParseFreeFloatingTypeFromParam(value string)  FreeFloatingType {
+	switch strings.ToLower(value) {
+	case "bike":
+		return BikeType
+	case "scooter":
+		return ScooterType
+	case "motorscooter":
+		return MotorScooterType
+	case "station":
+		return StationType
+	case "car":
+		return CarType
+	case "other":
+		return OtherType
+	default:
+		return UnknownType
+	}
+}
+
+func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
 	if len(types) == 0 {
 		return true
 	}
 	for _, value := range types {
-		if strings.EqualFold(ff.Type, value) {
+		if strings.EqualFold(ff.Type,  value.String()) {
             return true
         }
 	}
@@ -578,7 +612,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 		ffMap := make(map[float64] FreeFloating)
 		for _, ff := range *d.freeFloatings {
 			// Filter on type[]
-			keep := typeOk(ff, param.types)
+			keep := keepIt(ff, param.types)
 
 			if keep == false {
 				continue

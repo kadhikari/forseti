@@ -186,8 +186,9 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 
 func updateParameterTypes(param * FreeFloatingRequestParameter, types []string) {
 	for _, value := range types {
-		if isTypeValid(value) {
-			param.types = append(param.types, value)
+		enumType := ParseFreeFloatingTypeFromParam(value)
+		if enumType != UnknownType {
+			param.types = append(param.types, enumType)
 		}
 	}
 }

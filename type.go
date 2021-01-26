@@ -11,10 +11,9 @@ import (
 	"strings"
 )
 
-type Parameter struct {
+type FreeFloatingRequestParameter struct {
 	distance int
-	latitude float64
-	longitude float64
+	coord Coord
 	count int
 	types [] string
 }
@@ -342,7 +341,7 @@ type FreeFloating struct {
 }
 
 // NewFreeFloating creates a new FreeFloating object from the object Vehicle
-func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
+func NewFreeFloating(ve Vehicle) (*FreeFloating) {
 	return &FreeFloating{
 		PublicId:		ve.PublicId,
 		ProviderName: 	ve.Provider.Name,
@@ -353,7 +352,7 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating, error) {
 		Battery:		ve.Battery,
 		Deeplink:		ve.Deeplink,
 		Attributes:		ve.Attributes,
-	}, nil
+	}
 }
 
 type DataManager struct {
@@ -565,7 +564,7 @@ func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
 	return d.lastFreeFloatingUpdate
 }
 
-func (d *DataManager) GetFreeFloatings(param * Parameter) (freeFloatings []FreeFloating, e error) {
+func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
 	resp := make([]FreeFloating, 0)
 	{
 		d.freeFloatingsMutex.RLock()
@@ -586,7 +585,7 @@ func (d *DataManager) GetFreeFloatings(param * Parameter) (freeFloatings []FreeF
 			}
 
 			// Calculate distance from coord in the request
-			distance := coordDistance(param.latitude, param.longitude, ff.Coord.Lat, ff.Coord.Lon)
+			distance := coordDistance(param.coord, ff.Coord)
 			if int(distance) > param.distance {
 				continue
 			}

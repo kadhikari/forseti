@@ -184,7 +184,7 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
-func updateParameterTypes(param * Parameter, types []string) {
+func updateParameterTypes(param * FreeFloatingRequestParameter, types []string) {
 	for _, value := range types {
 		if isTypeValid(value) {
 			param.types = append(param.types, value)
@@ -192,10 +192,10 @@ func updateParameterTypes(param * Parameter, types []string) {
 	}
 }
 
-func initParameters(c *gin.Context) (param *Parameter, err error) {
+func initParameters(c *gin.Context) (param *FreeFloatingRequestParameter, err error) {
 	var longitude, latitude float64
 	var e error
-	p := Parameter{}
+	p := FreeFloatingRequestParameter{}
 	countStr := c.DefaultQuery("count", "10")
 	p.count = stringToInt(countStr, 10)
 	distanceStr := c.DefaultQuery("distance", "500")
@@ -223,8 +223,7 @@ func initParameters(c *gin.Context) (param *Parameter, err error) {
 			err = fmt.Errorf("Bad request: error on coord latitude value")
 			return nil, err
 		}
-		p.longitude = longitude
-		p.latitude = latitude
+		p.coord = Coord {Lat: latitude, Lon: longitude}
 	}
 	return &p, nil
 }

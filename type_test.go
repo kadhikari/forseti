@@ -441,9 +441,7 @@ func TestNewFreeFloating(t *testing.T) {
 	provider := ProviderNode {Name: "Pony"}
 	ff := Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
 	Latitude: 45.180335, Longitude:  5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
-	f, err := NewFreeFloating(ff)
-
-	require.Nil(err)
+	f := NewFreeFloating(ff)
 	require.NotNil(f)
 
 	assert.Equal("NSCBH3", f.PublicId)
@@ -478,16 +476,15 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	vehicles = append(vehicles, v)
 
 	for _, vehicle := range vehicles {
-		ff, err := NewFreeFloating(vehicle)
-		require.Nil(err)
-		freeFloatings = append(freeFloatings, *ff)
+		freeFloatings = append(freeFloatings, *NewFreeFloating(vehicle))
 	}
 	manager.UpdateFreeFloating(freeFloatings)
 	// init parameters:
 	types := make([]string, 0)
 	types = append(types, "STATION")
 	types = append(types, "SCOOTER")
-	p:= Parameter{distance: 500, latitude: 48.846781, longitude:2.37715, count: 10, types: types}
+	coord := Coord{Lat: 48.846781, Lon: 2.37715}
+	p:= FreeFloatingRequestParameter{distance: 500, coord: coord, count: 10, types: types}
 	free_floatings, err := manager.GetFreeFloatings(&p)
 	require.Nil(err)
 	require.Len(free_floatings, 2)

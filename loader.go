@@ -351,22 +351,14 @@ func CallHttpClient(siteHost, token string ) (*http.Response, error){
 	if err != nil {
 		return nil, err
 	}
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	return resp, nil
+	return client.Do(req)
 }
 
 func LoadFreeFloatingData (data *Data) ([]FreeFloating, error) {
 	// Read response body in json
 	freeFloatings := make([]FreeFloating, 0)
 	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
-		ff, err := NewFreeFloating(data.Data.Area.Vehicles[i])
-		if err != nil {
-			return nil, err
-		}
-		freeFloatings = append(freeFloatings, *ff)
+		freeFloatings = append(freeFloatings, *NewFreeFloating(data.Data.Area.Vehicles[i]))
 	}
 	return freeFloatings, nil
 }

@@ -389,7 +389,7 @@ func TestParameterTypes(t *testing.T) {
 	// valid types : {"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER"}
 	// As toto is not a valid type it will not be added in types
 	assert := assert.New(t)
-	p := Parameter{}
+	p := FreeFloatingRequestParameter{}
 	types := make([]string, 0)
 	types = append(types, "STATION")
 	types = append(types, "toto")

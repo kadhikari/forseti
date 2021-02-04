@@ -193,7 +193,7 @@ func updateParameterTypes(param * FreeFloatingRequestParameter, types []string) 
 	}
 }
 
-func initParameters(c *gin.Context) (param *FreeFloatingRequestParameter, err error) {
+func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingRequestParameter, err error) {
 	var longitude, latitude float64
 	var e error
 	p := FreeFloatingRequestParameter{}
@@ -207,8 +207,7 @@ func initParameters(c *gin.Context) (param *FreeFloatingRequestParameter, err er
 
 	coordStr := c.Query("coord")
 	if len(coordStr) == 0 {
-		err = fmt.Errorf("Bad request: coord is mandatory")
-		return nil, err
+		return nil, fmt.Errorf("Bad request: coord is mandatory")
 	}
 	coord := strings.Split(coordStr, ";")
 	if len(coord) == 2 {
@@ -232,7 +231,7 @@ func initParameters(c *gin.Context) (param *FreeFloatingRequestParameter, err er
 func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := FreeFloatingsResponse{}
-		parameter, err := initParameters(c)
+		parameter, err := initFreeFloatingRequestParameter(c)
 		if err != nil {
 			response.Error = err.Error()
 			c.JSON(http.StatusServiceUnavailable, response)

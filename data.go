@@ -43,3 +43,32 @@ type EquipementSource struct {
 	End     string   `xml:"date_remise_service,attr"`
 	Hour    string   `xml:"heure_remise_service,attr"`
 }
+
+type Data struct{
+	Data AreaNode `json:"data"`
+}
+
+type AreaNode struct{
+	Area VehicleNode `json:"area"`
+}
+
+type VehicleNode struct {
+	Vehicles []Vehicle `json:"vehicles"`
+}
+
+type ProviderNode struct {
+	Name string `json:"name,omitempty"`
+}
+
+type Vehicle struct {
+	PublicId string `json:"publicId,omitempty"`
+	Provider ProviderNode `json:"provider,omitempty"`
+	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
+	Latitude float64 `json:"latitude,omitempty"`
+	Longitude float64 `json:"longitude,omitempty"`
+	Propulsion string `json:"propulsion,omitempty"`
+	Battery int `json:"battery,omitempty"`
+	Deeplink string `json:"deeplink,omitempty"`
+	Attributes []string `json:"attributes,omitempty"`
+}

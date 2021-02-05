@@ -8,7 +8,61 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	"strings"
 )
+
+type FreeFloatingType int
+const (
+	BikeType FreeFloatingType = iota
+	ScooterType
+	MotorScooterType
+	StationType
+	CarType
+	OtherType
+	UnknownType
+)
+
+func (f FreeFloatingType) String() string {
+	return [...]string{"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER", "UNKNOWN"}[f]
+}
+
+type FreeFloatingRequestParameter struct {
+	distance int
+	coord Coord
+	count int
+	types [] FreeFloatingType
+}
+
+func ParseFreeFloatingTypeFromParam(value string)  FreeFloatingType {
+	switch strings.ToLower(value) {
+	case "bike":
+		return BikeType
+	case "scooter":
+		return ScooterType
+	case "motorscooter":
+		return MotorScooterType
+	case "station":
+		return StationType
+	case "car":
+		return CarType
+	case "other":
+		return OtherType
+	default:
+		return UnknownType
+	}
+}
+
+func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
+	if len(types) == 0 {
+		return true
+	}
+	for _, value := range types {
+		if strings.EqualFold(ff.Type,  value.String()) {
+            return true
+        }
+	}
+	return false
+}
 
 type DirectionType int
 
@@ -302,6 +356,39 @@ func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time
 	}, nil
 }
 
+//FreeFloating defines how the object is represented in a response
+type Coord struct {
+	Lat float64 `json:"lat,omitempty"`
+	Lon float64 `json:"lon,omitempty"`
+}
+
+type FreeFloating struct {
+	PublicId string `json:"public_id,omitempty"`
+	ProviderName string `json:"provider_name,omitempty"`
+	Id string `json:"id,omitempty"`
+	Type string `json:"type,omitempty"`
+	Coord Coord `json:"coord,omitempty"`
+	Propulsion string `json:"propulsion,omitempty"`
+	Battery int `json:"battery,omitempty"`
+	Deeplink string `json:"deeplink,omitempty"`
+	Attributes [] string `json:"attributes,omitempty"`
+}
+
+// NewFreeFloating creates a new FreeFloating object from the object Vehicle
+func NewFreeFloating(ve Vehicle) (*FreeFloating) {
+	return &FreeFloating{
+		PublicId:		ve.PublicId,
+		ProviderName: 	ve.Provider.Name,
+		Id:				ve.Id,
+		Type:			ve.Type,
+		Coord:			Coord{Lat: ve.Latitude, Lon: ve.Longitude},
+		Propulsion:		ve.Propulsion,
+		Battery:		ve.Battery,
+		Deeplink:		ve.Deeplink,
+		Attributes:		ve.Attributes,
+	}
+}
+
 type DataManager struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
@@ -314,6 +401,10 @@ type DataManager struct {
 	equipments          *[]EquipmentDetail
 	lastEquipmentUpdate time.Time
 	equipmentsMutex     sync.RWMutex
+
+	freeFloatings          *[]FreeFloating
+	lastFreeFloatingUpdate time.Time
+	freeFloatingsMutex     sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -490,4 +581,71 @@ func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
 		return "unavailable"
 	}
 
+}
+
+func (d *DataManager) UpdateFreeFloating(freeFloatings []FreeFloating) {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	d.freeFloatings = &freeFloatings
+	d.lastFreeFloatingUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
+	d.freeFloatingsMutex.RLock()
+	defer d.freeFloatingsMutex.RUnlock()
+
+	return d.lastFreeFloatingUpdate
+}
+
+func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
+	resp := make([]FreeFloating, 0)
+	{
+		d.freeFloatingsMutex.RLock()
+		defer d.freeFloatingsMutex.RUnlock()
+
+		if d.freeFloatings == nil {
+			e = fmt.Errorf("No free-floatings in the data")
+			return
+		}
+		// Implementation of filters: distance, type[]
+		ffMap := make(map[float64] FreeFloating)
+		for _, ff := range *d.freeFloatings {
+			// Filter on type[]
+			keep := keepIt(ff, param.types)
+
+			if keep == false {
+				continue
+			}
+
+			// Calculate distance from coord in the request
+			distance := coordDistance(param.coord, ff.Coord)
+			if int(distance) > param.distance {
+				continue
+			}
+
+			// Keep the wanted object
+			if keep == true {
+				ffMap[distance] = ff
+			}
+		}
+
+		// sort freefloating map on key (distance)
+		keys := make([]float64, len(ffMap))
+    	i := 0
+		for k := range ffMap {
+			keys[i] = k
+			i++
+		}
+		sort.Float64s(keys)
+
+		// Finally filter on count
+		for _, k := range keys {
+			resp = append(resp, ffMap[k])
+			if len(resp) == param.count {
+				break
+			}
+		}
+	}
+	return resp, nil
 }

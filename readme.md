@@ -28,7 +28,7 @@ Run
 ===
 Once you have build it it's fairly easy to run it:
 ```
-./forseti --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/forseti/fixtures/NET_ACCESS.XML --equipments-refresh=2s
+./forseti --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/forseti/fixtures/NET_ACCESS.XML --equipments-refresh=2s --free-floatings-uri <freefloating source url> --free-floatings-token <token> --free-floatings-refresh=60s
 
 ```
 
@@ -43,7 +43,7 @@ Two routes are provided:
   - `/departures` returns the next departures for a stop (parameter `stop_id`)
   - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
   - `/equipments` returns informations on Equipments in StopAreas.
-
+  - `/free_floatings?coord=2.37715%3B48.846781` returns informations on freefloatings  within a certain radius as a crow flies from the point.
 One goroutine is handling the refresh of the data by downloading them every refresh-interval (default: 30s)
 and load them. Once these data have been loaded there is swap of pointer being done so that every new requests
 will get the new dataset.

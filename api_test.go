@@ -383,6 +383,18 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	require.NotNil(response.FreeFloatings)
 	assert.Len(response.FreeFloatings, 1)
+
+	// Verify attributes
+	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ==", response.FreeFloatings[0].Id)
+	assert.Equal("NSCBH3", response.FreeFloatings[0].PublicId)
+	assert.Equal("http://test1", response.FreeFloatings[0].Deeplink)
+	assert.Equal("Pony", response.FreeFloatings[0].ProviderName)
+	assert.Equal([]string{"ELECTRIC"}, response.FreeFloatings[0].Attributes)
+	assert.Equal(55, response.FreeFloatings[0].Battery)
+	assert.Equal("ASSIST", response.FreeFloatings[0].Propulsion)
+	assert.Equal(48.847232, response.FreeFloatings[0].Coord.Lat)
+	assert.Equal(2.377601, response.FreeFloatings[0].Coord.Lon)
+	assert.Equal(59.94, response.FreeFloatings[0].Distance)
 }
 
 func TestParameterTypes(t *testing.T) {

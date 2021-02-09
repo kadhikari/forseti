@@ -44,5 +44,11 @@ func coordDistance(from, to Coord) float64 {
 	return 2 * r * math.Asin(math.Sqrt(h))
 }
 
+func RoundFloat(x float64, prec int) float64 {
+	frep := strconv.FormatFloat(x, 'f', prec, 64)
+	f, _ := strconv.ParseFloat(frep, 64)
+	return f
+}
+
 
 

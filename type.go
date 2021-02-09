@@ -372,7 +372,14 @@ type FreeFloating struct {
 	Battery int `json:"battery,omitempty"`
 	Deeplink string `json:"deeplink,omitempty"`
 	Attributes [] string `json:"attributes,omitempty"`
+	Distance float64 `json:"distance,omitempty"`
 }
+
+type ByDistance []FreeFloating
+
+func (ff ByDistance) Len() int {return len(ff)}
+func (ff ByDistance) Less(i, j int) bool {return ff[i].Distance < ff[j].Distance}
+func (ff ByDistance) Swap(i, j int)      { ff[i], ff[j] = ff[j], ff[i] }
 
 // NewFreeFloating creates a new FreeFloating object from the object Vehicle
 func NewFreeFloating(ve Vehicle) (*FreeFloating) {
@@ -608,8 +615,8 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 			e = fmt.Errorf("No free-floatings in the data")
 			return
 		}
+
 		// Implementation of filters: distance, type[]
-		ffMap := make(map[float64] FreeFloating)
 		for _, ff := range *d.freeFloatings {
 			// Filter on type[]
 			keep := keepIt(ff, param.types)
@@ -620,32 +627,21 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 
 			// Calculate distance from coord in the request
 			distance := coordDistance(param.coord, ff.Coord)
+			ff.Distance = RoundFloat(distance, 2)
 			if int(distance) > param.distance {
 				continue
 			}
 
 			// Keep the wanted object
 			if keep == true {
-				ffMap[distance] = ff
+				resp = append(resp, ff)
 			}
-		}
 
-		// sort freefloating map on key (distance)
-		keys := make([]float64, len(ffMap))
-    	i := 0
-		for k := range ffMap {
-			keys[i] = k
-			i++
-		}
-		sort.Float64s(keys)
-
-		// Finally filter on count
-		for _, k := range keys {
-			resp = append(resp, ffMap[k])
 			if len(resp) == param.count {
 				break
 			}
 		}
+		sort.Sort(ByDistance(resp))
 	}
 	return resp, nil
 }

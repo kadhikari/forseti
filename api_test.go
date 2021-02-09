@@ -394,7 +394,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal("ASSIST", response.FreeFloatings[0].Propulsion)
 	assert.Equal(48.847232, response.FreeFloatings[0].Coord.Lat)
 	assert.Equal(2.377601, response.FreeFloatings[0].Coord.Lon)
-	assert.Equal(59.94, response.FreeFloatings[0].Distance)
+	assert.Equal(60.0, response.FreeFloatings[0].Distance)
 }
 
 func TestParameterTypes(t *testing.T) {

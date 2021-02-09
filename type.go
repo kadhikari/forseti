@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 	"strings"
+	"math"
 )
 
 type FreeFloatingType int
@@ -627,7 +628,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 
 			// Calculate distance from coord in the request
 			distance := coordDistance(param.coord, ff.Coord)
-			ff.Distance = RoundFloat(distance, 2)
+			ff.Distance = math.Round(distance)
 			if int(distance) > param.distance {
 				continue
 			}

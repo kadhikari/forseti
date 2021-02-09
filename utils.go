@@ -43,6 +43,3 @@ func coordDistance(from, to Coord) float64 {
 
 	return 2 * r * math.Asin(math.Sqrt(h))
 }
-
-
-

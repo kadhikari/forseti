@@ -1,6 +1,6 @@
 forseti
 ===========
-This project aims to provide jormungandr with realtime data provided by the Sytral.
+This project aims to provide jormungandr with realtime data provided by external API.
 Realtime data is available as csv files that needs to be downloaded by FTP.
 
 At this time only realtime departures are being handled.

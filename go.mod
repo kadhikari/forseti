@@ -1,5 +1,7 @@
 module github.com/CanalTP/forseti
 
+go 1.15
+
 require (
 	github.com/Nvveen/Gotty v0.0.0-20120604004816-cd527374f1e5 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect

@@ -1,6 +1,9 @@
 package forseti
 
-import "encoding/xml"
+import (
+	"encoding/xml"
+	"time"
+)
 
 // Temporary structures used only to read FLUX xml for equipments:
 type Root struct {
@@ -44,6 +47,8 @@ type EquipementSource struct {
 	Hour    string   `xml:"heure_remise_service,attr"`
 }
 
+// Structure used to load date from Flucteo
+//data.Data.Area.Vehicles
 type Data struct{
 	Data AreaNode `json:"data"`
 }
@@ -71,4 +76,37 @@ type Vehicle struct {
 	Battery int `json:"battery,omitempty"`
 	Deeplink string `json:"deeplink,omitempty"`
 	Attributes []string `json:"attributes,omitempty"`
+}
+
+// Structure to load routes from navitia
+type NavitiaRoutes struct {
+	RouteSchedules []struct {
+		Table struct {
+			Rows []struct {
+				StopPoint struct {
+					ID string `json:"id"`
+				} `json:"stop_point"`
+				DateTimes []struct {
+					DateTime string `json:"date_time"`
+					Links    []struct {
+						Type  string `json:"type"`
+						Value string `json:"value"`
+					} `json:"links"`
+				} `json:"date_times"`
+			} `json:"rows"`
+		} `json:"table"`
+	} `json:"route_schedules"`
+}
+
+// Structure related to predictions
+type PredictionData []PredictionNode
+type PredictionNode struct {
+	Line     	string    `json:"ligne"`
+	Sens      	int       `json:"sens"`
+	Date      	string    `json:"date"`
+	Course    	string    `json:"course"`
+	Order     	int       `json:"ordre"`
+	StopId 		string    `json:"arret"`
+	Charge    	float64   `json:"charge"`
+	CreatedAt 	time.Time `json:"created_at"`
 }

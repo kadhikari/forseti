@@ -12,6 +12,9 @@ import (
 	"math"
 )
 
+var spFileName = "mapping_stops.csv"
+var courseFileName = "extraction_des_courses.csv"
+
 type FreeFloatingType int
 const (
 	BikeType FreeFloatingType = iota
@@ -397,6 +400,140 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating) {
 	}
 }
 
+// Structure and Consumer to creates StopPoint objects based on a line read from a CSV
+type StopPoint struct {
+	Id 			string
+	Name 		string
+}
+
+func NewStopPoint(record []string) (*StopPoint, error) {
+	if len(record) < 3 {
+		return nil, fmt.Errorf("Missing field in StopPoint record")
+	}
+
+	return &StopPoint{
+		Id:				fmt.Sprintf("%s:%s", "stop_point", record[2]),
+		Name: 			record[1],
+	}, nil
+}
+
+type StopPointLineConsumer struct {
+	stopPoints map[string]StopPoint
+}
+
+func makeStopPointLineConsumer() *StopPointLineConsumer {
+	return &StopPointLineConsumer{
+		stopPoints: make(map[string]StopPoint),
+	}
+}
+
+func (c *StopPointLineConsumer) Consume(line []string, loc *time.Location) error {
+	stopPoint, err := NewStopPoint(line)
+	if err != nil {
+		return err
+	}
+
+	c.stopPoints[stopPoint.Id] = *stopPoint
+	return nil
+}
+func (c *StopPointLineConsumer) Terminate() {}
+
+// Structure and Consumer to creates Course objects based on a line read from a CSV
+type Course struct {
+	LineCode string
+	Course string
+	Dow int
+	FirstDate time.Time
+	FirstTime time.Time
+}
+
+func NewCourse(record []string,location *time.Location) (*Course, error) {
+	if len(record) < 9 {
+		return nil, fmt.Errorf("Missing field in Course record")
+	}
+	dow, err := strconv.Atoi(record[2])
+	if err != nil {
+		return nil, err
+	}
+	firstDate, err := time.ParseInLocation("2006-01-02", record[6], location)
+	if err != nil {
+		return nil, err
+	}
+	firstTime, err := time.ParseInLocation("15:04:05", record[3], location)
+	if err != nil {
+		return nil, err
+	}
+	return &Course{
+		LineCode:	record[0],
+		Course:		record[1],
+		Dow: 		dow,
+		FirstDate: 	firstDate,
+		FirstTime:	firstTime,
+	}, nil
+}
+
+type CourseLineConsumer struct {
+	courses map[string][]Course
+}
+
+func makeCourseLineConsumer() *CourseLineConsumer {
+	return &CourseLineConsumer{make(map[string][]Course)}
+}
+
+func (c *CourseLineConsumer) Consume(line []string, loc *time.Location) error {
+	course, err := NewCourse(line, loc)
+	if err != nil {
+		return err
+	}
+
+	c.courses[course.LineCode] = append(c.courses[course.LineCode], *course)
+	return nil
+}
+func (p *CourseLineConsumer) Terminate() {}
+
+type Prediction struct {
+	LineCode    string
+	Sens		int
+	Date      	string
+	Course    	string
+	StopId 		string
+	Charge    	int
+	CreatedAt 	time.Time
+}
+
+func NewPrediction(p PredictionNode) (*Prediction) {
+	return &Prediction{
+		LineCode: 	p.Line,
+		Sens: 		p.Sens,
+		Date:		p.Date,
+		Course:		p.Course,
+		StopId:		p.StopId,
+		Charge:		int(p.Charge),
+	}
+}
+
+// Structures and functions to read files for vehicle_occupancies are here
+type VehicleOccupancy struct {
+	LineCode string `json:"line_code,omitempty"`
+	VehicleJourneyId string `json:"vj_id,omitempty"`
+	StoppointId string `json:"stop_id,omitempty"`
+	Sens int `json:"sens,omitempty"`
+	DateTime string `json:"date_time,omitempty"`
+	Charge int `json:"charge,omitempty"`
+}
+
+func NewVehicleOccupancy(stop_id, vj_id, date_time string, sens int) (*VehicleOccupancy, error) {
+	return &VehicleOccupancy{
+		LineCode: "toto",
+		VehicleJourneyId: vj_id,
+		StoppointId: stop_id,
+		Sens: sens,
+		DateTime: date_time,
+		Charge: 0,
+	}, nil
+}
+
+// Data manager for all apis
 type DataManager struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
@@ -413,6 +550,12 @@ type DataManager struct {
 	freeFloatings          *[]FreeFloating
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
+
+	stopPoints						*map[string]StopPoint
+	courses							*[]Course
+	vehicleOccupancies 				*[]VehicleOccupancy
+	lastVehicleOccupanciesUpdate 	time.Time
+	vehicleOccupanciesMutex     	sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -645,4 +788,12 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 		sort.Sort(ByDistance(resp))
 	}
 	return resp, nil
+}
+
+func (d *DataManager) InitOccupancies(vehicleOccupancies []VehicleOccupancy) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.vehicleOccupancies = &vehicleOccupancies
+	d.lastVehicleOccupanciesUpdate = time.Now()
 }

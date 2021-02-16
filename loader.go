@@ -78,6 +78,21 @@ var (
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
+
+	occupanciesLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
+		Namespace: "forseti",
+		Subsystem: "vehicle_occupancies",
+		Name:      "load_durations_seconds",
+		Help:      "http request latency distributions.",
+		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
+	})
+
+	occupanciesLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
+		Namespace: "forseti",
+		Subsystem: "vehicle_occupancies",
+		Name:      "loading_errors",
+		Help:      "current number of http request being served",
+	})
 )
 
 func init() {
@@ -388,5 +403,176 @@ func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, conne
 
 	manager.UpdateFreeFloating(freeFloatings)
 	freeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (*http.Response, error){
+	fmt.Println("** url :", url)
+	client := &http.Client{Timeout: connectionTimeout}
+	fmt.Println("** Timeout :", connectionTimeout)
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
+	req.Header.Set(header, token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
+}
+
+func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]StopPoint, error) {
+	uri.Path = fmt.Sprintf("%s/%s", uri.Path, spFileName)
+	fmt.Println("***** uri.Path: ", uri.Path)
+	file, err := getFile(uri, connectionTimeout)
+
+	stopPointsConsumer := makeStopPointLineConsumer()
+	loadDataOptions := LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      0,    // We might not have etereogenous lines
+		skipFirstLine: true, // First line is a header
+	}
+	err = LoadDataWithOptions(file, stopPointsConsumer, loadDataOptions)
+	if err != nil {
+		return nil, err
+	}
+	return stopPointsConsumer.stopPoints, nil
+}
+
+func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Course, error) {
+	uri.Path = fmt.Sprintf("%s/%s", uri.Path, courseFileName)
+	fmt.Println("***** uri.Path: ", uri.Path)
+	file, err := getFile(uri, connectionTimeout)
+
+	courseLineConsumer := makeCourseLineConsumer()
+	loadDataOptions := LoadDataOptions{
+		delimiter:     ';',
+		nbFields:      0,    // We might not have etereogenous lines
+		skipFirstLine: true, // First line is a header
+	}
+	err = LoadDataWithOptions(file, courseLineConsumer, loadDataOptions)
+	if err != nil {
+		return nil, err
+	}
+	return courseLineConsumer.courses, nil
+}
+
+func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int) ([]VehicleOccupancy, error) {
+	// Read response body in json
+	vehicleOccupancies := make([]VehicleOccupancy, 0)
+	for i := 0; i < len(navitiaRoutes.RouteSchedules[0].Table.Rows); i++ {
+		for j := 0; j < len(navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes); j++ {
+			vo, err := NewVehicleOccupancy(
+				navitiaRoutes.RouteSchedules[0].Table.Rows[i].StopPoint.ID,
+				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].Links[0].Value,
+				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].DateTime,
+				sens)
+			if err != nil {
+				continue
+			}
+			vehicleOccupancies = append(vehicleOccupancies, *vo)
+		}
+	}
+	return vehicleOccupancies, nil
+}
+
+func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Duration) ([]VehicleOccupancy, error) {
+	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s", uri.String(), "line:0:004004040:40", direction)
+	header := "Authorization"
+	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
+	if err != nil {
+		freeFloatingsLoadingErrors.Inc()
+		return nil, err
+	}
+
+	navitiaRoutes := &NavitiaRoutes{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(navitiaRoutes)
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+        return nil, err
+	}
+
+	sens := 0
+	if direction == "backward" { sens = 1}
+	vehicleOccupancies, err := LoadRouteSchedulesData(navitiaRoutes, sens)
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+	return vehicleOccupancies, nil
+}
+
+func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration) ([]Prediction, error) {
+	//futuredata/getfuturedata?start_time=2021-02-15&end_time=2021-02-16
+	begin := time.Now()
+	start_date := begin.Format("2006-01-02")
+	end_date := begin.AddDate(0,0,1).Format("2006-01-02")
+	callUrl := fmt.Sprintf("%s/futuredata/getfuturedata?start_time=%s&end_time=%s", uri.String(), start_date, end_date)
+	header := "Ocp-Apim-Subscription-Key"
+	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
+	if err != nil {
+		fmt.Println("Error: ", err.Error())
+		occupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
+	predicts := &PredictionData{}
+	decoder := json.NewDecoder(resp.Body)
+	err = decoder.Decode(predicts)
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+		fmt.Println("Error: ", err.Error())
+		return nil, err
+	}
+
+	fmt.Println("*** predicts: ", predicts)
+	predictions := make([]Prediction, 0)
+	for _, predict := range *predicts {
+		predictions = append(predictions, *NewPrediction(predict))
+	}
+
+	return predictions, nil
+}
+
+func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration) error {
+	// Here call external service to get predictions and update vehicleOccupancies array
+	fmt.Println("**** Load stopPoints ****")
+	stopPoints, err := LoadStopPoints(files_uri, connectionTimeout)
+	if err != nil {
+		return err
+	}
+	fmt.Println("**** StopPoints: ", len(stopPoints))
+
+	fmt.Println("**** Load courses ****")
+	courses, err := LoadCourses(files_uri, connectionTimeout)
+	if err != nil {
+		return err
+	}
+	fmt.Println("**** courses: ", len(courses["40"]))
+
+	fmt.Println("**** Load routes forward direction ****")
+	vehicleOccupancies, err := LoadRoutes(navitia_url, navitia_token, "forward", connectionTimeout)
+	if err != nil {
+		return err
+	}
+	fmt.Println("**** Forward Routes: ", len(vehicleOccupancies))
+
+	fmt.Println("**** Load routes backward direction ****")
+	backward, err := LoadRoutes(navitia_url, navitia_token, "backward", connectionTimeout)
+	if err != nil {
+		return err
+	}
+	fmt.Println("**** Backward Routes: ", len(backward))
+
+	// Concat two arrays
+	for i, _ := range backward {
+		vehicleOccupancies = append(vehicleOccupancies, backward[i])
+	}
+
+	fmt.Println("**** Total Routes: ", len(vehicleOccupancies))
+
+	fmt.Println("**** Load predictions ****")
+	predictions, err := LoadPredictions(predict_url, predict_token, connectionTimeout)
+	fmt.Println("**** Predictions: ", len(predictions))
+
 	return nil
 }

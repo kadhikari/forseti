@@ -408,7 +408,7 @@ func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, conne
 
 func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (*http.Response, error){
 	fmt.Println("** url :", url)
-	client := &http.Client{Timeout: connectionTimeout}
+	client := &http.Client{Timeout: 10 * connectionTimeout}
 	fmt.Println("** Timeout :", connectionTimeout)
 	req, err := http.NewRequest("GET", url, nil)
 	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
@@ -455,7 +455,7 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int) ([]VehicleOccupancy, error) {
+func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]VehicleOccupancy, error) {
 	// Read response body in json
 	vehicleOccupancies := make([]VehicleOccupancy, 0)
 	for i := 0; i < len(navitiaRoutes.RouteSchedules[0].Table.Rows); i++ {
@@ -464,7 +464,8 @@ func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int) ([]VehicleOc
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].StopPoint.ID,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].Links[0].Value,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].DateTime,
-				sens)
+				sens,
+				location)
 			if err != nil {
 				continue
 			}
@@ -474,7 +475,7 @@ func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int) ([]VehicleOc
 	return vehicleOccupancies, nil
 }
 
-func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Duration) ([]VehicleOccupancy, error) {
+func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Duration, location *time.Location) ([]VehicleOccupancy, error) {
 	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s", uri.String(), "line:0:004004040:40", direction)
 	header := "Authorization"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
@@ -493,7 +494,7 @@ func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Dur
 
 	sens := 0
 	if direction == "backward" { sens = 1}
-	vehicleOccupancies, err := LoadRouteSchedulesData(navitiaRoutes, sens)
+	vehicleOccupancies, err := LoadRouteSchedulesData(navitiaRoutes, sens, location)
 	if err != nil {
 		occupanciesLoadingErrors.Inc()
 		return nil, err
@@ -501,11 +502,11 @@ func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Dur
 	return vehicleOccupancies, nil
 }
 
-func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration) ([]Prediction, error) {
+func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration, location *time.Location) ([]Prediction, error) {
 	//futuredata/getfuturedata?start_time=2021-02-15&end_time=2021-02-16
-	begin := time.Now()
-	start_date := begin.Format("2006-01-02")
-	end_date := begin.AddDate(0,0,1).Format("2006-01-02")
+	//begin := time.Now()
+	start_date := ("2021-01-20")//begin.Format("2006-01-02")
+	end_date := ("2021-01-21")//begin.AddDate(0,0,1).Format("2006-01-02")
 	callUrl := fmt.Sprintf("%s/futuredata/getfuturedata?start_time=%s&end_time=%s", uri.String(), start_date, end_date)
 	header := "Ocp-Apim-Subscription-Key"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
@@ -524,10 +525,10 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration)
 		return nil, err
 	}
 
-	fmt.Println("*** predicts: ", predicts)
+	//fmt.Println("*** predicts: ", predicts)
 	predictions := make([]Prediction, 0)
 	for _, predict := range *predicts {
-		predictions = append(predictions, *NewPrediction(predict))
+		predictions = append(predictions, *NewPrediction(predict, location))
 	}
 
 	return predictions, nil
@@ -535,44 +536,65 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration)
 
 func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration) error {
 	// Here call external service to get predictions and update vehicleOccupancies array
+	location, err := time.LoadLocation("Europe/Paris")
+	if err != nil {
+		return err
+	}
 	fmt.Println("**** Load stopPoints ****")
 	stopPoints, err := LoadStopPoints(files_uri, connectionTimeout)
 	if err != nil {
 		return err
 	}
-	fmt.Println("**** StopPoints: ", len(stopPoints))
+	manager.InitStopPoint(stopPoints)
+	//fmt.Println("**** StopPoints: ", len(stopPoints))
 
 	fmt.Println("**** Load courses ****")
 	courses, err := LoadCourses(files_uri, connectionTimeout)
 	if err != nil {
 		return err
 	}
-	fmt.Println("**** courses: ", len(courses["40"]))
+	manager.InitCourse(courses)
 
 	fmt.Println("**** Load routes forward direction ****")
-	vehicleOccupancies, err := LoadRoutes(navitia_url, navitia_token, "forward", connectionTimeout)
+	vehicleOccupancies, err := LoadRoutes(navitia_url, navitia_token, "forward", connectionTimeout, location)
 	if err != nil {
 		return err
 	}
-	fmt.Println("**** Forward Routes: ", len(vehicleOccupancies))
 
 	fmt.Println("**** Load routes backward direction ****")
-	backward, err := LoadRoutes(navitia_url, navitia_token, "backward", connectionTimeout)
+	backward, err := LoadRoutes(navitia_url, navitia_token, "backward", connectionTimeout, location)
 	if err != nil {
 		return err
 	}
-	fmt.Println("**** Backward Routes: ", len(backward))
 
 	// Concat two arrays
 	for i, _ := range backward {
 		vehicleOccupancies = append(vehicleOccupancies, backward[i])
 	}
-
-	fmt.Println("**** Total Routes: ", len(vehicleOccupancies))
+	manager.InitOccupancies(vehicleOccupancies)
 
 	fmt.Println("**** Load predictions ****")
-	predictions, err := LoadPredictions(predict_url, predict_token, connectionTimeout)
-	fmt.Println("**** Predictions: ", len(predictions))
+	predictions, err := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
+	manager.InitPrediction(predictions)
 
+	// Update vehicleOccupancy.Charge using StopPoints and Courses in the manager for each element in Prediction
+	fmt.Println("-------------- UpdateOccupancies ------------ ")
+	count := 0
+	for i, _ := range predictions {
+		firstTime, err := manager.GetCourseFirstTime(predictions[i])
+		if err != nil {
+			//fmt.Println("first_time not found for: ", predictions[i])
+		} else {
+			// Add predictions[i].Date to first_time
+			dateTime := addDateAndTime(predictions[i].Date, firstTime)
+			//fmt.Println("dateTime : ", dateTime)
+
+			//Update Occupancies.Charge for matching StopId, LineCode, Sens, DateTime
+			manager.UpdateOccupancies(predictions[i], dateTime)
+			count ++
+		}
+	}
+	fmt.Println("FirstTime found in Course count : ", count)
+	fmt.Println("-------------- End RefreshOccupancies ------------ ")
 	return nil
 }

@@ -433,7 +433,7 @@ func (c *StopPointLineConsumer) Consume(line []string, loc *time.Location) error
 		return err
 	}
 
-	c.stopPoints[stopPoint.Id] = *stopPoint
+	c.stopPoints[stopPoint.Name] = *stopPoint
 	return nil
 }
 func (c *StopPointLineConsumer) Terminate() {}
@@ -494,20 +494,25 @@ func (p *CourseLineConsumer) Terminate() {}
 type Prediction struct {
 	LineCode    string
 	Sens		int
-	Date      	string
+	Date      	time.Time
 	Course    	string
-	StopId 		string
+	StopName 	string
 	Charge    	int
 	CreatedAt 	time.Time
 }
 
-func NewPrediction(p PredictionNode) (*Prediction) {
+func NewPrediction(p PredictionNode, location *time.Location) (*Prediction) {
+	date, err := time.ParseInLocation("2006-01-02T15:04:05", p.Date, location)
+	if err != nil {
+		return &Prediction{}
+	}
+
 	return &Prediction{
 		LineCode: 	p.Line,
 		Sens: 		p.Sens,
-		Date:		p.Date,
+		Date:		date,
 		Course:		p.Course,
-		StopId:		p.StopId,
+		StopName:		p.StopName,
 		Charge:		int(p.Charge),
 	}
 }
@@ -516,20 +521,25 @@ func NewPrediction(p PredictionNode) (*Prediction) {
 type VehicleOccupancy struct {
 	LineCode string `json:"line_code,omitempty"`
 	VehicleJourneyId string `json:"vj_id,omitempty"`
-	StoppointId string `json:"stop_id,omitempty"`
+	StopId string `json:"stop_id,omitempty"`
 	Sens int `json:"sens,omitempty"`
-	DateTime string `json:"date_time,omitempty"`
+	DateTime time.Time `json:"date_time,omitempty"`
 	Charge int `json:"charge,omitempty"`
 }
 
-func NewVehicleOccupancy(stop_id, vj_id, date_time string, sens int) (*VehicleOccupancy, error) {
+func NewVehicleOccupancy(stopId, vjId, dateTime string, sens int, location *time.Location) (*VehicleOccupancy, error) {
+	date, err := time.ParseInLocation("2006-01-02T15:04:05", dateTime, location)
+	if err != nil {
+		return &VehicleOccupancy{}, nil
+	}
+
 	return &VehicleOccupancy{
-		LineCode: "toto",
-		VehicleJourneyId: vj_id,
-		StoppointId: stop_id,
+		LineCode: "40",
+		VehicleJourneyId: vjId,
+		StopId: stopId,
 		Sens: sens,
-		DateTime: date_time,
-		Charge: 0,
+		DateTime: date,
+		Charge: 1,
 	}, nil
 }
 
@@ -552,8 +562,9 @@ type DataManager struct {
 	freeFloatingsMutex     sync.RWMutex
 
 	stopPoints						*map[string]StopPoint
-	courses							*[]Course
+	courses							*map[string][]Course
 	vehicleOccupancies 				*[]VehicleOccupancy
+	predictions						*[]Prediction
 	lastVehicleOccupanciesUpdate 	time.Time
 	vehicleOccupanciesMutex     	sync.RWMutex
 }
@@ -795,5 +806,82 @@ func (d *DataManager) InitOccupancies(vehicleOccupancies []VehicleOccupancy) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.vehicleOccupancies = &vehicleOccupancies
+	fmt.Println("*** len(d.vehicleOccupancies): ", len(*d.vehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) InitStopPoint(stopPoints map[string]StopPoint) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.stopPoints = &stopPoints
+	fmt.Println("*** len(d.stopPoints): ", len(*d.stopPoints))
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) InitCourse(courses map[string][]Course) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.courses = &courses
+	fmt.Println("*** len(d.courses): ", len(*d.courses))
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) InitPrediction(predictions []Prediction) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.predictions = &predictions
+	fmt.Println("*** len(d.predictions): ", len(*d.predictions))
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) UpdateOccupancies(predict Prediction, dateTime time.Time) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+	stopId := (*d.stopPoints)[predict.StopName].Id
+
+	//occupancy.DateTime == dateTime
+	for _, occupancy := range (*d.vehicleOccupancies) {
+		if occupancy.LineCode == predict.LineCode &&
+		occupancy.StopId == stopId &&
+		occupancy.Sens == predict.Sens {
+			fmt.Println("*** UpdateOccupancies matching found for: ", predict)
+			occupancy.Charge = predict.Charge
+		}
+	}
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) GetLastVehicleOccupanciesDataUpdate() time.Time {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+
+	return d.lastVehicleOccupanciesUpdate
+}
+
+func (d *DataManager) GetVehicleOccupancies() (vehicleOccupancies []VehicleOccupancy, e error) {
+	var occupancies [] VehicleOccupancy
+	{
+		d.vehicleOccupanciesMutex.RLock()
+		defer d.vehicleOccupanciesMutex.RLock()
+
+		if d.vehicleOccupancies == nil {
+			e = fmt.Errorf("No vehicle_occupancies in the data")
+			return
+		}
+
+		occupancies = *d.vehicleOccupancies
+		return occupancies, nil
+	}
+}
+
+func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.Time, e error) {
+	for _, course := range (*d.courses)[prediction.LineCode] {
+		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.Dow {
+			return course.FirstTime, nil
+		}
+	}
+	return time.Now(), fmt.Errorf("No corresponding data found")
 }

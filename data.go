@@ -106,7 +106,7 @@ type PredictionNode struct {
 	Date      	string    `json:"date"`
 	Course    	string    `json:"course"`
 	Order     	int       `json:"ordre"`
-	StopId 		string    `json:"arret"`
+	StopName 	string    `json:"arret"`
 	Charge    	float64   `json:"charge"`
 	CreatedAt 	time.Time `json:"created_at"`
 }

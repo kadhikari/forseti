@@ -3,6 +3,7 @@ import (
 	"strconv"
 	"math"
 	"strings"
+	"time"
 )
 
 func isTypeValid(strType string) bool {
@@ -42,4 +43,8 @@ func coordDistance(from, to Coord) float64 {
 	h := hsin(la2-la1) + math.Cos(la1)*math.Cos(la2)*hsin(lo2-lo1)
 
 	return 2 * r * math.Asin(math.Sqrt(h))
+}
+
+func addDateAndTime(date, time time.Time) (dateTime time.Time) {
+	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
 }

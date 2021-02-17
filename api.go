@@ -27,6 +27,7 @@ type StatusResponse struct {
 	LastParkingUpdate   	time.Time `json:"last_parking_update"`
 	LastEquipmentUpdate 	time.Time `json:"last_equipment_update"`
 	LastFreeFloatingUpdate 	time.Time `json:"last_free_floating_update"`
+	LastVehicleOccupancyUpdate 	time.Time `json:"last_vehicle_occupancy_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -72,6 +73,12 @@ type EquipmentsResponse struct {
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
 type FreeFloatingsResponse struct {
 	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
+	Error      string            `json:"error,omitempty"`
+}
+
+// VehicleOccupanciesResponse defines the structure returned by the /vehicle_occupancies endpoint
+type VehicleOccupanciesResponse struct {
+	VehicleOccupancies []VehicleOccupancy `json:"vehicle_occupancies,omitempty"`
 	Error      string            `json:"error,omitempty"`
 }
 
@@ -130,6 +137,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			manager.GetLastParkingsDataUpdate(),
 			manager.GetLastEquipmentsDataUpdate(),
 			manager.GetLastFreeFloatingsDataUpdate(),
+			manager.GetLastVehicleOccupanciesDataUpdate(),
 		})
 	}
 }
@@ -248,6 +256,21 @@ func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func VehicleOccupanciesHandler(manager *DataManager) gin.HandlerFunc {
+	return func(c * gin.Context) {
+		response := VehicleOccupanciesResponse{}
+		vehicleOccupancies, err := manager.GetVehicleOccupancies()
+
+		if err != nil {
+			response.Error = "No data loaded"
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+		response.VehicleOccupancies = vehicleOccupancies
+		c.JSON(http.StatusOK, response)
+	}
+}
+
 func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
@@ -262,6 +285,7 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
 	r.GET("/equipments", EquipmentsHandler(manager))
 	r.GET("/free_floatings", FreeFloatingsHandler(manager))
+	r.GET("/vehicle_occupancies", VehicleOccupanciesHandler(manager))
 
 	return r
 }

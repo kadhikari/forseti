@@ -517,29 +517,51 @@ func NewPrediction(p PredictionNode, location *time.Location) (*Prediction) {
 	}
 }
 
-// Structures and functions to read files for vehicle_occupancies are here
-type VehicleOccupancy struct {
-	LineCode string `json:"line_code,omitempty"`
-	VehicleJourneyId string `json:"vj_id,omitempty"`
-	StopId string `json:"stop_id,omitempty"`
-	Sens int `json:"sens,omitempty"`
-	DateTime time.Time `json:"date_time,omitempty"`
-	Charge int `json:"charge,omitempty"`
+// Structure for route_schedules
+type RouteSchedule struct {
+	Id					int
+	LineCode 			string
+	VehicleJourneyId 	string
+	StopId 				string
+	Sens 				int
+	DateTime 			time.Time
 }
 
-func NewVehicleOccupancy(stopId, vjId, dateTime string, sens int, location *time.Location) (*VehicleOccupancy, error) {
-	date, err := time.ParseInLocation("2006-01-02T15:04:05", dateTime, location)
+func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *time.Location) (*RouteSchedule, error) {
+	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
 	if err != nil {
-		return &VehicleOccupancy{}, nil
+		fmt.Println("Error on: ", dateTime)
+		return nil, err
 	}
-
-	return &VehicleOccupancy{
+	return &RouteSchedule{
+		Id: Id,
 		LineCode: "40",
 		VehicleJourneyId: vjId,
 		StopId: stopId,
 		Sens: sens,
 		DateTime: date,
-		Charge: 1,
+	}, nil
+}
+
+// Structures and functions to read files for vehicle_occupancies are here
+type VehicleOccupancy struct {
+	Id 					int `json:"-"`
+	LineCode 			string `json:"line_code,omitempty"`
+	VehicleJourneyId 	string `json:"vj_id,omitempty"`
+	StopId 				string `json:"stop_id,omitempty"`
+	Sens 				int `json:"sens,omitempty"`
+	DateTime 			time.Time `json:"date_time,omitempty"`
+	Charge 				int `json:"charge,omitempty"`
+}
+
+func NewVehicleOccupancy(rs RouteSchedule, charge int) (*VehicleOccupancy, error) {
+	return &VehicleOccupancy{
+		LineCode: rs.LineCode,
+		VehicleJourneyId: rs.VehicleJourneyId,
+		StopId: rs.StopId,
+		Sens: rs.Sens,
+		DateTime: rs.DateTime,
+		Charge: charge,
 	}, nil
 }
 
@@ -563,6 +585,7 @@ type DataManager struct {
 
 	stopPoints						*map[string]StopPoint
 	courses							*map[string][]Course
+	routeSchedules					*[]RouteSchedule
 	vehicleOccupancies 				*[]VehicleOccupancy
 	predictions						*[]Prediction
 	lastVehicleOccupanciesUpdate 	time.Time
@@ -801,15 +824,6 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 	return resp, nil
 }
 
-func (d *DataManager) InitOccupancies(vehicleOccupancies []VehicleOccupancy) {
-	d.vehicleOccupanciesMutex.Lock()
-	defer d.vehicleOccupanciesMutex.Unlock()
-
-	d.vehicleOccupancies = &vehicleOccupancies
-	fmt.Println("*** len(d.vehicleOccupancies): ", len(*d.vehicleOccupancies))
-	d.lastVehicleOccupanciesUpdate = time.Now()
-}
-
 func (d *DataManager) InitStopPoint(stopPoints map[string]StopPoint) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
@@ -828,6 +842,24 @@ func (d *DataManager) InitCourse(courses map[string][]Course) {
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
+func (d *DataManager) InitRouteSchedule(routeSchedules []RouteSchedule) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.routeSchedules = &routeSchedules
+	fmt.Println("*** len(d.routeSchedules): ", len(*d.routeSchedules))
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *DataManager) InitVehicleOccupancies(vehicleOccupancies []VehicleOccupancy) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.vehicleOccupancies = &vehicleOccupancies
+	fmt.Println("*** len(d.vehicleOccupancies): ", len(*d.vehicleOccupancies))
+	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
 func (d *DataManager) InitPrediction(predictions []Prediction) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
@@ -837,22 +869,6 @@ func (d *DataManager) InitPrediction(predictions []Prediction) {
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *DataManager) UpdateOccupancies(predict Prediction, dateTime time.Time) {
-	d.vehicleOccupanciesMutex.Lock()
-	defer d.vehicleOccupanciesMutex.Unlock()
-	stopId := (*d.stopPoints)[predict.StopName].Id
-
-	//occupancy.DateTime == dateTime
-	for _, occupancy := range (*d.vehicleOccupancies) {
-		if occupancy.LineCode == predict.LineCode &&
-		occupancy.StopId == stopId &&
-		occupancy.Sens == predict.Sens {
-			fmt.Println("*** UpdateOccupancies matching found for: ", predict)
-			occupancy.Charge = predict.Charge
-		}
-	}
-	d.lastVehicleOccupanciesUpdate = time.Now()
-}
 
 func (d *DataManager) GetLastVehicleOccupanciesDataUpdate() time.Time {
 	d.vehicleOccupanciesMutex.RLock()

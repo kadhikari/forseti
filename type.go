@@ -552,7 +552,7 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *tim
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id 					int `json:"-"`
+	Id 					int `json:"_id"`
 	LineCode 			string `json:"line_code,omitempty"`
 	VehicleJourneyId 	string `json:"vj_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
@@ -563,6 +563,7 @@ type VehicleOccupancy struct {
 
 func NewVehicleOccupancy(rs RouteSchedule, charge int) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
+		Id: rs.Id,
 		LineCode: rs.LineCode,
 		VehicleJourneyId: rs.VehicleJourneyId,
 		StopId: rs.StopId,

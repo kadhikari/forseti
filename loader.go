@@ -452,9 +452,8 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]RouteSchedule, error) {
+func LoadRouteSchedulesData(startCount int, navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]RouteSchedule, error) {
 	// Read response body in json
-	id := 0
 	routeScheduleList := make([]RouteSchedule, 0)
 	for i := 0; i < len(navitiaRoutes.RouteSchedules[0].Table.Rows); i++ {
 		for j := 0; j < len(navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes); j++ {
@@ -463,19 +462,21 @@ func LoadRouteSchedulesData(navitiaRoutes *NavitiaRoutes, sens int, location *ti
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].Links[0].Value,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].DateTime,
 				sens,
-				id,
+				startCount,
 				location)
+				fmt.Println("id: ", startCount)
 			if err != nil {
 				continue
 			}
 			routeScheduleList = append(routeScheduleList, *rs)
-			id ++
+			startCount++
 		}
 	}
 	return routeScheduleList, nil
 }
 
-func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Duration, location *time.Location) ([]RouteSchedule, error) {
+func LoadRoutes(startCount int, uri url.URL, token, direction string,
+	connectionTimeout time.Duration, location *time.Location) ([]RouteSchedule, error) {
 	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s", uri.String(), "line:0:004004040:40", direction)
 	header := "Authorization"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
@@ -494,7 +495,7 @@ func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Dur
 
 	sens := 0
 	if direction == "backward" { sens = 1}
-	routeSchedules, err := LoadRouteSchedulesData(navitiaRoutes, sens, location)
+	routeSchedules, err := LoadRouteSchedulesData(startCount, navitiaRoutes, sens, location)
 	//fmt.Println("** routeSchedules: ", routeSchedules)
 	if err != nil {
 		occupanciesLoadingErrors.Inc()
@@ -554,12 +555,12 @@ func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_ur
 	manager.InitCourse(courses)
 
 	fmt.Println("**** Load routes forward and backward directions ****")
-	routeSchedules, err := LoadRoutes(navitia_url, navitia_token, "forward", connectionTimeout, location)
+	routeSchedules, err := LoadRoutes(1, navitia_url, navitia_token, "forward", connectionTimeout, location)
 	if err != nil {
 		return err
 	}
 
-	backward, err := LoadRoutes(navitia_url, navitia_token, "backward", connectionTimeout, location)
+	backward, err := LoadRoutes(len(routeSchedules), navitia_url, navitia_token, "backward", connectionTimeout, location)
 	if err != nil {
 		return err
 	}

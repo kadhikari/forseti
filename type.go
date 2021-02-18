@@ -829,7 +829,7 @@ func (d *DataManager) InitStopPoint(stopPoints map[string]StopPoint) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.stopPoints = &stopPoints
-	fmt.Println("*** len(d.stopPoints): ", len(*d.stopPoints))
+	fmt.Println("*** stopPoints size: ", len(*d.stopPoints))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -838,7 +838,7 @@ func (d *DataManager) InitCourse(courses map[string][]Course) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.courses = &courses
-	fmt.Println("*** len(d.courses): ", len(*d.courses))
+	fmt.Println("*** courses size: ", len(*d.courses))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -847,7 +847,7 @@ func (d *DataManager) InitRouteSchedule(routeSchedules []RouteSchedule) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.routeSchedules = &routeSchedules
-	fmt.Println("*** len(d.routeSchedules): ", len(*d.routeSchedules))
+	fmt.Println("*** routeSchedules size: ", len(*d.routeSchedules))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -856,7 +856,7 @@ func (d *DataManager) InitVehicleOccupancies(vehicleOccupancies []VehicleOccupan
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.vehicleOccupancies = &vehicleOccupancies
-	fmt.Println("*** len(d.vehicleOccupancies): ", len(*d.vehicleOccupancies))
+	fmt.Println("*** vehicleOccupancies size: ", len(*d.vehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -865,7 +865,7 @@ func (d *DataManager) InitPrediction(predictions []Prediction) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.predictions = &predictions
-	fmt.Println("*** len(d.predictions): ", len(*d.predictions))
+	fmt.Println("*** predictions size: ", len(*d.predictions))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 

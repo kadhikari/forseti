@@ -48,3 +48,15 @@ func coordDistance(from, to Coord) float64 {
 func addDateAndTime(date, time time.Time) (dateTime time.Time) {
 	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
 }
+
+func intersects(date1, date2 time.Time, minute time.Duration) bool{
+	d := (60 * time.Second)
+	start1 := date1.Truncate(d)
+	end1 := start1.Add(time.Minute * minute)
+	start2 := date2.Truncate(d)
+	end2 := start2.Add(time.Minute * minute)
+	if  start1.Before(end2) && end1.After(start2) {
+		return true
+	}
+	return false
+}

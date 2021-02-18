@@ -577,41 +577,31 @@ func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_ur
 	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
 	VehicleOccupancies := make([]VehicleOccupancy, 0)
 	fmt.Println("-------------- UpdateOccupancies ------------ ")
-	count := 0
 	for _, predict := range predictions {
 		firstTime, err := manager.GetCourseFirstTime(predict)
 		if err != nil {
 			fmt.Println("first_time not found for: ", firstTime)
 		} else {
-			//fmt.Println("course firstTime : ", firstTime)
-			// Add predictions[i].Date to first_time
+			// Schedule datettime = predict.Date + firstTime
 			dateTime := addDateAndTime(predict.Date, firstTime)
-			//fmt.Println("Prediction dateTime : ", dateTime)
 
-			newDate := dateTime.AddDate(0,0,27)
-			fmt.Println("Modified dateTime : ", newDate)
-			//fmt.Println("predictions[i] : ", predictions[i])
+			// Temporary to have some reconsiling schedules
+			newDate := dateTime.AddDate(0,0,28)
 
-			//Search RouteSchedule for matching StopId, LineCode, Sens, DateTime
+			//Search RouteSchedule for matching StopId, LineCode, Sens and Schedule DateTime
 			stopId := (*manager.stopPoints)[predict.StopName].Id
-			//rs.DateTime == dateTime
-			d := (60 * time.Second)
 			for _, rs := range (*manager.routeSchedules) {
 				if rs.LineCode == predict.LineCode &&
 				rs.StopId == stopId &&
 				rs.Sens == predict.Sens &&
-				rs.DateTime.Truncate(d) == newDate.Truncate(d) {
-					// create an object VehicleOccupancy from rs and predict.Charge
-					//fmt.Println("*** UpdateOccupancies matching found for: ", predict)
+				intersects(rs.DateTime, newDate, 2) {
+					// create an object VehicleOccupancy from RouteSchedule with Charge = predict.Charge
 					vo, err := NewVehicleOccupancy(rs, predict.Charge)
-
 					if err != nil {
 						continue
 					}
 
 					VehicleOccupancies = append(VehicleOccupancies, *vo)
-					//fmt.Println("*** occupancy.Charge: ", predict.Charge)
-					count ++
 					break
 				}
 			}

@@ -14,6 +14,7 @@ import (
 
 var spFileName = "mapping_stops.csv"
 var courseFileName = "extraction_des_courses.csv"
+var location = "Europe/Paris"
 
 type FreeFloatingType int
 const (
@@ -66,6 +67,12 @@ func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
         }
 	}
 	return false
+}
+
+type VehicleOccupancyRequestParameter struct {
+	stop_id string
+	vehiclejourney_id string
+	datetime time.Time
 }
 
 type DirectionType int
@@ -877,7 +884,16 @@ func (d *DataManager) GetLastVehicleOccupanciesDataUpdate() time.Time {
 	return d.lastVehicleOccupanciesUpdate
 }
 
-func (d *DataManager) GetVehicleOccupancies() (vehicleOccupancies []VehicleOccupancy, e error) {
+func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.Time, e error) {
+	for _, course := range (*d.courses)[prediction.LineCode] {
+		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.Dow {
+			return course.FirstTime, nil
+		}
+	}
+	return time.Now(), fmt.Errorf("No corresponding data found")
+}
+
+func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParameter) (vehicleOccupancies []VehicleOccupancy, e error) {
 	var occupancies [] VehicleOccupancy
 	{
 		d.vehicleOccupanciesMutex.RLock()
@@ -888,16 +904,17 @@ func (d *DataManager) GetVehicleOccupancies() (vehicleOccupancies []VehicleOccup
 			return
 		}
 
-		occupancies = *d.vehicleOccupancies
+		// Implement filter on parameters
+		for _, vo := range *d.vehicleOccupancies {
+			// Filter on stop_id
+			if len(param.stop_id) > 0 && param.stop_id != vo.StopId { continue }
+			// Filter on vehiclejourney_id
+			if len(param.vehiclejourney_id) > 0 && param.vehiclejourney_id != vo.VehicleJourneyId { continue }
+			//Fileter on datetime (default value Now)
+			if vo.DateTime.Before(param.datetime) { continue }
+			occupancies = append(occupancies, vo)
+		}
+		//occupancies = *d.vehicleOccupancies
 		return occupancies, nil
 	}
-}
-
-func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.Time, e error) {
-	for _, course := range (*d.courses)[prediction.LineCode] {
-		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.Dow {
-			return course.FirstTime, nil
-		}
-	}
-	return time.Now(), fmt.Errorf("No corresponding data found")
 }

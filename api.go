@@ -256,10 +256,29 @@ func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
+func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupancyRequestParameter) {
+	p := VehicleOccupancyRequestParameter{}
+	p.stop_id = c.Query("stop_id")
+	p.vehiclejourney_id = c.Query("vehiclejourney_id")
+	loc, _ := time.LoadLocation(location)
+	// We accept two datetime formats in the parameter
+	dateTime, err := time.ParseInLocation("20060102T150405", c.Query("datetime"), loc)
+	if err != nil {
+		dateTime, err = time.ParseInLocation("2006-01-02T15:04:05", c.Query("datetime"), loc)
+	}
+	if err != nil {
+		p.datetime = time.Now()
+	} else {
+		p.datetime = dateTime
+	}
+	return &p
+}
+
 func VehicleOccupanciesHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c * gin.Context) {
 		response := VehicleOccupanciesResponse{}
-		vehicleOccupancies, err := manager.GetVehicleOccupancies()
+		parameter := InitVehicleOccupanyrequestParameter(c)
+		vehicleOccupancies, err := manager.GetVehicleOccupancies(parameter)
 
 		if err != nil {
 			response.Error = "No data loaded"

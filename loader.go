@@ -184,7 +184,7 @@ func LoadData(file io.Reader, lineConsumer LineConsumer) error {
 
 func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options LoadDataOptions) error {
 
-	location, err := time.LoadLocation("Europe/Paris")
+	location, err := time.LoadLocation(location)
 	if err != nil {
 		return err
 	}
@@ -236,7 +236,7 @@ func CalculateDate(info Info, location *time.Location) (time.Time, error) {
 
 func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
 
-	location, err := time.LoadLocation("Europe/Paris")
+	location, err := time.LoadLocation(location)
 	if err != nil {
 		return nil, err
 	}
@@ -495,6 +495,7 @@ func LoadRoutes(uri url.URL, token, direction string, connectionTimeout time.Dur
 	sens := 0
 	if direction == "backward" { sens = 1}
 	routeSchedules, err := LoadRouteSchedulesData(navitiaRoutes, sens, location)
+	//fmt.Println("** routeSchedules: ", routeSchedules)
 	if err != nil {
 		occupanciesLoadingErrors.Inc()
 		return nil, err
@@ -533,7 +534,7 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 
 func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration) error {
 	// Here call external service to get predictions and update vehicleOccupancies array
-	location, err := time.LoadLocation("Europe/Paris")
+	location, err := time.LoadLocation(location)
 	if err != nil {
 		return err
 	}
@@ -594,7 +595,7 @@ func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_ur
 				if rs.LineCode == predict.LineCode &&
 				rs.StopId == stopId &&
 				rs.Sens == predict.Sens &&
-				intersects(rs.DateTime, newDate, 2) {
+				intersects(rs.DateTime, newDate, 1) {
 					// create an object VehicleOccupancy from RouteSchedule with Charge = predict.Charge
 					vo, err := NewVehicleOccupancy(rs, predict.Charge)
 					if err != nil {
@@ -607,7 +608,6 @@ func RefreshOccupancies(manager *DataManager, files_uri, navitia_url, predict_ur
 			}
 		}
 	}
-	fmt.Println("---- len(VehicleOccupancies): ", len(VehicleOccupancies))
 
 	manager.InitVehicleOccupancies(VehicleOccupancies)
 	fmt.Println("-------------- End RefreshOccupancies ------------ ")

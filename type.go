@@ -552,13 +552,13 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *tim
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id 					int `json:"_id"`
+	Id 					int `json:"-"`
 	LineCode 			string `json:"line_code,omitempty"`
 	VehicleJourneyId 	string `json:"vj_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
 	Sens 				int `json:"sens,omitempty"`
 	DateTime 			time.Time `json:"date_time,omitempty"`
-	Charge 				int `json:"charge,omitempty"`
+	Charge 				int `json:"charge"`
 }
 
 func NewVehicleOccupancy(rs RouteSchedule, charge int) (*VehicleOccupancy, error) {
@@ -594,7 +594,7 @@ type DataManager struct {
 	stopPoints						*map[string]StopPoint
 	courses							*map[string][]Course
 	routeSchedules					*[]RouteSchedule
-	vehicleOccupancies 				*[]VehicleOccupancy
+	vehicleOccupancies 				*map[int]VehicleOccupancy
 	predictions						*[]Prediction
 	lastVehicleOccupanciesUpdate 	time.Time
 	vehicleOccupanciesMutex     	sync.RWMutex
@@ -859,7 +859,7 @@ func (d *DataManager) InitRouteSchedule(routeSchedules []RouteSchedule) {
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *DataManager) InitVehicleOccupancies(vehicleOccupancies []VehicleOccupancy) {
+func (d *DataManager) UpdateVehicleOccupancies(vehicleOccupancies map[int]VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 
@@ -886,6 +886,8 @@ func (d *DataManager) GetLastVehicleOccupanciesDataUpdate() time.Time {
 }
 
 func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.Time, e error) {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
 	for _, course := range (*d.courses)[prediction.LineCode] {
 		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.Dow {
 			return course.FirstTime, nil
@@ -898,7 +900,7 @@ func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParam
 	var occupancies [] VehicleOccupancy
 	{
 		d.vehicleOccupanciesMutex.RLock()
-		defer d.vehicleOccupanciesMutex.RLock()
+		defer d.vehicleOccupanciesMutex.RUnlock()
 
 		if d.vehicleOccupancies == nil {
 			e = fmt.Errorf("No vehicle_occupancies in the data")
@@ -915,7 +917,6 @@ func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParam
 			if vo.DateTime.Before(param.datetime) { continue }
 			occupancies = append(occupancies, vo)
 		}
-		//occupancies = *d.vehicleOccupancies
 		return occupancies, nil
 	}
 }

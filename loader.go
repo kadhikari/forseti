@@ -559,7 +559,7 @@ func RefreshVehicleOccupancies(manager *DataManager, predict_url url.URL, predic
 				rs.Sens == predict.Sens &&
 				intersects(rs.DateTime, newDate, 1) {
 					// create an object VehicleOccupancy from RouteSchedule with Charge = predict.Charge
-					vo, err := NewVehicleOccupancy(rs, predict.Charge)
+					vo, err := NewVehicleOccupancy(rs, calculateOccupancy(predict.Charge))
 					if err != nil {
 						continue
 					}
@@ -570,26 +570,7 @@ func RefreshVehicleOccupancies(manager *DataManager, predict_url url.URL, predic
 		}
 	}
 
-	// Initialize vehicleOccupancies for the remaining RouteSchedules with Charge = 0
-	VehicleOccupancies := make(map[int]VehicleOccupancy, 0)
-	for _, rs := range (*manager.routeSchedules) {
-		_, ok := occupanciesWithCharge[rs.Id]
-		if !ok {
-			vo, err := NewVehicleOccupancy(rs, 0)
-			if err != nil {
-				continue
-			}
-			VehicleOccupancies[vo.Id] = *vo
-		}
-
-	}
-
-	// Concat these two maps
-	for _, vo := range occupanciesWithCharge {
-		VehicleOccupancies[vo.Id] = vo
-	}
-
-	manager.UpdateVehicleOccupancies(VehicleOccupancies)
+	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
 	fmt.Println("-------------- End UpdateOccupancies ------------ :", time.Now())
 	return nil
 }

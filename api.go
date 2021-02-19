@@ -262,14 +262,14 @@ func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupanc
 	p.vehiclejourney_id = c.Query("vehiclejourney_id")
 	loc, _ := time.LoadLocation(location)
 	// We accept two datetime formats in the parameter
-	dateTime, err := time.ParseInLocation("20060102T150405", c.Query("datetime"), loc)
+	date, err := time.ParseInLocation("20060102", c.Query("datetime"), loc)
 	if err != nil {
-		dateTime, err = time.ParseInLocation("2006-01-02T15:04:05", c.Query("datetime"), loc)
+		date, err = time.ParseInLocation("2006-01-02", c.Query("date"), loc)
 	}
 	if err != nil {
-		p.datetime = time.Now()
+		p.date = time.Now().Truncate(24 * time.Hour)
 	} else {
-		p.datetime = dateTime
+		p.date = date
 	}
 	return &p
 }

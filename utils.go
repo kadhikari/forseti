@@ -60,3 +60,9 @@ func intersects(date1, date2 time.Time, minute time.Duration) bool{
 	}
 	return false
 }
+
+func calculateOccupancy(charge int) int {
+	if charge == 0 {return 0}
+	occupancy := (charge * 100) / vehicleCapacity
+	return occupancy
+}

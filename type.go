@@ -15,6 +15,7 @@ import (
 var spFileName = "mapping_stops.csv"
 var courseFileName = "extraction_des_courses.csv"
 var location = "Europe/Paris"
+var vehicleCapacity = 100
 
 type FreeFloatingType int
 const (
@@ -72,7 +73,7 @@ func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
 type VehicleOccupancyRequestParameter struct {
 	stop_id string
 	vehiclejourney_id string
-	datetime time.Time
+	date time.Time
 }
 
 type DirectionType int
@@ -553,15 +554,15 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *tim
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
 	Id 					int `json:"-"`
-	LineCode 			string `json:"line_code,omitempty"`
-	VehicleJourneyId 	string `json:"vj_id,omitempty"`
+	LineCode 			string `json:"-"`
+	VehicleJourneyId 	string `json:"vehiclejourney_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
 	Sens 				int `json:"sens,omitempty"`
 	DateTime 			time.Time `json:"date_time,omitempty"`
-	Charge 				int `json:"charge"`
+	Occupancy 			int `json:"occupancy"`
 }
 
-func NewVehicleOccupancy(rs RouteSchedule, charge int) (*VehicleOccupancy, error) {
+func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
 		Id: rs.Id,
 		LineCode: rs.LineCode,
@@ -569,7 +570,7 @@ func NewVehicleOccupancy(rs RouteSchedule, charge int) (*VehicleOccupancy, error
 		StopId: rs.StopId,
 		Sens: rs.Sens,
 		DateTime: rs.DateTime,
-		Charge: charge,
+		Occupancy: occupancy,
 	}, nil
 }
 
@@ -914,7 +915,7 @@ func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParam
 			// Filter on vehiclejourney_id
 			if len(param.vehiclejourney_id) > 0 && param.vehiclejourney_id != vo.VehicleJourneyId { continue }
 			//Fileter on datetime (default value Now)
-			if vo.DateTime.Before(param.datetime) { continue }
+			if vo.DateTime.Before(param.date) { continue }
 			occupancies = append(occupancies, vo)
 		}
 		return occupancies, nil

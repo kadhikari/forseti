@@ -13,7 +13,7 @@ import (
 )
 
 var spFileName = "mapping_stops.csv"
-var courseFileName = "extraction_des_courses.csv"
+var courseFileName = "extraction_courses.csv"
 var location = "Europe/Paris"
 var vehicleCapacity = 100
 
@@ -539,7 +539,6 @@ type RouteSchedule struct {
 	LineCode 			string
 	VehicleJourneyId 	string
 	StopId 				string
-	StopName 			string
 	Sens 				int
 	Departure			bool
 	DateTime 			time.Time

@@ -421,6 +421,11 @@ func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]St
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, spFileName)
 	file, err := getFile(uri, connectionTimeout)
 
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
 	stopPointsConsumer := makeStopPointLineConsumer()
 	loadDataOptions := LoadDataOptions{
 		delimiter:     ';',
@@ -438,6 +443,11 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, courseFileName)
 	file, err := getFile(uri, connectionTimeout)
 
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
 	courseLineConsumer := makeCourseLineConsumer()
 	loadDataOptions := LoadDataOptions{
 		delimiter:     ';',
@@ -452,7 +462,7 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]RouteSchedule, error) {
+func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]RouteSchedule) {
 	// Read RouteSchedule response body in json
 	// Normally there is one vehiclejourney for each departure.
 	routeScheduleList := make([]RouteSchedule, 0)
@@ -473,7 +483,7 @@ func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens i
 			startIndex++
 		}
 	}
-	return routeScheduleList, nil
+	return routeScheduleList
 }
 
 func LoadRoutes(startIndex int, uri url.URL, token, direction string,
@@ -484,7 +494,7 @@ func LoadRoutes(startIndex int, uri url.URL, token, direction string,
 	header := "Authorization"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
 	if err != nil {
-		freeFloatingsLoadingErrors.Inc()
+		occupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -498,12 +508,16 @@ func LoadRoutes(startIndex int, uri url.URL, token, direction string,
 
 	sens := 0
 	if direction == "backward" { sens = 1}
-	routeSchedules, err := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
-	if err != nil {
-		occupanciesLoadingErrors.Inc()
-		return nil, err
-	}
+	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
 	return routeSchedules, nil
+}
+
+func LoadPredictionsData(predictionData *PredictionData, location *time.Location) ([]Prediction) {
+	predictions := make([]Prediction, 0)
+	for _, predict := range *predictionData {
+		predictions = append(predictions, *NewPrediction(predict, location))
+	}
+	return predictions
 }
 
 func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration, location *time.Location) ([]Prediction, error) {
@@ -527,11 +541,8 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 		return nil, err
 	}
 
-	predictions := make([]Prediction, 0)
-	for _, predict := range *predicts {
-		predictions = append(predictions, *NewPrediction(predict, location))
-	}
-
+	predictions := LoadPredictionsData(predicts, location)
+	fmt.Println("*** predictions size: ", len(predictions))
 	return predictions, nil
 }
 

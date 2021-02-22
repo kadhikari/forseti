@@ -1,20 +1,26 @@
-mnemo;stop_name;stop_id
-CPC;Copernic;0:SP:80:4028
-DEL;Delattre de Tassigny;0:SP:80:4046
-DEW;Dewoitine;0:SP:80:4043
-EXL;Exelmans;0:SP:80:4056
-GDR;Grange Dame Rose;0:SP:80:4062
-INO;Inovel Parc Nord;0:SP:80:4079
-VY;La Cheminee;0:SP:80:4186
-LBO;Le Bois;0:SP:80:4089
-LVS;Louvois;0:SP:80:4100
-MAV;Mairie de Velizy;0:SP:80:4102
-MDT;Marcel Dassault;0:SP:80:4109
-MOR;Morane;0:SP:80:4119
-MDS;Musee de Sevres;0:SP:80:4108
-NPT;Nieuport;0:SP:80:4121
-PTR;Pasteur;0:SP:80:4141
-PDS;Pont de Sevres;0:SP:80:4132
-RSE;Residence Europe;0:SP:80:4150
-TDR;Traite de Rome;0:SP:80:4165
-GRV;Velizy 2;0:SP:80:4070
+mnemo;stop_name;stop_id;sens
+CPC;Copernic;0:SP:80:4029;0
+CPC;Copernic;0:SP:80:4028;1
+DEL;Delattre de Tassigny;0:SP:80:4046;0
+DEW;Dewoitine;0:SP:80:4043;0
+EXL;Exelmans;0:SP:80:4056;0
+GDR;Grange Dame Rose;0:SP:80:4063;1
+INO;Inovel Parc Nord;0:SP:80:4079;0
+INO;Inovel Parc Nord;0:SP:80:4079;1
+VY;La Cheminee;0:SP:80:4186;0
+VY;La Cheminee;0:SP:80:4187;1
+LBO;Le Bois;0:SP:80:4088;0
+LBO;Le Bois;0:SP:80:4089;1
+LVS;Louvois;0:SP:80:4100;0
+MAV;Mairie de Velizy;0:SP:80:4102;0
+MDT;Marcel Dassault;0:SP:80:4109;0
+MOR;Morane;0:SP:80:4120;1
+MDS;Musee de Sevres;0:SP:80:4108;0
+NPT;Nieuport;0:SP:80:4121;0
+PTR;Pasteur;0:SP:80:4142;0
+PTR;Pasteur;0:SP:80:4141;1
+PDS;Pont de Sevres;0:SP:80:4131;0
+PDS;Pont de Sevres;0:SP:80:4132;1
+RSE;Residence Europe;0:SP:80:4151;1
+TDR;Traite de Rome;0:SP:80:4165;1
+GRV;Velizy 2;0:SP:80:4070;0

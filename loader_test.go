@@ -429,3 +429,98 @@ func TestLoadFreeFloatingsFromFile(t *testing.T) {
 	assert.Equal(2.377601, freeFloatings[0].Coord.Lon)
 	assert.Equal([]string{"ELECTRIC"}, freeFloatings[0].Attributes)
 }
+
+func TestLoadStopPointsFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// FileName for StopPoints should be mapping_stops.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
+	require.Nil(err)
+	assert.Equal(len(stopPoints), 25)
+	stopPoint := stopPoints["Copernic0"]
+	assert.Equal(stopPoint.Name, "Copernic")
+	assert.Equal(stopPoint.Sens, 0)
+	assert.Equal(stopPoint.Id, "stop_point:0:SP:80:4029")
+}
+
+func TestLoadCoursesFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	// FileName for StopPoints should be extraction_courses.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	courses, err := LoadCourses(*uri, defaultTimeout)
+	require.Nil(err)
+	// It's map size (line_code=40)
+	assert.Equal(len(courses), 1)
+	course40 := courses["40"]
+	assert.Equal(len(course40), 310)
+	assert.Equal(course40[0].LineCode, "40")
+	assert.Equal(course40[0].Course, "2774327")
+	assert.Equal(course40[0].Dow, 1)
+	time, err := time.ParseInLocation("15:04:05", "05:47:18", location)
+	require.Nil(err)
+	assert.Equal(course40[0].FirstTime, time)
+}
+
+func TestLoadRouteSchedulesFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	navitiaRoutes := &NavitiaRoutes{}
+	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
+	require.Nil(err)
+	sens := 0
+	startIndex := 1
+	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
+	assert.Equal(len(routeSchedules), 141)
+	assert.Equal(routeSchedules[0].Id, 1)
+	assert.Equal(routeSchedules[0].LineCode, "40")
+	assert.Equal(routeSchedules[0].VehicleJourneyId, "vehicle_journey:0:123713787-1")
+	assert.Equal(routeSchedules[0].StopId, "stop_point:0:SP:80:4131")
+	assert.Equal(routeSchedules[0].Sens, 0)
+	assert.Equal(routeSchedules[0].Departure, true)
+	assert.Equal(routeSchedules[0].DateTime, time.Date(2021, 1, 18, 06, 0, 0, 0, location))
+}
+
+func TestLoadPredictionsFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	predicts := &PredictionData{}
+	err = json.Unmarshal([]byte(jsonData), predicts)
+	require.Nil(err)
+	predictions := LoadPredictionsData(predicts, location)
+	assert.Equal(len(predictions), 65)
+	assert.Equal(predictions[0].LineCode, "40")
+	assert.Equal(predictions[0].Order, 0)
+	assert.Equal(predictions[0].Sens, 0)
+	assert.Equal(predictions[0].Date, time.Date(2021, 1, 9, 0, 0, 0, 0, location))
+	assert.Equal(predictions[0].Course, "2774327")
+	assert.Equal(predictions[0].StopName, "Pont de Sevres")
+	assert.Equal(predictions[0].Charge, 12)
+}

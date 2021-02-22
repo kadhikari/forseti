@@ -412,16 +412,22 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating) {
 type StopPoint struct {
 	Id 			string
 	Name 		string
+	Sens		int
 }
 
 func NewStopPoint(record []string) (*StopPoint, error) {
-	if len(record) < 3 {
+	if len(record) < 4 {
 		return nil, fmt.Errorf("Missing field in StopPoint record")
 	}
 
+	sens, err := strconv.Atoi(record[3])
+	if err != nil {
+		return nil, err
+	}
 	return &StopPoint{
 		Id:				fmt.Sprintf("%s:%s", "stop_point", record[2]),
 		Name: 			record[1],
+		Sens:			sens,
 	}, nil
 }
 
@@ -440,8 +446,8 @@ func (c *StopPointLineConsumer) Consume(line []string, loc *time.Location) error
 	if err != nil {
 		return err
 	}
-
-	c.stopPoints[stopPoint.Name] = *stopPoint
+	key := stopPoint.Name + strconv.Itoa(stopPoint.Sens)
+	c.stopPoints[key] = *stopPoint
 	return nil
 }
 func (c *StopPointLineConsumer) Terminate() {}
@@ -501,6 +507,7 @@ func (p *CourseLineConsumer) Terminate() {}
 
 type Prediction struct {
 	LineCode    string
+	Order		int
 	Sens		int
 	Date      	time.Time
 	Course    	string
@@ -518,6 +525,7 @@ func NewPrediction(p PredictionNode, location *time.Location) (*Prediction) {
 	return &Prediction{
 		LineCode: 	p.Line,
 		Sens: 		p.Sens,
+		Order:		p.Order,
 		Date:		date,
 		Course:		p.Course,
 		StopName:		p.StopName,
@@ -531,11 +539,13 @@ type RouteSchedule struct {
 	LineCode 			string
 	VehicleJourneyId 	string
 	StopId 				string
+	StopName 			string
 	Sens 				int
+	Departure			bool
 	DateTime 			time.Time
 }
 
-func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *time.Location) (*RouteSchedule, error) {
+func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, depart bool, location *time.Location) (*RouteSchedule, error) {
 	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
 	if err != nil {
 		fmt.Println("Error on: ", dateTime)
@@ -547,6 +557,7 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, location *tim
 		VehicleJourneyId: vjId,
 		StopId: stopId,
 		Sens: sens,
+		Departure: depart,
 		DateTime: date,
 	}, nil
 }
@@ -842,6 +853,14 @@ func (d *DataManager) InitStopPoint(stopPoints map[string]StopPoint) {
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
+func (d *DataManager) GetStopId(name string, sens int) (id string) {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+
+	key := name + strconv.Itoa(sens)
+	return (*d.stopPoints)[key].Id
+}
+
 func (d *DataManager) InitCourse(courses map[string][]Course) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
@@ -895,6 +914,35 @@ func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.
 		}
 	}
 	return time.Now(), fmt.Errorf("No corresponding data found")
+}
+
+func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time) (vj string) {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+	for _, rs := range (*d.routeSchedules) {
+		if rs.Departure == true {
+			//fmt.Println(" --- rs.DateTime: ", rs.DateTime)
+			//fmt.Println(" --- dataTime: ", dataTime)
+		}
+		if rs.Departure == true &&
+		predict.LineCode == rs.LineCode &&
+		predict.Sens == rs.Sens &&
+		intersects(rs.DateTime, dataTime, 2) {
+			return rs.VehicleJourneyId
+		}
+	}
+	return ""
+}
+
+func (d *DataManager) GetRouteSchedule(vjId, stopId string, sens int) (routeSchedule *RouteSchedule) {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+	for _, rs := range (*d.routeSchedules) {
+		if rs.VehicleJourneyId == vjId && rs.StopId == stopId && rs.Sens == sens {
+			return &rs
+		}
+	}
+	return nil
 }
 
 func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParameter) (vehicleOccupancies []VehicleOccupancy, e error) {

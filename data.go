@@ -85,6 +85,7 @@ type NavitiaRoutes struct {
 			Rows []struct {
 				StopPoint struct {
 					ID string `json:"id"`
+					Name string `json:"Name"`
 				} `json:"stop_point"`
 				DateTimes []struct {
 					DateTime string `json:"date_time"`

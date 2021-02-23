@@ -96,6 +96,9 @@ type NavitiaRoutes struct {
 				} `json:"date_times"`
 			} `json:"rows"`
 		} `json:"table"`
+		DisplayInformations struct {
+			Code string `json:"code"`
+		} `json:"display_informations"`
 	} `json:"route_schedules"`
 }
 

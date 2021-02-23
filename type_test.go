@@ -554,7 +554,7 @@ func TestNewRouteSchedule(t *testing.T) {
 	assert := assert.New(t)
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
-	rs, err := NewRouteSchedule("stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)	
+	rs, err := NewRouteSchedule("40", "stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)	
 	require.Nil(err)
 	require.NotNil(rs)
 
@@ -609,10 +609,10 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Load RouteSchedules
 	routeSchedules := make ([]RouteSchedule, 0)
-	rs, err := NewRouteSchedule("stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)
+	rs, err := NewRouteSchedule("40", "stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	rs, err = NewRouteSchedule("stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)	
+	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)	
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
 	manager.InitRouteSchedule(routeSchedules)

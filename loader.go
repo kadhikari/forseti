@@ -466,9 +466,11 @@ func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens i
 	// Read RouteSchedule response body in json
 	// Normally there is one vehiclejourney for each departure.
 	routeScheduleList := make([]RouteSchedule, 0)
+	lineCode := navitiaRoutes.RouteSchedules[0].DisplayInformations.Code
 	for i := 0; i < len(navitiaRoutes.RouteSchedules[0].Table.Rows); i++ {
 		for j := 0; j < len(navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes); j++ {
 			rs, err := NewRouteSchedule(
+				lineCode,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].StopPoint.ID,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].Links[0].Value,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].DateTime,
@@ -486,10 +488,11 @@ func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens i
 	return routeScheduleList
 }
 
-func LoadRoutes(startIndex int, uri url.URL, token, direction string,
+func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction string,
 	connectionTimeout time.Duration, location *time.Location) ([]RouteSchedule, error) {
+	// Call and load routes for line=40
 	dateTime := time.Now().Truncate(24 * time.Hour).Format("20060102T000000")
-	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s", uri.String(), 
+	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s", uri.String(),
 		"line:0:004004040:40", direction, dateTime)
 	header := "Authorization"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
@@ -509,7 +512,52 @@ func LoadRoutes(startIndex int, uri url.URL, token, direction string,
 	sens := 0
 	if direction == "backward" { sens = 1}
 	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
+
+	// Call and load routes for line=45
+	callUrl = fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s", uri.String(),
+		"line:0:004004029:45", direction, dateTime)
+	resp, err = GetHttpClient(callUrl, token, header, connectionTimeout)
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
+	navitiaRoutes = &NavitiaRoutes{}
+	decoder = json.NewDecoder(resp.Body)
+	err = decoder.Decode(navitiaRoutes)
+	if err != nil {
+		occupanciesLoadingErrors.Inc()
+        return nil, err
+	}
+
+	rs45 := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
+	// Concat two arrays
+	for i, _ := range rs45 {
+		routeSchedules = append(routeSchedules, rs45[i])
+	}
 	return routeSchedules, nil
+}
+
+func LoadRoutesForAllLines(manager *DataManager, navitia_url url.URL, navitia_token string, connectionTimeout time.Duration, location *time.Location) error {
+	// Load Forward RouteSchedules (sens=0) for lines 40 and 45
+	startIndex := 1
+	routeSchedules, err := LoadRoutesWithDirection(startIndex, navitia_url, navitia_token, "forward", connectionTimeout, location)
+	if err != nil {
+		return err
+	}
+	// Load Backward RouteSchedules (sens=1) for lines 40 and 45
+	startIndex = len(routeSchedules) + 1
+	backward, err := LoadRoutesWithDirection(startIndex, navitia_url, navitia_token, "backward", connectionTimeout, location)
+	if err != nil {
+		return err
+	}
+
+	// Concat two arrays
+	for i, _ := range backward {
+		routeSchedules = append(routeSchedules, backward[i])
+	}
+	manager.InitRouteSchedule(routeSchedules)
+	return nil
 }
 
 func LoadPredictionsData(predictionData *PredictionData, location *time.Location) ([]Prediction) {
@@ -524,7 +572,7 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	//futuredata/getfuturedata?start_time=2021-02-15&end_time=2021-02-16
 	begin := time.Now()
 	start_date := begin.Format("2006-01-02")
-	end_date := begin.AddDate(0,0,1).Format("2006-01-02")
+	end_date := begin.AddDate(0,0,0).Format("2006-01-02")
 	callUrl := fmt.Sprintf("%s/futuredata/getfuturedata?start_time=%s&end_time=%s", uri.String(), start_date, end_date)
 	header := "Ocp-Apim-Subscription-Key"
 	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
@@ -549,10 +597,8 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Prediction) (map[int]VehicleOccupancy) {
 	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
 	occupanciesWithCharge := make(map[int]VehicleOccupancy, 0)
-	var course = ""
 	var vehicleJourneyId = ""
 	for _, predict := range predictions {
-		if course != predict.Course {course = predict.Course}
 		if predict.Order == 0 {
 			firstTime, err := manager.GetCourseFirstTime(predict)
 			if err != nil {
@@ -606,22 +652,11 @@ func LoadAllForVehicleOccupancies(manager *DataManager, files_uri, navitia_url, 
 	}
 	manager.InitCourse(courses)
 
-	startIndex := 1
-	routeSchedules, err := LoadRoutes(startIndex, navitia_url, navitia_token, "forward", connectionTimeout, location)
+	// Load all RouteSchedules for line 40 and 45
+	err = LoadRoutesForAllLines(manager, navitia_url, navitia_token, connectionTimeout, location)
 	if err != nil {
 		return err
 	}
-	startIndex = len(routeSchedules) + 1
-	backward, err := LoadRoutes(startIndex, navitia_url, navitia_token, "backward", connectionTimeout, location)
-	if err != nil {
-		return err
-	}
-
-	// Concat two arrays
-	for i, _ := range backward {
-		routeSchedules = append(routeSchedules, backward[i])
-	}
-	manager.InitRouteSchedule(routeSchedules)
 
 	// Load predictions for external service and update VehicleOccupancies with charge
 	RefreshVehicleOccupancies(manager, predict_url, predict_token, connectionTimeout, location)

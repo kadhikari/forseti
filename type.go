@@ -544,7 +544,7 @@ type RouteSchedule struct {
 	DateTime 			time.Time
 }
 
-func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, depart bool, location *time.Location) (*RouteSchedule, error) {
+func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool, location *time.Location) (*RouteSchedule, error) {
 	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
 	if err != nil {
 		fmt.Println("Error on: ", dateTime)
@@ -552,7 +552,7 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, depart bool, 
 	}
 	return &RouteSchedule{
 		Id: Id,
-		LineCode: "40",
+		LineCode: lineCode,
 		VehicleJourneyId: vjId,
 		StopId: stopId,
 		Sens: sens,
@@ -564,7 +564,7 @@ func NewRouteSchedule(stopId, vjId, dateTime string, sens, Id int, depart bool, 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
 	Id 					int `json:"-"`
-	LineCode 			string `json:"-"`
+	LineCode 			string `json:"_"`
 	VehicleJourneyId 	string `json:"vehiclejourney_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
 	Sens 				int `json:"sens,omitempty"`
@@ -606,7 +606,6 @@ type DataManager struct {
 	courses							*map[string][]Course
 	routeSchedules					*[]RouteSchedule
 	vehicleOccupancies 				*map[int]VehicleOccupancy
-	predictions						*[]Prediction
 	lastVehicleOccupanciesUpdate 	time.Time
 	vehicleOccupanciesMutex     	sync.RWMutex
 }
@@ -887,16 +886,6 @@ func (d *DataManager) UpdateVehicleOccupancies(vehicleOccupancies map[int]Vehicl
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *DataManager) InitPrediction(predictions []Prediction) {
-	d.vehicleOccupanciesMutex.Lock()
-	defer d.vehicleOccupanciesMutex.Unlock()
-
-	d.predictions = &predictions
-	fmt.Println("*** predictions size: ", len(*d.predictions))
-	d.lastVehicleOccupanciesUpdate = time.Now()
-}
-
-
 func (d *DataManager) GetLastVehicleOccupanciesDataUpdate() time.Time {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
@@ -919,10 +908,6 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 	for _, rs := range (*d.routeSchedules) {
-		if rs.Departure == true {
-			//fmt.Println(" --- rs.DateTime: ", rs.DateTime)
-			//fmt.Println(" --- dataTime: ", dataTime)
-		}
 		if rs.Departure == true &&
 		predict.LineCode == rs.LineCode &&
 		predict.Sens == rs.Sens &&

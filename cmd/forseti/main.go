@@ -40,6 +40,7 @@ type Config struct {
 	OccupancyNavitiaToken  	string        `mapstructure:"occupancy-navitia-token"`
 	OccupancyServiceToken  	string        `mapstructure:"occupancy-service-token"`
 	OccupancyRefresh 		time.Duration `mapstructure:"occupancy-refresh"`
+	RouteScheduleRefresh 	time.Duration `mapstructure:"routeschedule-refresh"`
 
 	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
 	JSONLog           bool          `mapstructure:"json-log"`
@@ -76,6 +77,7 @@ func GetConfig() (Config, error) {
 	pflag.String("occupancy-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("occupancy-service-token", "", "token for prediction source")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
+	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
 
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
@@ -161,6 +163,8 @@ func main() {
 	go RefreshFreeFloatingLoop(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.FreeFloatingsRefresh, config.ConnectionTimeout)
 	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken, 
 		config.OccupancyRefresh, config.ConnectionTimeout, location)
+	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 
 	err = forseti.SetupRouter(manager, nil).Run()
 	if err != nil {
@@ -257,6 +261,27 @@ func RefreshVehicleOccupanciesLoop(manager *forseti.DataManager,
 		time.Sleep(predictionRefresh)
 	}
 }
+
+func RefreshRouteSchedulesLoop(manager *forseti.DataManager,
+	navitiaURI url.URL,
+	navitiaToken string,
+	routeScheduleRefresh,
+	connectionTimeout time.Duration,
+	location *time.Location) {
+	if (len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0){
+		logrus.Debug("RouteSchedule data refreshing is disabled")
+		return
+	}
+	for {
+		err := forseti.LoadRoutesForAllLines(manager, navitiaURI, navitiaToken, connectionTimeout, location)
+		if err != nil {
+			logrus.Error("Error while reloading RouteSchedule data: ", err)
+		}
+		logrus.Debug("RouteSchedule data updated")
+		time.Sleep(routeScheduleRefresh)
+	}
+}
+
 
 func initLog(jsonLog bool, logLevel string) {
 	if jsonLog {

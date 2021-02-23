@@ -519,7 +519,7 @@ func TestLoadPredictionsFromFile(t *testing.T) {
 	assert.Equal(predictions[0].LineCode, "40")
 	assert.Equal(predictions[0].Order, 0)
 	assert.Equal(predictions[0].Sens, 0)
-	assert.Equal(predictions[0].Date, time.Date(2021, 1, 9, 0, 0, 0, 0, location))
+	assert.Equal(predictions[0].Date, time.Date(2021, 1, 18, 0, 0, 0, 0, location))
 	assert.Equal(predictions[0].Course, "2774327")
 	assert.Equal(predictions[0].StopName, "Pont de Sevres")
 	assert.Equal(predictions[0].Charge, 12)

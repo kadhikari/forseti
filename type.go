@@ -71,9 +71,9 @@ func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
 }
 
 type VehicleOccupancyRequestParameter struct {
-	stop_id string
-	vehiclejourney_id string
-	date time.Time
+	StopId string
+	VehicleJourneyId string
+	Date time.Time
 }
 
 type DirectionType int
@@ -958,11 +958,11 @@ func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParam
 		// Implement filter on parameters
 		for _, vo := range *d.vehicleOccupancies {
 			// Filter on stop_id
-			if len(param.stop_id) > 0 && param.stop_id != vo.StopId { continue }
+			if len(param.StopId) > 0 && param.StopId != vo.StopId { continue }
 			// Filter on vehiclejourney_id
-			if len(param.vehiclejourney_id) > 0 && param.vehiclejourney_id != vo.VehicleJourneyId { continue }
+			if len(param.VehicleJourneyId) > 0 && param.VehicleJourneyId != vo.VehicleJourneyId { continue }
 			//Fileter on datetime (default value Now)
-			if vo.DateTime.Before(param.date) { continue }
+			if vo.DateTime.Before(param.Date) { continue }
 			occupancies = append(occupancies, vo)
 		}
 		return occupancies, nil

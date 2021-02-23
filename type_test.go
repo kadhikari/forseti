@@ -8,7 +8,7 @@ import (
 	"sort"
 	"testing"
 	"time"
-
+	"strconv"
 	"encoding/xml"
 
 	"github.com/stretchr/testify/assert"
@@ -494,4 +494,179 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	assert.Equal("SCOOTER", free_floatings[0].Type)
 	assert.Equal("0JT9J6", free_floatings[1].PublicId)
 	assert.Equal("Tier", free_floatings[1].ProviderName)
+}
+
+func TestNewStopPoint(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	spLine := []string{"CPC", "Copernic", "0:SP:80:4029", "0"}
+	sp, err := NewStopPoint(spLine)
+	require.Nil(err)
+	require.NotNil(sp)
+
+	assert.Equal(sp.Id, "stop_point:0:SP:80:4029")
+	assert.Equal(sp.Name, "Copernic")
+	assert.Equal(sp.Sens, 0)
+}
+
+func TestNewStoppointWithMissingField(t *testing.T) {
+	require := require.New(t)
+	spLine := []string{"CPC", "Copernic", "0:SP:80:4029"}
+	sp, err := NewStopPoint(spLine)
+	require.Error(err)
+	require.Nil(sp)
+}
+
+func TestNewCourse(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	courseLine := []string{"40","2774327","1","05:47:18","06:06:16.5","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	course, err := NewCourse(courseLine, location)
+	require.Nil(err)
+	require.NotNil(course)
+
+	assert.Equal(course.LineCode, "40")
+	assert.Equal(course.Course, "2774327")
+	assert.Equal(course.Dow, 1)
+	assert.Equal(course.FirstDate, time.Date(2020, 9, 21, 0, 0, 0, 0, location))
+	firstTime, err := time.ParseInLocation("15:04:05", "05:47:18", location)
+	require.Nil(err)
+	assert.Equal(course.FirstTime, firstTime)
+}
+
+func TestNewCourseWithMissingField(t *testing.T) {
+	require := require.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	courseLine := []string{"40","2774327","1","05:47:18","06:06:16.5","13","2020-09-21","2021-01-18"}
+	course, err := NewCourse(courseLine, location)
+	require.Error(err)
+	require.Nil(course)
+}
+
+func TestNewRouteSchedule(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+	rs, err := NewRouteSchedule("stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)	
+	require.Nil(err)
+	require.NotNil(rs)
+
+	assert.Equal(rs.Id, 1)
+	assert.Equal(rs.LineCode, "40")
+	assert.Equal(rs.VehicleJourneyId, "vj_id_one")
+	assert.Equal(rs.StopId, "stop_point:0:SP:80:4029")
+	assert.Equal(rs.Sens, 0)
+	assert.Equal(rs.Departure, true)
+	dateTime, err := time.ParseInLocation("20060102T150405", "20210222T054500", location)
+	require.Nil(err)
+	assert.Equal(rs.DateTime, dateTime)
+}
+
+func TestDataManagerForVehicleOccupancies(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	var manager DataManager
+
+	// Load StopPoints
+	stopPoints := make(map[string]StopPoint)
+	sp, err := NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4029","0"})
+	require.Nil(err)
+	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	sp, err = NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4028","1"})
+	require.Nil(err)
+	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142","0"})
+	require.Nil(err)
+	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141","1"})
+	require.Nil(err)
+	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	manager.InitStopPoint(stopPoints)
+	assert.Equal(len(*manager.stopPoints), 4)
+
+	// Load Courses
+	courses := make(map[string][]Course)
+	courseLine := []string{"40","2774327","1","05:45:00","06:06:00","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	course, err := NewCourse(courseLine, location)
+	require.Nil(err)
+	courses[course.LineCode] = append(courses[course.LineCode], *course)
+	courseLine = []string{"40","2774327","2","05:46:00","06:07:00","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	course, err = NewCourse(courseLine, location)
+	require.Nil(err)
+	courses[course.LineCode] = append(courses[course.LineCode], *course)
+	manager.InitCourse(courses)
+	assert.Equal(len(*manager.courses), 1)
+
+	// Load RouteSchedules
+	routeSchedules := make ([]RouteSchedule, 0)
+	rs, err := NewRouteSchedule("stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)
+	require.Nil(err)
+	routeSchedules = append(routeSchedules, *rs)
+	rs, err = NewRouteSchedule("stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)	
+	require.Nil(err)
+	routeSchedules = append(routeSchedules, *rs)
+	manager.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*manager.routeSchedules), 2)
+
+	// Load Predictions
+	predictions := make([]Prediction, 0)
+	pn := PredictionNode{Line: "40", Sens: 0, Date: "2021-02-22T00:00:00", Course: "2774327", Order: 0, StopName: "Copernic", Charge: 55}
+	p := NewPrediction(pn, location)
+	require.NotNil(p)
+	predictions = append(predictions, *p)
+	pn = PredictionNode{Line: "40", Sens: 0, Date: "2021-02-22T00:00:00", Course: "2774327", Order: 1, StopName: "Pasteur", Charge: 75}
+	p = NewPrediction(pn, location)
+	require.NotNil(p)
+	predictions = append(predictions, *p)
+	assert.Equal(len(predictions), 2)
+
+	// Create VehicleOccupancies from existing data
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(&manager, predictions)
+	assert.Equal(len(occupanciesWithCharge), 2)
+	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(*manager.vehicleOccupancies), 2)
+	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
+	require.Nil(err)
+	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
+	vehicleOccupancies, err := manager.GetVehicleOccupancies(&param)
+	assert.Equal(len(vehicleOccupancies), 2)
+
+	// Call Api with StopId in the paraameter
+	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4029", VehicleJourneyId: "", Date: date}
+	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	assert.Equal(len(vehicleOccupancies), 1)
+
+	// Verify attributes
+	dateTime, err := time.ParseInLocation("20060102T150405", "20210222T054500", location)
+	require.Nil(err)
+	assert.Equal(vehicleOccupancies[0].LineCode, "40")
+	assert.Equal(vehicleOccupancies[0].VehicleJourneyId, "vj_id_one")
+	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
+	assert.Equal(vehicleOccupancies[0].Sens, 0)
+	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
+	assert.Equal(vehicleOccupancies[0].Occupancy, 55)
+
+	// Call Api with another StopId in the paraameter
+	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
+	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	assert.Equal(len(vehicleOccupancies), 1)
+
+	dateTime, err = time.ParseInLocation("20060102T150405", "20210222T055000", location)
+	require.Nil(err)
+	assert.Equal(vehicleOccupancies[0].LineCode, "40")
+	assert.Equal(vehicleOccupancies[0].VehicleJourneyId, "vj_id_one")
+	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
+	assert.Equal(vehicleOccupancies[0].Sens, 0)
+	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
+	assert.Equal(vehicleOccupancies[0].Occupancy, 75)
 }

@@ -258,8 +258,8 @@ func FreeFloatingsHandler(manager *DataManager) gin.HandlerFunc {
 
 func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupancyRequestParameter) {
 	p := VehicleOccupancyRequestParameter{}
-	p.stop_id = c.Query("stop_id")
-	p.vehiclejourney_id = c.Query("vehiclejourney_id")
+	p.StopId = c.Query("stop_id")
+	p.VehicleJourneyId = c.Query("vehiclejourney_id")
 	loc, _ := time.LoadLocation(location)
 	// We accept two datetime formats in the parameter
 	date, err := time.ParseInLocation("20060102", c.Query("datetime"), loc)
@@ -267,9 +267,9 @@ func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupanc
 		date, err = time.ParseInLocation("2006-01-02", c.Query("date"), loc)
 	}
 	if err != nil {
-		p.date = time.Now().Truncate(24 * time.Hour)
+		p.Date = time.Now().Truncate(24 * time.Hour)
 	} else {
-		p.date = date
+		p.Date = date
 	}
 	return &p
 }

@@ -521,10 +521,9 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Empty(resp.Error)
 
 	require.Nil(err)
-	assert.Equal(resp.VehicleOccupancies[0].LineCode, "40")
 	assert.Equal(resp.VehicleOccupancies[0].VehicleJourneyId, "vehicle_journey:0:123713792-1")
 	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
-	assert.Equal(resp.VehicleOccupancies[0].Sens, 0)
+	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
 	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
 	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 11)
 }

@@ -41,6 +41,7 @@ type Config struct {
 	OccupancyServiceToken  	string        `mapstructure:"occupancy-service-token"`
 	OccupancyRefresh 		time.Duration `mapstructure:"occupancy-refresh"`
 	RouteScheduleRefresh 	time.Duration `mapstructure:"routeschedule-refresh"`
+	TimeZoneLocation  		string        `mapstructure:"timezone-location"`
 
 	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
 	JSONLog           bool          `mapstructure:"json-log"`
@@ -78,6 +79,7 @@ func GetConfig() (Config, error) {
 	pflag.String("occupancy-service-token", "", "token for prediction source")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
+	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
@@ -129,7 +131,7 @@ func main() {
 	initLog(config.JSONLog, config.LogLevel)
 	manager := &forseti.DataManager{}
 
-	location, _ := time.LoadLocation("Europe/Paris")
+	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {

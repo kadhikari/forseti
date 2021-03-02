@@ -410,9 +410,9 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating) {
 
 // Structure and Consumer to creates StopPoint objects based on a line read from a CSV
 type StopPoint struct {
-	Id 			string
-	Name 		string
-	Sens		int
+	Id 			string 	// Stoppoint uri from navitia
+	Name 		string 	// StopPoint name (same for forward and backward directions)
+	Direction	int		// A StopPoint id is unique for each direction (forward: Direction=0 and backwward: Direction=1) in navitia
 }
 
 func NewStopPoint(record []string) (*StopPoint, error) {
@@ -420,14 +420,17 @@ func NewStopPoint(record []string) (*StopPoint, error) {
 		return nil, fmt.Errorf("Missing field in StopPoint record")
 	}
 
-	sens, err := strconv.Atoi(record[3])
+	direction, err := strconv.Atoi(record[3])
 	if err != nil {
 		return nil, err
+	}
+	if direction != 0 && direction != 1 {
+		return nil, fmt.Errorf("only 0 or 1 is permitted as sens ")
 	}
 	return &StopPoint{
 		Id:				fmt.Sprintf("%s:%s", "stop_point", record[2]),
 		Name: 			record[1],
-		Sens:			sens,
+		Direction:		direction,
 	}, nil
 }
 
@@ -446,7 +449,7 @@ func (c *StopPointLineConsumer) Consume(line []string, loc *time.Location) error
 	if err != nil {
 		return err
 	}
-	key := stopPoint.Name + strconv.Itoa(stopPoint.Sens)
+	key := stopPoint.Name + strconv.Itoa(stopPoint.Direction)
 	c.stopPoints[key] = *stopPoint
 	return nil
 }
@@ -454,11 +457,11 @@ func (c *StopPointLineConsumer) Terminate() {}
 
 // Structure and Consumer to creates Course objects based on a line read from a CSV
 type Course struct {
-	LineCode string
-	Course string
-	Dow int
-	FirstDate time.Time
-	FirstTime time.Time
+	LineCode 	string
+	Course 		string
+	DayOfWeek 	int
+	FirstDate 	time.Time
+	FirstTime 	time.Time
 }
 
 func NewCourse(record []string,location *time.Location) (*Course, error) {
@@ -480,7 +483,7 @@ func NewCourse(record []string,location *time.Location) (*Course, error) {
 	return &Course{
 		LineCode:	record[0],
 		Course:		record[1],
-		Dow: 		dow,
+		DayOfWeek: 	dow,
 		FirstDate: 	firstDate,
 		FirstTime:	firstTime,
 	}, nil
@@ -508,11 +511,11 @@ func (p *CourseLineConsumer) Terminate() {}
 type Prediction struct {
 	LineCode    string
 	Order		int
-	Sens		int
+	Direction	int
 	Date      	time.Time
 	Course    	string
 	StopName 	string
-	Charge    	int
+	Occupancy	int
 	CreatedAt 	time.Time
 }
 
@@ -524,12 +527,12 @@ func NewPrediction(p PredictionNode, location *time.Location) (*Prediction) {
 
 	return &Prediction{
 		LineCode: 	p.Line,
-		Sens: 		p.Sens,
+		Direction:	p.Sens,
 		Order:		p.Order,
 		Date:		date,
 		Course:		p.Course,
-		StopName:		p.StopName,
-		Charge:		int(p.Charge),
+		StopName:	p.StopName,
+		Occupancy:	int(p.Charge),
 	}
 }
 
@@ -539,7 +542,7 @@ type RouteSchedule struct {
 	LineCode 			string
 	VehicleJourneyId 	string
 	StopId 				string
-	Sens 				int
+	Direction 			int
 	Departure			bool
 	DateTime 			time.Time
 }
@@ -555,7 +558,7 @@ func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, dep
 		LineCode: lineCode,
 		VehicleJourneyId: vjId,
 		StopId: stopId,
-		Sens: sens,
+		Direction: sens,
 		Departure: depart,
 		DateTime: date,
 	}, nil
@@ -563,11 +566,11 @@ func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, dep
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id 					int `json:"-"`
+	Id 					int `json:"_"`
 	LineCode 			string `json:"_"`
 	VehicleJourneyId 	string `json:"vehiclejourney_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
-	Sens 				int `json:"sens,omitempty"`
+	Direction 			int `json:"_"`
 	DateTime 			time.Time `json:"date_time,omitempty"`
 	Occupancy 			int `json:"occupancy"`
 }
@@ -578,7 +581,7 @@ func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, er
 		LineCode: rs.LineCode,
 		VehicleJourneyId: rs.VehicleJourneyId,
 		StopId: rs.StopId,
-		Sens: rs.Sens,
+		Direction: rs.Direction,
 		DateTime: rs.DateTime,
 		Occupancy: occupancy,
 	}, nil
@@ -897,7 +900,7 @@ func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 	for _, course := range (*d.courses)[prediction.LineCode] {
-		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.Dow {
+		if prediction.Course == course.Course && int(prediction.Date.Weekday()) == course.DayOfWeek {
 			return course.FirstTime, nil
 		}
 	}
@@ -910,7 +913,7 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 	for _, rs := range (*d.routeSchedules) {
 		if rs.Departure == true &&
 		predict.LineCode == rs.LineCode &&
-		predict.Sens == rs.Sens &&
+		predict.Direction == rs.Direction &&
 		intersects(rs.DateTime, dataTime, 2) {
 			return rs.VehicleJourneyId
 		}
@@ -918,11 +921,11 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 	return ""
 }
 
-func (d *DataManager) GetRouteSchedule(vjId, stopId string, sens int) (routeSchedule *RouteSchedule) {
+func (d *DataManager) GetRouteSchedule(vjId, stopId string, direction int) (routeSchedule *RouteSchedule) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 	for _, rs := range (*d.routeSchedules) {
-		if rs.VehicleJourneyId == vjId && rs.StopId == stopId && rs.Sens == sens {
+		if rs.VehicleJourneyId == vjId && rs.StopId == stopId && rs.Direction == direction {
 			return &rs
 		}
 	}

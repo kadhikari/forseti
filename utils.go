@@ -45,6 +45,7 @@ func coordDistance(from, to Coord) float64 {
 	return 2 * r * math.Asin(math.Sqrt(h))
 }
 
+// In time part we have '0000-01-01' as date so subtract 1 from month and Day
 func addDateAndTime(date, time time.Time) (dateTime time.Time) {
 	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
 }

@@ -441,7 +441,7 @@ func TestLoadStopPointsFromFile(t *testing.T) {
 	assert.Equal(len(stopPoints), 25)
 	stopPoint := stopPoints["Copernic0"]
 	assert.Equal(stopPoint.Name, "Copernic")
-	assert.Equal(stopPoint.Sens, 0)
+	assert.Equal(stopPoint.Direction, 0)
 	assert.Equal(stopPoint.Id, "stop_point:0:SP:80:4029")
 }
 
@@ -461,7 +461,7 @@ func TestLoadCoursesFromFile(t *testing.T) {
 	assert.Equal(len(course40), 310)
 	assert.Equal(course40[0].LineCode, "40")
 	assert.Equal(course40[0].Course, "2774327")
-	assert.Equal(course40[0].Dow, 1)
+	assert.Equal(course40[0].DayOfWeek, 1)
 	time, err := time.ParseInLocation("15:04:05", "05:47:18", location)
 	require.Nil(err)
 	assert.Equal(course40[0].FirstTime, time)
@@ -492,7 +492,7 @@ func TestLoadRouteSchedulesFromFile(t *testing.T) {
 	assert.Equal(routeSchedules[0].LineCode, "40")
 	assert.Equal(routeSchedules[0].VehicleJourneyId, "vehicle_journey:0:123713787-1")
 	assert.Equal(routeSchedules[0].StopId, "stop_point:0:SP:80:4131")
-	assert.Equal(routeSchedules[0].Sens, 0)
+	assert.Equal(routeSchedules[0].Direction, 0)
 	assert.Equal(routeSchedules[0].Departure, true)
 	assert.Equal(routeSchedules[0].DateTime, time.Date(2021, 1, 18, 06, 0, 0, 0, location))
 }
@@ -518,9 +518,9 @@ func TestLoadPredictionsFromFile(t *testing.T) {
 	assert.Equal(len(predictions), 65)
 	assert.Equal(predictions[0].LineCode, "40")
 	assert.Equal(predictions[0].Order, 0)
-	assert.Equal(predictions[0].Sens, 0)
+	assert.Equal(predictions[0].Direction, 0)
 	assert.Equal(predictions[0].Date, time.Date(2021, 1, 18, 0, 0, 0, 0, location))
 	assert.Equal(predictions[0].Course, "2774327")
 	assert.Equal(predictions[0].StopName, "Pont de Sevres")
-	assert.Equal(predictions[0].Charge, 12)
+	assert.Equal(predictions[0].Occupancy, 12)
 }

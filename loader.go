@@ -462,7 +462,7 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens int, location *time.Location) ([]RouteSchedule) {
+func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, direction int, location *time.Location) ([]RouteSchedule) {
 	// Read RouteSchedule response body in json
 	// Normally there is one vehiclejourney for each departure.
 	routeScheduleList := make([]RouteSchedule, 0)
@@ -474,7 +474,7 @@ func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, sens i
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].StopPoint.ID,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].Links[0].Value,
 				navitiaRoutes.RouteSchedules[0].Table.Rows[i].DateTimes[j].DateTime,
-				sens,
+				direction,
 				startIndex,
 				(i == 0), // StopPoint of departure for a distinct vehiclejourney
 				location)
@@ -530,7 +530,9 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
         return nil, err
 	}
 
-	rs45 := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
+	startIndex += len(routeSchedules)
+
+	rs45 := LoadRouteSchedulesData(startIndex + 1, navitiaRoutes, sens, location)
 	// Concat two arrays
 	for i, _ := range rs45 {
 		routeSchedules = append(routeSchedules, rs45[i])
@@ -610,11 +612,11 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 		}
 
 		if len(vehicleJourneyId) > 0 {
-			// Fetch StopId from manager corresponding to predict.StopName and predict.Sens
-			stopId := manager.GetStopId(predict.StopName, predict.Sens)
-			rs := manager.GetRouteSchedule(vehicleJourneyId, stopId, predict.Sens)
+			// Fetch StopId from manager corresponding to predict.StopName and predict.Direction
+			stopId := manager.GetStopId(predict.StopName, predict.Direction)
+			rs := manager.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
 			if rs != nil {
-				vo, err := NewVehicleOccupancy(*rs, calculateOccupancy(predict.Charge))
+				vo, err := NewVehicleOccupancy(*rs, calculateOccupancy(predict.Occupancy))
 
 				if err != nil {
 					continue
@@ -629,7 +631,6 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 func RefreshVehicleOccupancies(manager *DataManager, predict_url url.URL, predict_token string,
 	connectionTimeout time.Duration, location *time.Location) error {
 	predictions, _ := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
-
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(manager, predictions)
 
 	manager.UpdateVehicleOccupancies(occupanciesWithCharge)

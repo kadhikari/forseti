@@ -507,7 +507,7 @@ func TestNewStopPoint(t *testing.T) {
 
 	assert.Equal(sp.Id, "stop_point:0:SP:80:4029")
 	assert.Equal(sp.Name, "Copernic")
-	assert.Equal(sp.Sens, 0)
+	assert.Equal(sp.Direction, 0)
 }
 
 func TestNewStoppointWithMissingField(t *testing.T) {
@@ -531,7 +531,7 @@ func TestNewCourse(t *testing.T) {
 
 	assert.Equal(course.LineCode, "40")
 	assert.Equal(course.Course, "2774327")
-	assert.Equal(course.Dow, 1)
+	assert.Equal(course.DayOfWeek, 1)
 	assert.Equal(course.FirstDate, time.Date(2020, 9, 21, 0, 0, 0, 0, location))
 	firstTime, err := time.ParseInLocation("15:04:05", "05:47:18", location)
 	require.Nil(err)
@@ -562,7 +562,7 @@ func TestNewRouteSchedule(t *testing.T) {
 	assert.Equal(rs.LineCode, "40")
 	assert.Equal(rs.VehicleJourneyId, "vj_id_one")
 	assert.Equal(rs.StopId, "stop_point:0:SP:80:4029")
-	assert.Equal(rs.Sens, 0)
+	assert.Equal(rs.Direction, 0)
 	assert.Equal(rs.Departure, true)
 	dateTime, err := time.ParseInLocation("20060102T150405", "20210222T054500", location)
 	require.Nil(err)
@@ -581,16 +581,18 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	stopPoints := make(map[string]StopPoint)
 	sp, err := NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4029","0"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
 	sp, err = NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4028","1"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
 	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142","0"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
 	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141","1"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Sens)] = *sp
+	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141","2"})
+	assert.NotNil(err)
+	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
 	manager.InitStopPoint(stopPoints)
 	assert.Equal(len(*manager.stopPoints), 4)
 
@@ -652,7 +654,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].LineCode, "40")
 	assert.Equal(vehicleOccupancies[0].VehicleJourneyId, "vj_id_one")
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
-	assert.Equal(vehicleOccupancies[0].Sens, 0)
+	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 55)
 
@@ -666,7 +668,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].LineCode, "40")
 	assert.Equal(vehicleOccupancies[0].VehicleJourneyId, "vj_id_one")
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Sens, 0)
+	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 75)
 }

@@ -910,15 +910,18 @@ func (d *DataManager) GetCourseFirstTime(prediction Prediction) (date_time time.
 func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time) (vj string) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
+	minDiff := math.Inf(1)
+	result := ""
 	for _, rs := range (*d.routeSchedules) {
 		if rs.Departure == true &&
 		predict.LineCode == rs.LineCode &&
 		predict.Direction == rs.Direction &&
-		intersects(rs.DateTime, dataTime, 2) {
-			return rs.VehicleJourneyId
+		math.Abs(rs.DateTime.Sub(dataTime).Seconds()) < minDiff {
+			minDiff = math.Abs(rs.DateTime.Sub(dataTime).Seconds())
+			result = rs.VehicleJourneyId
 		}
 	}
-	return ""
+	return result
 }
 
 func (d *DataManager) GetRouteSchedule(vjId, stopId string, direction int) (routeSchedule *RouteSchedule) {

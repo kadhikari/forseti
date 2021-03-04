@@ -470,7 +470,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(&manager, predictions)
 	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*manager.vehicleOccupancies),28)
+	assert.Equal(len(*manager.vehicleOccupancies),35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
@@ -494,7 +494,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	require.NotNil(response.VehicleOccupancies)
-	assert.Len(response.VehicleOccupancies, 28)
+	assert.Len(response.VehicleOccupancies, 35)
 	assert.Empty(response.Error)
 
 	resp := VehicleOccupanciesResponse{}

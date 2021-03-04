@@ -5,7 +5,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -31,6 +30,18 @@ type Config struct {
 	FreeFloatingsRefresh time.Duration `mapstructure:"free-floatings-refresh"`
 	FreeFloatingsURI     url.URL
 	FreeFloatingsToken  string        `mapstructure:"free-floatings-token"`
+
+	OccupancyFilesURIStr  	string        `mapstructure:"occupancy-files-uri"`
+	OccupancyFilesURI		url.URL
+	OccupancyNavitiaURIStr  string        `mapstructure:"occupancy-navitia-uri"`
+	OccupancyNavitiaURI		url.URL
+	OccupancyServiceURIStr  string        `mapstructure:"occupancy-service-uri"`
+	OccupancyServiceURI		url.URL
+	OccupancyNavitiaToken  	string        `mapstructure:"occupancy-navitia-token"`
+	OccupancyServiceToken  	string        `mapstructure:"occupancy-service-token"`
+	OccupancyRefresh 		time.Duration `mapstructure:"occupancy-refresh"`
+	RouteScheduleRefresh 	time.Duration `mapstructure:"routeschedule-refresh"`
+	TimeZoneLocation  		string        `mapstructure:"timezone-location"`
 
 	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
 	JSONLog           bool          `mapstructure:"json-log"`
@@ -59,6 +70,17 @@ func GetConfig() (Config, error) {
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
+
+	//Passing configurations for vehicle_occupancies
+	pflag.String("occupancy-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("occupancy-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("occupancy-navitia-token", "", "token for navitia")
+	pflag.String("occupancy-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("occupancy-service-token", "", "token for prediction source")
+	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
+	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
+	pflag.String("timezone-location", "Europe/Paris", "timezone location")
+
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
@@ -76,7 +98,8 @@ func GetConfig() (Config, error) {
 		return config, errors.Wrap(err, "Unmarshalling of flag failed")
 	}
 
-	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr) {
+	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr, 
+		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -85,6 +108,9 @@ func GetConfig() (Config, error) {
 		config.ParkingsURIStr:   &config.ParkingsURI,
 		config.EquipmentsURIStr: &config.EquipmentsURI,
 		config.FreeFloatingsURIStr: &config.FreeFloatingsURI,
+		config.OccupancyFilesURIStr: &config.OccupancyFilesURI,
+		config.OccupancyNavitiaURIStr: &config.OccupancyNavitiaURI,
+		config.OccupancyServiceURIStr: &config.OccupancyServiceURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -104,6 +130,8 @@ func main() {
 
 	initLog(config.JSONLog, config.LogLevel)
 	manager := &forseti.DataManager{}
+
+	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {
@@ -125,10 +153,20 @@ func main() {
 		logrus.Errorf("Impossible to load free_floatings data at startup: %s (%s)", err, config.FreeFloatingsURIStr)
 	}
 
+	err = forseti.LoadAllForVehicleOccupancies(manager, config.OccupancyFilesURI, config.OccupancyNavitiaURI, config.OccupancyServiceURI,  
+		config.OccupancyNavitiaToken, config.OccupancyServiceToken, config.ConnectionTimeout, location)
+	if err != nil {
+		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
+	}
+
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
 	go RefreshFreeFloatingLoop(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.FreeFloatingsRefresh, config.ConnectionTimeout)
+	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken, 
+		config.OccupancyRefresh, config.ConnectionTimeout, location)
+	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 
 	err = forseti.SetupRouter(manager, nil).Run()
 	if err != nil {
@@ -194,6 +232,7 @@ func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 	connectionTimeout time.Duration) {
 	if (len(freeFloatingsURI.String()) == 0 || freeFloatingsRefresh.Seconds() <= 0){
 		logrus.Debug("FreeFloating data refreshing is disabled")
+		return
 	}
 	for {
 		err := forseti.RefreshFreeFloatings(manager, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
@@ -204,6 +243,47 @@ func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 		time.Sleep(freeFloatingsRefresh)
 	}
 }
+
+func RefreshVehicleOccupanciesLoop(manager *forseti.DataManager,
+	predictionURI url.URL,
+	predictionToken string,
+	predictionRefresh,
+	connectionTimeout time.Duration,
+	location *time.Location) {
+	if (len(predictionURI.String()) == 0 || predictionRefresh.Seconds() <= 0){
+		logrus.Debug("VehicleOccupancy data refreshing is disabled")
+		return
+	}
+	for {
+		err := forseti.RefreshVehicleOccupancies(manager, predictionURI, predictionToken, connectionTimeout, location)
+		if err != nil {
+			logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+		}
+		logrus.Debug("vehicle_occupancies data updated")
+		time.Sleep(predictionRefresh)
+	}
+}
+
+func RefreshRouteSchedulesLoop(manager *forseti.DataManager,
+	navitiaURI url.URL,
+	navitiaToken string,
+	routeScheduleRefresh,
+	connectionTimeout time.Duration,
+	location *time.Location) {
+	if (len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0){
+		logrus.Debug("RouteSchedule data refreshing is disabled")
+		return
+	}
+	for {
+		err := forseti.LoadRoutesForAllLines(manager, navitiaURI, navitiaToken, connectionTimeout, location)
+		if err != nil {
+			logrus.Error("Error while reloading RouteSchedule data: ", err)
+		}
+		logrus.Debug("RouteSchedule data updated")
+		time.Sleep(routeScheduleRefresh)
+	}
+}
+
 
 func initLog(jsonLog bool, logLevel string) {
 	if jsonLog {

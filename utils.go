@@ -3,6 +3,7 @@ import (
 	"strconv"
 	"math"
 	"strings"
+	"time"
 )
 
 func isTypeValid(strType string) bool {
@@ -42,4 +43,27 @@ func coordDistance(from, to Coord) float64 {
 	h := hsin(la2-la1) + math.Cos(la1)*math.Cos(la2)*hsin(lo2-lo1)
 
 	return 2 * r * math.Asin(math.Sqrt(h))
+}
+
+// In time part we have '0000-01-01' as date so subtract 1 from month and Day
+func addDateAndTime(date, time time.Time) (dateTime time.Time) {
+	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
+}
+
+func intersects(date1, date2 time.Time, minute time.Duration) bool{
+	d := (60 * time.Second)
+	start1 := date1.Truncate(d)
+	end1 := start1.Add(time.Minute * minute)
+	start2 := date2.Truncate(d)
+	end2 := start2.Add(time.Minute * minute)
+	if  start1.Before(end2) && end1.After(start2) {
+		return true
+	}
+	return false
+}
+
+func calculateOccupancy(charge int) int {
+	if charge == 0 {return 0}
+	occupancy := (charge * 100) / vehicleCapacity
+	return occupancy
 }

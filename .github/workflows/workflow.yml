@@ -5,7 +5,6 @@ on:
   pull_request:
     branches:
       - master
-
 jobs:
   test:
     strategy:
@@ -23,7 +22,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Prepare Env
-        run: export GO111MODULE=on
+        run: |
+        export GO111MODULE=on
+        export PATH=$PATH:~/go/bin
 
       - name: Install all the build and lint dependencies
         run: make setup

@@ -2,7 +2,7 @@ VERSION := $(shell git describe --tag --always --dirty)
 
 .PHONY: linter-install
 linter-install: ## Install linter
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.11.2
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.37.1
 
 .PHONY: setup
 setup: ## Install all the build and lint dependencies

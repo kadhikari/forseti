@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+jobs:
+  test:
+    strategy:
+      matrix:
+        go-version: [1.13.x]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go-version }}
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Prepare Env
+        run: |
+          export GO111MODULE=on
+
+      - name: Install all the build and lint dependencies
+        run: make setup
+
+      - name: Install linter
+        run: |
+          echo "linter-install Skipped"
+          #make linter-install
+
+      - name: Run all the tests and code checks
+        run: |
+          make test
+          #make ci

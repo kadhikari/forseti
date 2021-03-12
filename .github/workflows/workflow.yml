@@ -1,8 +1,8 @@
 name: CI
 
 on:
-  push:
   pull_request:
+  push:
     branches:
       - master
 jobs:
@@ -24,13 +24,14 @@ jobs:
       - name: Prepare Env
         run: |
           export GO111MODULE=on
-          export PATH=$PATH:$(go env GOPATH)/bin
 
       - name: Install all the build and lint dependencies
         run: make setup
 
       - name: Install linter
-        run: make linter-install
+        run: |
+          echo "linter-install Skipped"
+          #make linter-install
 
       - name: Run all the tests and code checks
         run: make ci

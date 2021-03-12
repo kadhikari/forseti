@@ -34,4 +34,6 @@ jobs:
           #make linter-install
 
       - name: Run all the tests and code checks
-        run: make ci
+        run: |
+          make test
+          #make ci

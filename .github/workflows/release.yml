@@ -1,0 +1,41 @@
+name: Create and publish release image
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  CreateAndPublish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.15.x
+
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: install zip dependency
+        run: apt update && apt install -y zip httpie
+
+      - name: Build a version
+        run: make build
+
+      - name: create publish release images
+        run: |
+          make docker
+          make dockerhub-login DOCKER_USER=${{secrets.DOCKERHUB_USER}} DOCKER_PASSWORD=${{secrets.DOCKERHUB_PWD}}
+          make push-image-forseti-release
+
+      - name: slack notification (the job has failed)
+        if: failure()
+        run: |
+          echo '{"text":":Warning: Github Actions: Create image for branch realse failed ! (https://github.com/CanalTP/forseti/actions/workflows/release.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+
+      - name: trig publishing + notifications (the job has successed)
+        if: success()
+        run: |
+          VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
+          echo '{"text":":information_source: Github Actions: Create image for branch realse succeded - New image forseti $VERSION is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}

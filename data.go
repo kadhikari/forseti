@@ -49,11 +49,11 @@ type EquipementSource struct {
 
 // Structure used to load date from Flucteo
 //data.Data.Area.Vehicles
-type Data struct{
+type Data struct {
 	Data AreaNode `json:"data"`
 }
 
-type AreaNode struct{
+type AreaNode struct {
 	Area VehicleNode `json:"area"`
 }
 
@@ -66,16 +66,16 @@ type ProviderNode struct {
 }
 
 type Vehicle struct {
-	PublicId string `json:"publicId,omitempty"`
-	Provider ProviderNode `json:"provider,omitempty"`
-	Id string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
-	Latitude float64 `json:"latitude,omitempty"`
-	Longitude float64 `json:"longitude,omitempty"`
-	Propulsion string `json:"propulsion,omitempty"`
-	Battery int `json:"battery,omitempty"`
-	Deeplink string `json:"deeplink,omitempty"`
-	Attributes []string `json:"attributes,omitempty"`
+	PublicId   string       `json:"publicId,omitempty"`
+	Provider   ProviderNode `json:"provider,omitempty"`
+	Id         string       `json:"id,omitempty"`
+	Type       string       `json:"type,omitempty"`
+	Latitude   float64      `json:"latitude,omitempty"`
+	Longitude  float64      `json:"longitude,omitempty"`
+	Propulsion string       `json:"propulsion,omitempty"`
+	Battery    int          `json:"battery,omitempty"`
+	Deeplink   string       `json:"deeplink,omitempty"`
+	Attributes []string     `json:"attributes,omitempty"`
 }
 
 // Structure to load routes from navitia
@@ -84,7 +84,7 @@ type NavitiaRoutes struct {
 		Table struct {
 			Rows []struct {
 				StopPoint struct {
-					ID string `json:"id"`
+					ID   string `json:"id"`
 					Name string `json:"Name"`
 				} `json:"stop_point"`
 				DateTimes []struct {
@@ -105,12 +105,12 @@ type NavitiaRoutes struct {
 // Structure related to predictions
 type PredictionData []PredictionNode
 type PredictionNode struct {
-	Line     	string    `json:"ligne"`
-	Sens      	int       `json:"sens"`
-	Date      	string    `json:"date"`
-	Course    	string    `json:"course"`
-	Order     	int       `json:"ordre"`
-	StopName 	string    `json:"arret"`
-	Charge    	float64   `json:"charge"`
-	CreatedAt 	time.Time `json:"created_at"`
+	Line      string    `json:"ligne"`
+	Sens      int       `json:"sens"`
+	Date      string    `json:"date"`
+	Course    string    `json:"course"`
+	Order     int       `json:"ordre"`
+	StopName  string    `json:"arret"`
+	Charge    float64   `json:"charge"`
+	CreatedAt time.Time `json:"created_at"`
 }

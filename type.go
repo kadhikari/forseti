@@ -412,7 +412,8 @@ func NewFreeFloating(ve Vehicle) (*FreeFloating) {
 type StopPoint struct {
 	Id 			string 	// Stoppoint uri from navitia
 	Name 		string 	// StopPoint name (same for forward and backward directions)
-	Direction	int		// A StopPoint id is unique for each direction (forward: Direction=0 and backwward: Direction=1) in navitia
+	Direction	int		// A StopPoint id is unique for each direction
+						// (forward: Direction=0 and backwward: Direction=1) in navitia
 }
 
 func NewStopPoint(record []string) (*StopPoint, error) {
@@ -547,7 +548,8 @@ type RouteSchedule struct {
 	DateTime 			time.Time
 }
 
-func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool, location *time.Location) (*RouteSchedule, error) {
+func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool,
+	location *time.Location) (*RouteSchedule, error) {
 	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
 	if err != nil {
 		fmt.Println("Error on: ", dateTime)
@@ -567,10 +569,10 @@ func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, dep
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
 	Id 					int `json:"_"`
-	LineCode 			string `json:"_"`
+	LineCode 			string
 	VehicleJourneyId 	string `json:"vehiclejourney_id,omitempty"`
 	StopId 				string `json:"stop_id,omitempty"`
-	Direction 			int `json:"_"`
+	Direction 			int
 	DateTime 			time.Time `json:"date_time,omitempty"`
 	Occupancy 			int `json:"occupancy"`
 }
@@ -820,7 +822,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 			// Filter on type[]
 			keep := keepIt(ff, param.types)
 
-			if keep == false {
+			if !keep {
 				continue
 			}
 
@@ -832,7 +834,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 			}
 
 			// Keep the wanted object
-			if keep == true {
+			if keep {
 				resp = append(resp, ff)
 			}
 
@@ -913,7 +915,7 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 	minDiff := math.Inf(1)
 	result := ""
 	for _, rs := range (*d.routeSchedules) {
-		if rs.Departure == true &&
+		if rs.Departure &&
 		predict.LineCode == rs.LineCode &&
 		predict.Direction == rs.Direction &&
 		math.Abs(rs.DateTime.Sub(dataTime).Seconds()) < minDiff {

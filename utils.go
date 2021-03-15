@@ -2,19 +2,8 @@ package forseti
 import (
 	"strconv"
 	"math"
-	"strings"
 	"time"
 )
-
-func isTypeValid(strType string) bool {
-	list := []string {"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER"}
-	for _, b := range list {
-		if strings.EqualFold(strType, b) {
-			return true
-		}
-    }
-    return false
-}
 
 func stringToInt(inputStr string, defaultValue int) int {
 	input, err := strconv.Atoi(inputStr)
@@ -48,18 +37,6 @@ func coordDistance(from, to Coord) float64 {
 // In time part we have '0000-01-01' as date so subtract 1 from month and Day
 func addDateAndTime(date, time time.Time) (dateTime time.Time) {
 	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
-}
-
-func intersects(date1, date2 time.Time, minute time.Duration) bool{
-	d := (60 * time.Second)
-	start1 := date1.Truncate(d)
-	end1 := start1.Add(time.Minute * minute)
-	start2 := date2.Truncate(d)
-	end2 := start2.Add(time.Minute * minute)
-	if  start1.Before(end2) && end1.After(start2) {
-		return true
-	}
-	return false
 }
 
 func calculateOccupancy(charge int) int {

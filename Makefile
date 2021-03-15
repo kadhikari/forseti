@@ -26,7 +26,7 @@ fmt: ## Run goimports on all go files
 
 .PHONY: lint
 lint: ## Run all the linters
-	golangci-lint run -E gosec -E maligned -E misspell -E lll -E prealloc -E goimports -E unparam -E nakedret
+	~/go/bin/golangci-lint run -E gosec -E maligned -E misspell -E lll -E prealloc -E goimports -E unparam -E nakedret
 
 .PHONY: ci
 ci: lint test ## Run all the tests and code checks

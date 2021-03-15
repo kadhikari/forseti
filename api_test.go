@@ -421,6 +421,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	manager.InitStopPoint(stopPoints)
@@ -428,6 +429,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	courses, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	manager.InitCourse(courses)
@@ -498,7 +500,10 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Empty(response.Error)
 
 	resp := VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1", nil)
+	c.Request = httptest.NewRequest(
+		"GET",
+		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
+		nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)

@@ -622,11 +622,25 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
-	pn := PredictionNode{Line: "40", Sens: 0, Date: "2021-02-22T00:00:00", Course: "2774327", Order: 0, StopName: "Copernic", Charge: 55}
+	pn := PredictionNode{
+		Line: "40",
+		Sens: 0,
+		Date: "2021-02-22T00:00:00",
+		Course: "2774327",
+		Order: 0,
+		StopName: "Copernic",
+		Charge: 55}
 	p := NewPrediction(pn, location)
 	require.NotNil(p)
 	predictions = append(predictions, *p)
-	pn = PredictionNode{Line: "40", Sens: 0, Date: "2021-02-22T00:00:00", Course: "2774327", Order: 1, StopName: "Pasteur", Charge: 75}
+	pn = PredictionNode{
+		Line: "40",
+		Sens: 0,
+		Date: "2021-02-22T00:00:00",
+		Course: "2774327",
+		Order: 1,
+		StopName: "Pasteur",
+		Charge: 75}
 	p = NewPrediction(pn, location)
 	require.NotNil(p)
 	predictions = append(predictions, *p)
@@ -641,11 +655,16 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
 	vehicleOccupancies, err := manager.GetVehicleOccupancies(&param)
+	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 2)
 
 	// Call Api with StopId in the paraameter
-	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4029", VehicleJourneyId: "", Date: date}
+	param = VehicleOccupancyRequestParameter{
+		StopId: "stop_point:0:SP:80:4029",
+		VehicleJourneyId: "",
+		Date: date}
 	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
 	// Verify attributes
@@ -661,6 +680,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	// Call Api with another StopId in the paraameter
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
 	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
 	dateTime, err = time.ParseInLocation("20060102T150405", "20210222T055000", location)

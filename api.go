@@ -210,7 +210,7 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	distanceStr := c.DefaultQuery("distance", "500")
 	p.distance = stringToInt(distanceStr, 500)
 
-	types, _ := c.Request.URL.Query()["type[]"]
+	types := c.Request.URL.Query()["type[]"]
 	updateParameterTypes(&p, types)
 
 	coordStr := c.Query("coord")

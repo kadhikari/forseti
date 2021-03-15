@@ -148,7 +148,12 @@ func main() {
 		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
 
-	err = forseti.RefreshFreeFloatings(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.ConnectionTimeout)
+	err = forseti.RefreshFreeFloatings(
+		manager,
+		config.FreeFloatingsURI,
+		config.FreeFloatingsToken,
+		config.ConnectionTimeout,
+	)
 	if err != nil {
 		logrus.Errorf("Impossible to load free_floatings data at startup: %s (%s)", err, config.FreeFloatingsURIStr)
 	}
@@ -162,7 +167,13 @@ func main() {
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
-	go RefreshFreeFloatingLoop(manager, config.FreeFloatingsURI, config.FreeFloatingsToken, config.FreeFloatingsRefresh, config.ConnectionTimeout)
+	go RefreshFreeFloatingLoop(
+		manager,
+		config.FreeFloatingsURI,
+		config.FreeFloatingsToken,
+		config.FreeFloatingsRefresh,
+		config.ConnectionTimeout,
+	)
 	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken, 
 		config.OccupancyRefresh, config.ConnectionTimeout, location)
 	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
@@ -234,6 +245,9 @@ func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 		logrus.Debug("FreeFloating data refreshing is disabled")
 		return
 	}
+
+	// Wait 10 seconds before reloading external freefloating informations
+	time.Sleep(10 * time.Second)
 	for {
 		err := forseti.RefreshFreeFloatings(manager, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
 		if err != nil {
@@ -254,6 +268,9 @@ func RefreshVehicleOccupanciesLoop(manager *forseti.DataManager,
 		logrus.Debug("VehicleOccupancy data refreshing is disabled")
 		return
 	}
+
+	// Wait 10 seconds before reloading vehicleoccupacy informations
+	time.Sleep(10 * time.Second)
 	for {
 		err := forseti.RefreshVehicleOccupancies(manager, predictionURI, predictionToken, connectionTimeout, location)
 		if err != nil {

@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"math"
 	"sort"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"strings"
-	"math"
 )
 
 var spFileName = "mapping_stops.csv"
@@ -18,6 +18,7 @@ var location = "Europe/Paris"
 var vehicleCapacity = 100
 
 type FreeFloatingType int
+
 const (
 	BikeType FreeFloatingType = iota
 	ScooterType
@@ -34,12 +35,12 @@ func (f FreeFloatingType) String() string {
 
 type FreeFloatingRequestParameter struct {
 	distance int
-	coord Coord
-	count int
-	types [] FreeFloatingType
+	coord    Coord
+	count    int
+	types    []FreeFloatingType
 }
 
-func ParseFreeFloatingTypeFromParam(value string)  FreeFloatingType {
+func ParseFreeFloatingTypeFromParam(value string) FreeFloatingType {
 	switch strings.ToLower(value) {
 	case "bike":
 		return BikeType
@@ -58,22 +59,22 @@ func ParseFreeFloatingTypeFromParam(value string)  FreeFloatingType {
 	}
 }
 
-func keepIt(ff FreeFloating, types [] FreeFloatingType) bool {
+func keepIt(ff FreeFloating, types []FreeFloatingType) bool {
 	if len(types) == 0 {
 		return true
 	}
 	for _, value := range types {
-		if strings.EqualFold(ff.Type,  value.String()) {
-            return true
-        }
+		if strings.EqualFold(ff.Type, value.String()) {
+			return true
+		}
 	}
 	return false
 }
 
 type VehicleOccupancyRequestParameter struct {
-	StopId string
+	StopId           string
 	VehicleJourneyId string
-	Date time.Time
+	Date             time.Time
 }
 
 type DirectionType int
@@ -375,44 +376,45 @@ type Coord struct {
 }
 
 type FreeFloating struct {
-	PublicId string `json:"public_id,omitempty"`
-	ProviderName string `json:"provider_name,omitempty"`
-	Id string `json:"id,omitempty"`
-	Type string `json:"type,omitempty"`
-	Coord Coord `json:"coord,omitempty"`
-	Propulsion string `json:"propulsion,omitempty"`
-	Battery int `json:"battery,omitempty"`
-	Deeplink string `json:"deeplink,omitempty"`
-	Attributes [] string `json:"attributes,omitempty"`
-	Distance float64 `json:"distance,omitempty"`
+	PublicId     string   `json:"public_id,omitempty"`
+	ProviderName string   `json:"provider_name,omitempty"`
+	Id           string   `json:"id,omitempty"`
+	Type         string   `json:"type,omitempty"`
+	Coord        Coord    `json:"coord,omitempty"`
+	Propulsion   string   `json:"propulsion,omitempty"`
+	Battery      int      `json:"battery,omitempty"`
+	Deeplink     string   `json:"deeplink,omitempty"`
+	Attributes   []string `json:"attributes,omitempty"`
+	Distance     float64  `json:"distance,omitempty"`
 }
 
 type ByDistance []FreeFloating
 
-func (ff ByDistance) Len() int {return len(ff)}
-func (ff ByDistance) Less(i, j int) bool {return ff[i].Distance < ff[j].Distance}
+func (ff ByDistance) Len() int           { return len(ff) }
+func (ff ByDistance) Less(i, j int) bool { return ff[i].Distance < ff[j].Distance }
 func (ff ByDistance) Swap(i, j int)      { ff[i], ff[j] = ff[j], ff[i] }
 
 // NewFreeFloating creates a new FreeFloating object from the object Vehicle
-func NewFreeFloating(ve Vehicle) (*FreeFloating) {
+func NewFreeFloating(ve Vehicle) *FreeFloating {
 	return &FreeFloating{
-		PublicId:		ve.PublicId,
-		ProviderName: 	ve.Provider.Name,
-		Id:				ve.Id,
-		Type:			ve.Type,
-		Coord:			Coord{Lat: ve.Latitude, Lon: ve.Longitude},
-		Propulsion:		ve.Propulsion,
-		Battery:		ve.Battery,
-		Deeplink:		ve.Deeplink,
-		Attributes:		ve.Attributes,
+		PublicId:     ve.PublicId,
+		ProviderName: ve.Provider.Name,
+		Id:           ve.Id,
+		Type:         ve.Type,
+		Coord:        Coord{Lat: ve.Latitude, Lon: ve.Longitude},
+		Propulsion:   ve.Propulsion,
+		Battery:      ve.Battery,
+		Deeplink:     ve.Deeplink,
+		Attributes:   ve.Attributes,
 	}
 }
 
 // Structure and Consumer to creates StopPoint objects based on a line read from a CSV
 type StopPoint struct {
-	Id 			string 	// Stoppoint uri from navitia
-	Name 		string 	// StopPoint name (same for forward and backward directions)
-	Direction	int		// A StopPoint id is unique for each direction (forward: Direction=0 and backwward: Direction=1) in navitia
+	Id        string // Stoppoint uri from navitia
+	Name      string // StopPoint name (same for forward and backward directions)
+	Direction int    // A StopPoint id is unique for each direction
+	// (forward: Direction=0 and backwward: Direction=1) in navitia
 }
 
 func NewStopPoint(record []string) (*StopPoint, error) {
@@ -428,9 +430,9 @@ func NewStopPoint(record []string) (*StopPoint, error) {
 		return nil, fmt.Errorf("only 0 or 1 is permitted as sens ")
 	}
 	return &StopPoint{
-		Id:				fmt.Sprintf("%s:%s", "stop_point", record[2]),
-		Name: 			record[1],
-		Direction:		direction,
+		Id:        fmt.Sprintf("%s:%s", "stop_point", record[2]),
+		Name:      record[1],
+		Direction: direction,
 	}, nil
 }
 
@@ -457,14 +459,14 @@ func (c *StopPointLineConsumer) Terminate() {}
 
 // Structure and Consumer to creates Course objects based on a line read from a CSV
 type Course struct {
-	LineCode 	string
-	Course 		string
-	DayOfWeek 	int
-	FirstDate 	time.Time
-	FirstTime 	time.Time
+	LineCode  string
+	Course    string
+	DayOfWeek int
+	FirstDate time.Time
+	FirstTime time.Time
 }
 
-func NewCourse(record []string,location *time.Location) (*Course, error) {
+func NewCourse(record []string, location *time.Location) (*Course, error) {
 	if len(record) < 9 {
 		return nil, fmt.Errorf("Missing field in Course record")
 	}
@@ -481,11 +483,11 @@ func NewCourse(record []string,location *time.Location) (*Course, error) {
 		return nil, err
 	}
 	return &Course{
-		LineCode:	record[0],
-		Course:		record[1],
-		DayOfWeek: 	dow,
-		FirstDate: 	firstDate,
-		FirstTime:	firstTime,
+		LineCode:  record[0],
+		Course:    record[1],
+		DayOfWeek: dow,
+		FirstDate: firstDate,
+		FirstTime: firstTime,
 	}, nil
 }
 
@@ -509,81 +511,82 @@ func (c *CourseLineConsumer) Consume(line []string, loc *time.Location) error {
 func (p *CourseLineConsumer) Terminate() {}
 
 type Prediction struct {
-	LineCode    string
-	Order		int
-	Direction	int
-	Date      	time.Time
-	Course    	string
-	StopName 	string
-	Occupancy	int
-	CreatedAt 	time.Time
+	LineCode  string
+	Order     int
+	Direction int
+	Date      time.Time
+	Course    string
+	StopName  string
+	Occupancy int
+	CreatedAt time.Time
 }
 
-func NewPrediction(p PredictionNode, location *time.Location) (*Prediction) {
+func NewPrediction(p PredictionNode, location *time.Location) *Prediction {
 	date, err := time.ParseInLocation("2006-01-02T15:04:05", p.Date, location)
 	if err != nil {
 		return &Prediction{}
 	}
 
 	return &Prediction{
-		LineCode: 	p.Line,
-		Direction:	p.Sens,
-		Order:		p.Order,
-		Date:		date,
-		Course:		p.Course,
-		StopName:	p.StopName,
-		Occupancy:	int(p.Charge),
+		LineCode:  p.Line,
+		Direction: p.Sens,
+		Order:     p.Order,
+		Date:      date,
+		Course:    p.Course,
+		StopName:  p.StopName,
+		Occupancy: int(p.Charge),
 	}
 }
 
 // Structure for route_schedules
 type RouteSchedule struct {
-	Id					int
-	LineCode 			string
-	VehicleJourneyId 	string
-	StopId 				string
-	Direction 			int
-	Departure			bool
-	DateTime 			time.Time
+	Id               int
+	LineCode         string
+	VehicleJourneyId string
+	StopId           string
+	Direction        int
+	Departure        bool
+	DateTime         time.Time
 }
 
-func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool, location *time.Location) (*RouteSchedule, error) {
+func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool,
+	location *time.Location) (*RouteSchedule, error) {
 	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
 	if err != nil {
 		fmt.Println("Error on: ", dateTime)
 		return nil, err
 	}
 	return &RouteSchedule{
-		Id: Id,
-		LineCode: lineCode,
+		Id:               Id,
+		LineCode:         lineCode,
 		VehicleJourneyId: vjId,
-		StopId: stopId,
-		Direction: sens,
-		Departure: depart,
-		DateTime: date,
+		StopId:           stopId,
+		Direction:        sens,
+		Departure:        depart,
+		DateTime:         date,
 	}, nil
 }
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id 					int `json:"_"`
-	LineCode 			string `json:"_"`
-	VehicleJourneyId 	string `json:"vehiclejourney_id,omitempty"`
-	StopId 				string `json:"stop_id,omitempty"`
-	Direction 			int `json:"_"`
-	DateTime 			time.Time `json:"date_time,omitempty"`
-	Occupancy 			int `json:"occupancy"`
+	Id               int `json:"_"`
+	LineCode         string
+	VehicleJourneyId string `json:"vehiclejourney_id,omitempty"`
+	StopId           string `json:"stop_id,omitempty"`
+	Direction        int
+	DateTime         time.Time `json:"date_time,omitempty"`
+	Occupancy        int       `json:"occupancy"`
 }
 
 func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
-		Id: rs.Id,
-		LineCode: rs.LineCode,
+		Id:               rs.Id,
+		LineCode:         rs.LineCode,
 		VehicleJourneyId: rs.VehicleJourneyId,
-		StopId: rs.StopId,
-		Direction: rs.Direction,
-		DateTime: rs.DateTime,
-		Occupancy: occupancy,
+		StopId:           rs.StopId,
+		Direction:        rs.Direction,
+		DateTime:         rs.DateTime,
+		Occupancy:        occupancy,
 	}, nil
 }
 
@@ -605,12 +608,12 @@ type DataManager struct {
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
 
-	stopPoints						*map[string]StopPoint
-	courses							*map[string][]Course
-	routeSchedules					*[]RouteSchedule
-	vehicleOccupancies 				*map[int]VehicleOccupancy
-	lastVehicleOccupanciesUpdate 	time.Time
-	vehicleOccupanciesMutex     	sync.RWMutex
+	stopPoints                   *map[string]StopPoint
+	courses                      *map[string][]Course
+	routeSchedules               *[]RouteSchedule
+	vehicleOccupancies           *map[int]VehicleOccupancy
+	lastVehicleOccupanciesUpdate time.Time
+	vehicleOccupanciesMutex      sync.RWMutex
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -804,7 +807,7 @@ func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
 	return d.lastFreeFloatingUpdate
 }
 
-func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
+func (d *DataManager) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
 	resp := make([]FreeFloating, 0)
 	{
 		d.freeFloatingsMutex.RLock()
@@ -820,7 +823,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 			// Filter on type[]
 			keep := keepIt(ff, param.types)
 
-			if keep == false {
+			if !keep {
 				continue
 			}
 
@@ -832,7 +835,7 @@ func (d *DataManager) GetFreeFloatings(param * FreeFloatingRequestParameter) (fr
 			}
 
 			// Keep the wanted object
-			if keep == true {
+			if keep {
 				resp = append(resp, ff)
 			}
 
@@ -912,11 +915,11 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 	defer d.vehicleOccupanciesMutex.RUnlock()
 	minDiff := math.Inf(1)
 	result := ""
-	for _, rs := range (*d.routeSchedules) {
-		if rs.Departure == true &&
-		predict.LineCode == rs.LineCode &&
-		predict.Direction == rs.Direction &&
-		math.Abs(rs.DateTime.Sub(dataTime).Seconds()) < minDiff {
+	for _, rs := range *d.routeSchedules {
+		if rs.Departure &&
+			predict.LineCode == rs.LineCode &&
+			predict.Direction == rs.Direction &&
+			math.Abs(rs.DateTime.Sub(dataTime).Seconds()) < minDiff {
 			minDiff = math.Abs(rs.DateTime.Sub(dataTime).Seconds())
 			result = rs.VehicleJourneyId
 		}
@@ -927,7 +930,7 @@ func (d *DataManager) GetVehicleJourneyId(predict Prediction, dataTime time.Time
 func (d *DataManager) GetRouteSchedule(vjId, stopId string, direction int) (routeSchedule *RouteSchedule) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
-	for _, rs := range (*d.routeSchedules) {
+	for _, rs := range *d.routeSchedules {
 		if rs.VehicleJourneyId == vjId && rs.StopId == stopId && rs.Direction == direction {
 			return &rs
 		}
@@ -935,8 +938,9 @@ func (d *DataManager) GetRouteSchedule(vjId, stopId string, direction int) (rout
 	return nil
 }
 
-func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParameter) (vehicleOccupancies []VehicleOccupancy, e error) {
-	var occupancies [] VehicleOccupancy
+func (d *DataManager) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
+	vehicleOccupancies []VehicleOccupancy, e error) {
+	var occupancies []VehicleOccupancy
 	{
 		d.vehicleOccupanciesMutex.RLock()
 		defer d.vehicleOccupanciesMutex.RUnlock()
@@ -949,11 +953,17 @@ func (d *DataManager) GetVehicleOccupancies(param * VehicleOccupancyRequestParam
 		// Implement filter on parameters
 		for _, vo := range *d.vehicleOccupancies {
 			// Filter on stop_id
-			if len(param.StopId) > 0 && param.StopId != vo.StopId { continue }
+			if len(param.StopId) > 0 && param.StopId != vo.StopId {
+				continue
+			}
 			// Filter on vehiclejourney_id
-			if len(param.VehicleJourneyId) > 0 && param.VehicleJourneyId != vo.VehicleJourneyId { continue }
+			if len(param.VehicleJourneyId) > 0 && param.VehicleJourneyId != vo.VehicleJourneyId {
+				continue
+			}
 			//Fileter on datetime (default value Now)
-			if vo.DateTime.Before(param.Date) { continue }
+			if vo.DateTime.Before(param.Date) {
+				continue
+			}
 			occupancies = append(occupancies, vo)
 		}
 		return occupancies, nil

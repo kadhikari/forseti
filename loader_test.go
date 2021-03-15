@@ -1,14 +1,16 @@
 package forseti
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+
+	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
-	"io/ioutil"
-	"encoding/json"
 	"time"
+
 	"github.com/ory/dockertest"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
@@ -436,6 +438,7 @@ func TestLoadStopPointsFromFile(t *testing.T) {
 
 	// FileName for StopPoints should be mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	assert.Equal(len(stopPoints), 25)
@@ -453,6 +456,7 @@ func TestLoadCoursesFromFile(t *testing.T) {
 
 	// FileName for StopPoints should be extraction_courses.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	courses, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	// It's map size (line_code=40)

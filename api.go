@@ -1,11 +1,13 @@
 package forseti
 
 import (
+	"fmt"
+
 	"net/http"
 	"strconv"
-	"time"
 	"strings"
-	"fmt"
+	"time"
+
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
@@ -21,13 +23,13 @@ type DeparturesResponse struct {
 
 // StatusResponse defines the object returned by the /status endpoint
 type StatusResponse struct {
-	Status              	string    `json:"status,omitempty"`
-	Version             	string    `json:"version,omitempty"`
-	LastDepartureUpdate 	time.Time `json:"last_departure_update"`
-	LastParkingUpdate   	time.Time `json:"last_parking_update"`
-	LastEquipmentUpdate 	time.Time `json:"last_equipment_update"`
-	LastFreeFloatingUpdate 	time.Time `json:"last_free_floating_update"`
-	LastVehicleOccupancyUpdate 	time.Time `json:"last_vehicle_occupancy_update"`
+	Status                     string    `json:"status,omitempty"`
+	Version                    string    `json:"version,omitempty"`
+	LastDepartureUpdate        time.Time `json:"last_departure_update"`
+	LastParkingUpdate          time.Time `json:"last_parking_update"`
+	LastEquipmentUpdate        time.Time `json:"last_equipment_update"`
+	LastFreeFloatingUpdate     time.Time `json:"last_free_floating_update"`
+	LastVehicleOccupancyUpdate time.Time `json:"last_vehicle_occupancy_update"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -73,13 +75,13 @@ type EquipmentsResponse struct {
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
 type FreeFloatingsResponse struct {
 	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
-	Error      string            `json:"error,omitempty"`
+	Error         string         `json:"error,omitempty"`
 }
 
 // VehicleOccupanciesResponse defines the structure returned by the /vehicle_occupancies endpoint
 type VehicleOccupanciesResponse struct {
 	VehicleOccupancies []VehicleOccupancy `json:"vehicle_occupancies,omitempty"`
-	Error      string            `json:"error,omitempty"`
+	Error              string             `json:"error,omitempty"`
 }
 
 var (
@@ -192,7 +194,7 @@ func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
-func updateParameterTypes(param * FreeFloatingRequestParameter, types []string) {
+func updateParameterTypes(param *FreeFloatingRequestParameter, types []string) {
 	for _, value := range types {
 		enumType := ParseFreeFloatingTypeFromParam(value)
 		if enumType != UnknownType {
@@ -210,7 +212,7 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	distanceStr := c.DefaultQuery("distance", "500")
 	p.distance = stringToInt(distanceStr, 500)
 
-	types, _ := c.Request.URL.Query()["type[]"]
+	types := c.Request.URL.Query()["type[]"]
 	updateParameterTypes(&p, types)
 
 	coordStr := c.Query("coord")
@@ -231,7 +233,7 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 			err = fmt.Errorf("Bad request: error on coord latitude value")
 			return nil, err
 		}
-		p.coord = Coord {Lat: latitude, Lon: longitude}
+		p.coord = Coord{Lat: latitude, Lon: longitude}
 	}
 	return &p, nil
 }
@@ -275,7 +277,7 @@ func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupanc
 }
 
 func VehicleOccupanciesHandler(manager *DataManager) gin.HandlerFunc {
-	return func(c * gin.Context) {
+	return func(c *gin.Context) {
 		response := VehicleOccupanciesResponse{}
 		parameter := InitVehicleOccupanyrequestParameter(c)
 		vehicleOccupancies, err := manager.GetVehicleOccupancies(parameter)

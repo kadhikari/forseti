@@ -3,13 +3,15 @@ package forseti
 import (
 	"encoding/json"
 	"fmt"
+
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
 	"sort"
 	"testing"
 	"time"
-	"io/ioutil"
+
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -349,7 +351,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	assert.Len(response.FreeFloatings, 0)
-	assert.Equal("Bad request: coord is mandatory",response.Error)
+	assert.Equal("Bad request: coord is mandatory", response.Error)
 
 	// Request with coord in parameter
 	response.Error = ""
@@ -421,6 +423,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	manager.InitStopPoint(stopPoints)
@@ -428,6 +431,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
 	courses, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	manager.InitCourse(courses)
@@ -470,7 +474,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(&manager, predictions)
 	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*manager.vehicleOccupancies),35)
+	assert.Equal(len(*manager.vehicleOccupancies), 35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	engine = SetupRouter(&manager, engine)
@@ -498,7 +502,10 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Empty(response.Error)
 
 	resp := VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1", nil)
+	c.Request = httptest.NewRequest(
+		"GET",
+		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
+		nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
@@ -510,7 +517,8 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	resp = VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest("GET",
-	"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121", nil)
+		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121",
+		nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)

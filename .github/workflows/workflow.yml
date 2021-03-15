@@ -29,7 +29,12 @@ jobs:
       - name: Run all the tests and code checks
         run: make ci
 
+      - name: Get branch name
+        shell: bash
+        run: echo "BRANCH_NAME=$(echo ${GITHUB_REF#refs/heads/} | tr / -)" >> $GITHUB_ENV
+
       - name: Upload coverage report
+        if: env.BRANCH_NAME == 'master'
         uses: codecov/codecov-action@v1.0.2
         with:
           token: ${{ secrets.CODECOV_TOKEN }}

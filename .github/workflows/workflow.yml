@@ -28,3 +28,9 @@ jobs:
 
       - name: Run all the tests and code checks
         run: make ci
+
+      - name: Upload coverage report
+        uses: codecov/codecov-action@v1.0.2
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: ./coverage.txt

@@ -1,14 +1,16 @@
 package forseti
 
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
+
+	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
-	"io/ioutil"
-	"encoding/json"
 	"time"
+
 	"github.com/ory/dockertest"
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"

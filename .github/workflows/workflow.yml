@@ -35,5 +35,5 @@ jobs:
 
       - name: Run all the tests and code checks
         run: |
-          make test
-          #make ci
+          make ci
+

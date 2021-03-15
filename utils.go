@@ -1,7 +1,8 @@
 package forseti
+
 import (
-	"strconv"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -19,7 +20,7 @@ func hsin(theta float64) float64 {
 
 func coordDistance(from, to Coord) float64 {
 	// convert to radians
-  	// must cast radius as float to multiply later
+	// must cast radius as float to multiply later
 	var la1, lo1, la2, lo2, r float64
 	la1 = from.Lat * math.Pi / 180
 	lo1 = from.Lon * math.Pi / 180
@@ -40,7 +41,9 @@ func addDateAndTime(date, time time.Time) (dateTime time.Time) {
 }
 
 func calculateOccupancy(charge int) int {
-	if charge == 0 {return 0}
+	if charge == 0 {
+		return 0
+	}
 	occupancy := (charge * 100) / vehicleCapacity
 	return occupancy
 }

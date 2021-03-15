@@ -2,14 +2,14 @@ package forseti
 
 import (
 	"bytes"
+	"encoding/xml"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
+	"strconv"
 	"testing"
 	"time"
-	"strconv"
-	"encoding/xml"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -438,9 +438,9 @@ func TestKeepDirection(t *testing.T) {
 func TestNewFreeFloating(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	provider := ProviderNode {Name: "Pony"}
+	provider := ProviderNode{Name: "Pony"}
 	ff := Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
-	Latitude: 45.180335, Longitude:  5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
+		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
 	f := NewFreeFloating(ff)
 	require.NotNil(f)
 
@@ -460,19 +460,19 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	assert := assert.New(t)
 
 	var manager DataManager
-	p1 := ProviderNode {Name: "Pony"}
-	p2 := ProviderNode {Name: "Tier"}
+	p1 := ProviderNode{Name: "Pony"}
+	p2 := ProviderNode{Name: "Tier"}
 
 	vehicles := make([]Vehicle, 0)
 	freeFloatings := make([]FreeFloating, 0)
 	v := Vehicle{PublicId: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
-		Latitude: 48.847232, Longitude:  2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
+		Latitude: 48.847232, Longitude: 2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
 	vehicles = append(vehicles, v)
 	v = Vehicle{PublicId: "718WSK", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==4b", Type: "SCOOTER",
-		Latitude: 48.847299, Longitude:  2.37772, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test2"}
+		Latitude: 48.847299, Longitude: 2.37772, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test2"}
 	vehicles = append(vehicles, v)
 	v = Vehicle{PublicId: "0JT9J6", Provider: p2, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==55c", Type: "SCOOTER",
-		Latitude: 48.847326, Longitude:  2.377734, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test3"}
+		Latitude: 48.847326, Longitude: 2.377734, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test3"}
 	vehicles = append(vehicles, v)
 
 	for _, vehicle := range vehicles {
@@ -484,7 +484,7 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	types = append(types, StationType)
 	types = append(types, ScooterType)
 	coord := Coord{Lat: 48.846781, Lon: 2.37715}
-	p:= FreeFloatingRequestParameter{distance: 500, coord: coord, count: 10, types: types}
+	p := FreeFloatingRequestParameter{distance: 500, coord: coord, count: 10, types: types}
 	free_floatings, err := manager.GetFreeFloatings(&p)
 	require.Nil(err)
 	require.Len(free_floatings, 2)
@@ -524,7 +524,8 @@ func TestNewCourse(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	courseLine := []string{"40","2774327","1","05:47:18","06:06:16.5","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	courseLine := []string{"40", "2774327", "1", "05:47:18", "06:06:16.5",
+		"13", "2020-09-21", "2021-01-18", "2021-01-22 13:27:13.066197+00"}
 	course, err := NewCourse(courseLine, location)
 	require.Nil(err)
 	require.NotNil(course)
@@ -543,7 +544,7 @@ func TestNewCourseWithMissingField(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	courseLine := []string{"40","2774327","1","05:47:18","06:06:16.5","13","2020-09-21","2021-01-18"}
+	courseLine := []string{"40", "2774327", "1", "05:47:18", "06:06:16.5", "13", "2020-09-21", "2021-01-18"}
 	course, err := NewCourse(courseLine, location)
 	require.Error(err)
 	require.Nil(course)
@@ -554,7 +555,7 @@ func TestNewRouteSchedule(t *testing.T) {
 	assert := assert.New(t)
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
-	rs, err := NewRouteSchedule("40", "stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)	
+	rs, err := NewRouteSchedule("40", "stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)
 	require.Nil(err)
 	require.NotNil(rs)
 
@@ -579,30 +580,32 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Load StopPoints
 	stopPoints := make(map[string]StopPoint)
-	sp, err := NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4029","0"})
+	sp, err := NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4029", "0"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
-	sp, err = NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4028","1"})
+	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
+	sp, err = NewStopPoint([]string{"CPC", "Copernic", "0:SP:80:4028", "1"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
-	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142","0"})
+	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
+	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142", "0"})
 	require.Nil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
-	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141","1"})
+	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
+	sp, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141", "1"})
 	require.Nil(err)
-	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141","2"})
+	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141", "2"})
 	assert.NotNil(err)
-	stopPoints[sp.Name + strconv.Itoa(sp.Direction)] = *sp
+	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
 	manager.InitStopPoint(stopPoints)
 	assert.Equal(len(*manager.stopPoints), 4)
 
 	// Load Courses
 	courses := make(map[string][]Course)
-	courseLine := []string{"40","2774327","1","05:45:00","06:06:00","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	courseLine := []string{"40", "2774327", "1", "05:45:00", "06:06:00", "13",
+		"2020-09-21", "2021-01-18", "2021-01-22 13:27:13.066197+00"}
 	course, err := NewCourse(courseLine, location)
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
-	courseLine = []string{"40","2774327","2","05:46:00","06:07:00","13","2020-09-21","2021-01-18","2021-01-22 13:27:13.066197+00"}
+	courseLine = []string{"40", "2774327", "2", "05:46:00", "06:07:00", "13",
+		"2020-09-21", "2021-01-18", "2021-01-22 13:27:13.066197+00"}
 	course, err = NewCourse(courseLine, location)
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
@@ -610,11 +613,11 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(*manager.courses), 1)
 
 	// Load RouteSchedules
-	routeSchedules := make ([]RouteSchedule, 0)
+	routeSchedules := make([]RouteSchedule, 0)
 	rs, err := NewRouteSchedule("40", "stop_point:0:SP:80:4029", "vj_id_one", "20210222T054500", 0, 1, true, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)	
+	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
 	manager.InitRouteSchedule(routeSchedules)
@@ -623,24 +626,24 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	// Load Predictions
 	predictions := make([]Prediction, 0)
 	pn := PredictionNode{
-		Line: "40",
-		Sens: 0,
-		Date: "2021-02-22T00:00:00",
-		Course: "2774327",
-		Order: 0,
+		Line:     "40",
+		Sens:     0,
+		Date:     "2021-02-22T00:00:00",
+		Course:   "2774327",
+		Order:    0,
 		StopName: "Copernic",
-		Charge: 55}
+		Charge:   55}
 	p := NewPrediction(pn, location)
 	require.NotNil(p)
 	predictions = append(predictions, *p)
 	pn = PredictionNode{
-		Line: "40",
-		Sens: 0,
-		Date: "2021-02-22T00:00:00",
-		Course: "2774327",
-		Order: 1,
+		Line:     "40",
+		Sens:     0,
+		Date:     "2021-02-22T00:00:00",
+		Course:   "2774327",
+		Order:    1,
 		StopName: "Pasteur",
-		Charge: 75}
+		Charge:   75}
 	p = NewPrediction(pn, location)
 	require.NotNil(p)
 	predictions = append(predictions, *p)
@@ -660,9 +663,9 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with StopId in the paraameter
 	param = VehicleOccupancyRequestParameter{
-		StopId: "stop_point:0:SP:80:4029",
+		StopId:           "stop_point:0:SP:80:4029",
 		VehicleJourneyId: "",
-		Date: date}
+		Date:             date}
 	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)

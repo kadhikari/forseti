@@ -415,6 +415,7 @@ func TestParameterTypes(t *testing.T) {
 }
 
 func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
+	startTime := time.Now()
 	require := require.New(t)
 	assert := assert.New(t)
 	var manager DataManager
@@ -534,4 +535,83 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
 	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
 	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 11)
+
+	// Verify /status
+	c.Request = httptest.NewRequest("GET", "/status", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var status StatusResponse
+	err = json.Unmarshal(w.Body.Bytes(), &status)
+
+	require.Nil(err)
+	assert.True(status.VehicleOccupancies.LastUpdate.After(startTime))
+	assert.True(status.VehicleOccupancies.LastUpdate.Before(time.Now()))
+	assert.False(status.VehicleOccupancies.RefreshActive)
+	assert.False(status.FreeFloatings.RefreshActive)
+
+	// Activate the periodic refresh of data
+	c.Request = httptest.NewRequest("GET", "/status?vehicle_occupancies=true", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &status)
+
+	require.Nil(err)
+	assert.True(status.VehicleOccupancies.RefreshActive)
+	assert.False(status.FreeFloatings.RefreshActive)
+}
+
+func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
+	startTime := time.Now()
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// Load freefloatings from a json file
+	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
+	require.Nil(err)
+	reader, err := getFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	data := &Data{}
+	err = json.Unmarshal([]byte(jsonData), data)
+	require.Nil(err)
+
+	freeFloatings, err := LoadFreeFloatingData(data)
+	require.Nil(err)
+
+	var manager DataManager
+	manager.UpdateFreeFloating(freeFloatings)
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	engine = SetupRouter(&manager, engine)
+
+	c.Request = httptest.NewRequest("GET", "/status", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+
+	var response StatusResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	// fmt.Println(response)
+
+	require.Nil(err)
+	assert.True(response.FreeFloatings.LastUpdate.After(startTime))
+	assert.True(response.FreeFloatings.LastUpdate.Before(time.Now()))
+	assert.False(response.FreeFloatings.RefreshActive)
+	assert.False(response.VehicleOccupancies.RefreshActive)
+
+	// Activate the periodic refresh of data
+	c.Request = httptest.NewRequest("GET", "/status?free_floatings=true", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+
+	require.Nil(err)
+	assert.True(response.FreeFloatings.RefreshActive)
+	assert.False(response.VehicleOccupancies.RefreshActive)
 }

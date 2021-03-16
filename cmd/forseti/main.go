@@ -44,9 +44,11 @@ type Config struct {
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
-	ConnectionTimeout time.Duration `mapstructure:"connection-timeout"`
-	JSONLog           bool          `mapstructure:"json-log"`
-	LogLevel          string        `mapstructure:"log-level"`
+	LogLevel            string        `mapstructure:"log-level"`
+	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
+	JSONLog             bool          `mapstructure:"json-log"`
+	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
+	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
 }
 
 func noneOf(args ...string) bool {
@@ -70,6 +72,7 @@ func GetConfig() (Config, error) {
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
+	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")
 	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
 
 	//Passing configurations for vehicle_occupancies
@@ -78,6 +81,7 @@ func GetConfig() (Config, error) {
 	pflag.String("occupancy-navitia-token", "", "token for navitia")
 	pflag.String("occupancy-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("occupancy-service-token", "", "token for prediction source")
+	pflag.Bool("occupancy-service-refresh-active", false, "activate the periodic refresh of vehicle occupancy data")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
@@ -133,6 +137,12 @@ func main() {
 	manager := &forseti.DataManager{}
 
 	location, _ := time.LoadLocation(config.TimeZoneLocation)
+
+	// Manage activation of the periodic refresh of Fluctuo data
+	ManagefreeFloatingActivation(manager, config.FreeFloatingsActive)
+
+	// Manage activation of the periodic refresh of vehicle occupancy data
+	ManageVehicleOccupancyActivation(manager, config.OccupancyActive)
 
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {
@@ -243,6 +253,10 @@ func RefreshEquipmentLoop(manager *forseti.DataManager,
 	}
 }
 
+func ManagefreeFloatingActivation(manager *forseti.DataManager, freeFloatingsActive bool) {
+	manager.ManageFreeFloatingStatus(freeFloatingsActive)
+}
+
 func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 	freeFloatingsURI url.URL,
 	freeFloatingsToken string,
@@ -263,6 +277,10 @@ func RefreshFreeFloatingLoop(manager *forseti.DataManager,
 		logrus.Debug("Free_floating data updated")
 		time.Sleep(freeFloatingsRefresh)
 	}
+}
+
+func ManageVehicleOccupancyActivation(manager *forseti.DataManager, vehicleoccupanciesActive bool) {
+	manager.ManageVehicleOccupancyStatus(vehicleoccupanciesActive)
 }
 
 func RefreshVehicleOccupanciesLoop(manager *forseti.DataManager,

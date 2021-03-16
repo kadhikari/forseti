@@ -607,6 +607,8 @@ type DataManager struct {
 	freeFloatings          *[]FreeFloating
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
+	loadFreeFloatingData   bool
+	loadOccupancyData      bool
 
 	stopPoints                   *map[string]StopPoint
 	courses                      *map[string][]Course
@@ -792,6 +794,19 @@ func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
 
 }
 
+func (d *DataManager) ManageFreeFloatingStatus(activate bool) {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	d.loadFreeFloatingData = activate
+}
+
+func (d *DataManager) LoadFreeFloatingData() bool {
+	d.freeFloatingsMutex.RLock()
+	defer d.freeFloatingsMutex.RUnlock()
+	return d.loadFreeFloatingData
+}
+
 func (d *DataManager) UpdateFreeFloating(freeFloatings []FreeFloating) {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
@@ -846,6 +861,19 @@ func (d *DataManager) GetFreeFloatings(param *FreeFloatingRequestParameter) (fre
 		sort.Sort(ByDistance(resp))
 	}
 	return resp, nil
+}
+
+func (d *DataManager) ManageVehicleOccupancyStatus(activate bool) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	d.loadOccupancyData = activate
+}
+
+func (d *DataManager) LoadOccupancyData() bool {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+	return d.loadOccupancyData
 }
 
 func (d *DataManager) InitStopPoint(stopPoints map[string]StopPoint) {

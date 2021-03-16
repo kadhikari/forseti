@@ -385,6 +385,10 @@ func LoadFreeFloatingData(data *Data) ([]FreeFloating, error) {
 }
 
 func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, connectionTimeout time.Duration) error {
+	// Continue using last loaded data if loading is deactivated
+	if !manager.LoadFreeFloatingData() {
+		return nil
+	}
 	begin := time.Now()
 	resp, err := CallHttpClient(uri.String(), token)
 
@@ -653,6 +657,10 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 
 func RefreshVehicleOccupancies(manager *DataManager, predict_url url.URL, predict_token string,
 	connectionTimeout time.Duration, location *time.Location) error {
+	// Continue using last loaded data if loading is deactivated
+	if !manager.LoadOccupancyData() {
+		return nil
+	}
 	begin := time.Now()
 	predictions, _ := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(manager, predictions)

@@ -21,15 +21,20 @@ type DeparturesResponse struct {
 	Departures *[]Departure `json:"departures,omitempty"` // the pointer allow us to display an empty array in json
 }
 
+type LoadingStatus struct {
+	RefreshActive bool      `json:"refresh_active"`
+	LastUpdate    time.Time `json:"last_update"`
+}
+
 // StatusResponse defines the object returned by the /status endpoint
 type StatusResponse struct {
-	Status                     string    `json:"status,omitempty"`
-	Version                    string    `json:"version,omitempty"`
-	LastDepartureUpdate        time.Time `json:"last_departure_update"`
-	LastParkingUpdate          time.Time `json:"last_parking_update"`
-	LastEquipmentUpdate        time.Time `json:"last_equipment_update"`
-	LastFreeFloatingUpdate     time.Time `json:"last_free_floating_update"`
-	LastVehicleOccupancyUpdate time.Time `json:"last_vehicle_occupancy_update"`
+	Status              string        `json:"status,omitempty"`
+	Version             string        `json:"version,omitempty"`
+	LastDepartureUpdate time.Time     `json:"last_departure_update"`
+	LastParkingUpdate   time.Time     `json:"last_parking_update"`
+	LastEquipmentUpdate time.Time     `json:"last_equipment_update"`
+	FreeFloatings       LoadingStatus `json:"free_floatings,omitempty"`
+	VehicleOccupancies  LoadingStatus `json:"vehicle_occupancies,omitempty"`
 }
 
 // ParkingResponse defines how a parking object is represent in a response
@@ -152,8 +157,8 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
 			manager.GetLastEquipmentsDataUpdate(),
-			manager.GetLastFreeFloatingsDataUpdate(),
-			manager.GetLastVehicleOccupanciesDataUpdate(),
+			LoadingStatus{manager.LoadFreeFloatingData(), manager.GetLastFreeFloatingsDataUpdate()},
+			LoadingStatus{manager.LoadOccupancyData(), manager.GetLastVehicleOccupanciesDataUpdate()},
 		})
 	}
 }

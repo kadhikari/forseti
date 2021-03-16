@@ -132,6 +132,12 @@ func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
 
 func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// manage freefloating activation /status?free_floatings=true or false
+		freeFloatingStatus := c.Query("free_floatings")
+		if len(freeFloatingStatus) > 0 {
+			toActive, _ := strconv.ParseBool(freeFloatingStatus)
+			manager.ManageFreeFloatingStatus(toActive)
+		}
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
 			ForsetiVersion,

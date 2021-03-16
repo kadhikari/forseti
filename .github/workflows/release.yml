@@ -38,10 +38,10 @@ jobs:
       - name: slack notification (the job has failed)
         if: failure()
         run: |
-          echo '{"text":":Warning: Github Actions: Create image for branch realse failed ! (https://github.com/CanalTP/forseti/actions/workflows/release.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+          echo '{"text":":Warning: Forseti Github Actions: Create image for branch realse failed ! (https://github.com/CanalTP/forseti/actions/workflows/release.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
 
       - name: trig publishing + notifications (the job has successed)
         if: success()
         run: |
           VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
-          echo '{"text":":information_source: Github Actions: Create image for branch realse succeded - New image forseti $VERSION is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+          echo '{"text":":information_source: Forseti Github Actions: Create image for branch realse succeded - New image forseti $VERSION is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}

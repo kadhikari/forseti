@@ -20,7 +20,7 @@ jobs:
 
       - name: install zip dependency
         run: |
-          apt-get update
+          sudo apt-get update
           sudo apt install -y httpie
 
       - name: Run all the tests

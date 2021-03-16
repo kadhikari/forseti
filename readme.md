@@ -28,7 +28,19 @@ Run
 ===
 Once you have build it it's fairly easy to run it:
 ```
-./forseti --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///home/kadhikari/dev/forseti/fixtures/NET_ACCESS.XML --equipments-refresh=2s --free-floatings-uri <freefloating source url> --free-floatings-token <token> --free-floatings-refresh=60s
+./forseti --departures-uri file:///PATHTO/extract_edylic.txt --departures-refresh=1s --parkings-uri file:///PATH_TO/parkings.txt --parkings-refresh=2s --equipments-uri file:///<PATH>/NET_ACCESS.XML --equipments-refresh=2s --free-floatings-uri <freefloating source url> --free-floatings-token <token> --free-floatings-refresh=60s free-floatings-refresh-active true
+
+```
+
+You can also run only one service for an instance (for example /vehicle_occupancies):
+```
+./forseti --occupancy-files-uri file:///<PATHTO> --occupancy-refresh=300s --occupancy-navitia-uri https://api.navitia.io/v1/coverage/fr-idf --occupancy-navitia-token <token navitia> --occupancy-service-uri <prediction service url> --occupancy-service-token <token clientapi>  --occupancy-service-refresh-active true
+
+```
+
+Or only /free_floatings
+```
+./forseti --free-floatings-uri <freefloating source url> --free-floatings-token <token clientapi> --free-floatings-refresh=10s --free-floatings-refresh-active true
 
 ```
 
@@ -44,9 +56,17 @@ Two routes are provided:
   - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
   - `/equipments` returns informations on Equipments in StopAreas.
   - `/free_floatings?coord=2.37715%3B48.846781` returns informations on freefloatings  within a certain radius as a crow flies from the point.
+  - `/vehicle_occupancies` returns occupany of a vehicles at a stop.
+
 One goroutine is handling the refresh of the data by downloading them every refresh-interval (default: 30s)
 and load them. Once these data have been loaded there is swap of pointer being done so that every new requests
 will get the new dataset.
+
+It is also possible to activate/deactivate the periodic refresh of data for api /free_floatings and /vehicle_occupancies as shown below:
+  - `/status?free_floatings=false` desactive the periodic refresh of data for api /free_floatings.
+  - `/status?vehicle_occupancies=false` desactive the periodic refresh of data for api /vehicle_occupancies.
+
+After the deactivation the service keeps working with the last loaded data.
 
 General Architecture
 ================

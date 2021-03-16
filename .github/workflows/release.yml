@@ -6,6 +6,7 @@ on:
       - '*'
 
 jobs:
+
   CreateAndPublish:
     runs-on: ubuntu-latest
     steps:
@@ -19,6 +20,9 @@ jobs:
 
       - name: install zip dependency
         run: apt update && apt install -y zip httpie
+
+      - name: Run all the tests
+        run: make test
 
       - name: Build a version
         run: make build

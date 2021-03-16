@@ -1,3 +1,6 @@
+[![GitHub tag](https://img.shields.io/github/tag/CanalTP/forseti.svg)](https://github.com/CanalTP/forseti/tag)
+[![codecov](https://codecov.io/gh/CanalTP/forseti/branch/master/graph/badge.svg?token=9YFIEZ9ZVM)](https://codecov.io/gh/CanalTP/forseti)
+
 forseti
 ===========
 This project aims to provide jormungandr with realtime data provided by external API.

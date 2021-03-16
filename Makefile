@@ -1,4 +1,4 @@
-VERSION=`git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1`
+VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
 PROJECT='forseti'
 DOCKER_HUB='navitia/'$(PROJECT)
 

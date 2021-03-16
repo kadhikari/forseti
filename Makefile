@@ -1,4 +1,6 @@
-VERSION := $(shell git describe --tag --always --dirty)
+VERSION := $(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
+PROJECT := 'forseti'
+DOCKER_HUB := 'navitia/'$(PROJECT)
 
 .PHONY: linter-install
 linter-install: ## Install linter
@@ -44,16 +46,38 @@ install: ## install project and it's dependancies, useful for autocompletion fea
 	go install -i
 
 .PHONY: version
-version: ## display version of gormungandr
+version: ## display version of forseti
 	@echo $(VERSION)
+
+.PHONY: docker
+docker: build ## build docker image
+	docker build -t $(PROJECT):$(VERSION) .
+
+.PHONY: dockerhub-login
+dockerhub-login: ## Login Docker hub, DOCKERHUB_USER, DOCKERHUB_PWD, must be provided
+	$(info Login Dockerhub)
+	echo ${DOCKERHUB_PWD} | docker login --username ${DOCKERHUB_USER} --password-stdin
+
+.PHONY: push-image-forseti-release
+push-image-forseti-release: ## Push iforseti-mage to dockerhub
+	$(info Push image-forseti-release to Dockerhub)
+	docker tag $(PROJECT):$(VERSION) $(DOCKER_HUB):$(VERSION)
+	docker tag $(PROJECT):$(VERSION) $(DOCKER_HUB):release
+	docker tag $(PROJECT):$(VERSION) $(DOCKER_HUB):latest
+
+	docker push $(DOCKER_HUB):$(VERSION)
+	docker push $(DOCKER_HUB):release
+	docker push $(DOCKER_HUB):latest
+
+.PHONY: push-image-forseti-master
+push-image-forseti-master: ## Push forseti-image to dockerhub
+	$(info Push image-forseti-master to Dockerhub)
+	docker tag $(PROJECT):$(VERSION) $(DOCKER_HUB):master
+	docker push $(DOCKER_HUB):master
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 
-.PHONY: docker
-docker: build ## build docker image
-	docker build -t navitia/forseti:$(VERSION) .
-
-.DEFAULT_GOAL := build
+.DEFAULT_GOAL := help

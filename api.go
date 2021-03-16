@@ -138,6 +138,14 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			toActive, _ := strconv.ParseBool(freeFloatingStatus)
 			manager.ManageFreeFloatingStatus(toActive)
 		}
+
+		// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
+		vehicleOccupancyStatus := c.Query("vehicle_occupancies")
+		if len(vehicleOccupancyStatus) > 0 {
+			toActive, _ := strconv.ParseBool(vehicleOccupancyStatus)
+			manager.ManageVehicleOccupancyStatus(toActive)
+		}
+
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
 			ForsetiVersion,

@@ -1,6 +1,7 @@
 name: Create and publish master image
 
 on:
+  pull_request:
   push:
     branches:
       - master
@@ -31,7 +32,7 @@ jobs:
       - name: create publish release images
         run: |
           make docker
-          make dockerhub-login DOCKERHUB_USER=${{secrets.DOCKERHUB_USER}} DOCKERHUB_PWD=${{secrets.DOCKERHUB_PWD}}
+          #make dockerhub-login DOCKERHUB_USER=${{secrets.DOCKERHUB_USER}} DOCKERHUB_PWD=${{secrets.DOCKERHUB_PWD}}
           make push-image-forseti-master
 
       - name: slack notification (the job has failed)

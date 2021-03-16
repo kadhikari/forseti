@@ -47,7 +47,7 @@ type Config struct {
 	LogLevel            string        `mapstructure:"log-level"`
 	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
 	JSONLog             bool          `mapstructure:"json-log"`
-	FreeFloatingsActive bool          `mapstructure:"free-floatings-active"`
+	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 }
 
 func noneOf(args ...string) bool {
@@ -71,7 +71,7 @@ func GetConfig() (Config, error) {
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
-	pflag.Bool("free-floatings-active", true, "activation of vehicles in Fluctéo data")
+	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")
 	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
 
 	//Passing configurations for vehicle_occupancies
@@ -137,7 +137,7 @@ func main() {
 	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
 	// Manage activation of vehicles in Fluctéo data
-	go ManagefreeFloatingActivation(manager, config.FreeFloatingsActive)
+	ManagefreeFloatingActivation(manager, config.FreeFloatingsActive)
 
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {

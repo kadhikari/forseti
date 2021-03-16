@@ -63,8 +63,8 @@ and load them. Once these data have been loaded there is swap of pointer being d
 will get the new dataset.
 
 It is also possible to activate/deactivate the periodic refresh of data for api /free_floatings and /vehicle_occupancies as shown below:
-  - `/status?free_floatings=false` desactive the periodic refresh of data for api /free_floatings.
-  - `/status?vehicle_occupancies=false` desactive the periodic refresh of data for api /vehicle_occupancies.
+  - `/status?free_floatings=false` deactivates the periodic refresh of data for api /free_floatings.
+  - `/status?vehicle_occupancies=false` deactivates the periodic refresh of data for api /vehicle_occupancies.
 
 After the deactivation the service keeps working with the last loaded data.
 

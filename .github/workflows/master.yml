@@ -31,6 +31,8 @@ jobs:
 
       - name: create publish release images
         run: |
+          ls -lt
+          git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1
           make docker
           #make dockerhub-login DOCKERHUB_USER=${{secrets.DOCKERHUB_USER}} DOCKERHUB_PWD=${{secrets.DOCKERHUB_PWD}}
           make push-image-forseti-master

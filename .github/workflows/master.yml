@@ -18,7 +18,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: install zip dependency
-        run: apt update && apt install -y zip httpie
+        run: |
+          apt-get update
+          sudo apt install -y httpie
 
       - name: Run all the tests
         run: make test

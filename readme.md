@@ -1,3 +1,4 @@
+![build passing](https://img.shields.io/github/workflow/status/CanalTP/forseti/Create%20and%20publish%20release%20image?logo=github)
 [![GitHub tag](https://img.shields.io/github/tag/CanalTP/forseti.svg)](https://github.com/CanalTP/forseti/tag)
 [![codecov](https://codecov.io/gh/CanalTP/forseti/branch/master/graph/badge.svg?token=9YFIEZ9ZVM)](https://codecov.io/gh/CanalTP/forseti)
 

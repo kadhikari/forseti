@@ -51,5 +51,5 @@ jobs:
       - name: trig publishing + notifications (the job has successed)
         if: success()
         run: |
-          VERSION=`git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1`
-          echo '{"text":":information_source: Forseti Github Actions: Create image for branch realse succeded - New image forseti $VERSION is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+          VERSION=$(git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
+          echo '{"text":":information_source: Forseti Github Actions: Create image for branch realse succeded - New image forseti' $VERSION 'is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}

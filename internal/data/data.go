@@ -1,9 +1,21 @@
-package forseti
+package data
 
 import (
 	"encoding/xml"
 	"time"
 )
+
+type Line struct {
+	XMLName  xml.Name  `xml:"ligne"`
+	Code     string    `xml:"code,attr"`
+	Label    string    `xml:"libelle,attr"`
+	Stations []Station `xml:"station"`
+}
+
+type Station struct {
+	XMLName    xml.Name           `xml:"station"`
+	Equipments []EquipementSource `xml:"equipement"`
+}
 
 // Temporary structures used only to read FLUX xml for equipments:
 type Root struct {
@@ -21,18 +33,6 @@ type Info struct {
 type Equipments struct {
 	XMLName xml.Name `xml:"donnees"`
 	Lines   []Line   `xml:"ligne"`
-}
-
-type Line struct {
-	XMLName  xml.Name  `xml:"ligne"`
-	Code     string    `xml:"code,attr"`
-	Label    string    `xml:"libelle,attr"`
-	Stations []Station `xml:"station"`
-}
-
-type Station struct {
-	XMLName    xml.Name           `xml:"station"`
-	Equipments []EquipementSource `xml:"equipement"`
 }
 
 type EquipementSource struct {

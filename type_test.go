@@ -13,6 +13,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/equipments"
 )
 
 func TestNewDeparture(t *testing.T) {
@@ -299,7 +302,7 @@ func TestData(t *testing.T) {
 	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
 	decoder.CharsetReader = getCharsetReader
 
-	var root Root
+	var root data.Root
 	err = decoder.Decode(&root)
 	assert.Nil(err)
 
@@ -313,10 +316,10 @@ func TestNewEquipmentDetail(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 	updatedAt := time.Now()
-	es := EquipementSource{ID: "821", Name: "direction Gare de Vaise, accès Gare Routière ou Parc Relais",
+	es := data.EquipementSource{ID: "821", Name: "direction Gare de Vaise, accès Gare Routière ou Parc Relais",
 		Type: "ASCENSEUR", Cause: "Problème technique", Effect: "Accès impossible direction Gare de Vaise.",
 		Start: "2018-09-14", End: "2018-09-14", Hour: "13:00:00"}
-	e, err := NewEquipmentDetail(es, updatedAt, location)
+	e, err := equipments.NewEquipmentDetail(es, updatedAt, location)
 
 	require.Nil(err)
 	require.NotNil(e)
@@ -329,65 +332,6 @@ func TestNewEquipmentDetail(t *testing.T) {
 	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.CurrentAvailability.Periods[0].Begin)
 	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.CurrentAvailability.Periods[0].End)
 	assert.Equal(updatedAt, e.CurrentAvailability.UpdatedAt)
-}
-
-func TestDataManagerGetEquipments(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	loc, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	var manager DataManager
-	equipments := make([]EquipmentDetail, 0)
-	ess := make([]EquipementSource, 0)
-	es := EquipementSource{ID: "toto", Name: "toto paris", Type: "ASCENSEUR", Cause: "Problème technique",
-		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
-	ess = append(ess, es)
-	es = EquipementSource{ID: "tata", Name: "tata paris", Type: "ASCENSEUR", Cause: "Problème technique",
-		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
-	ess = append(ess, es)
-	es = EquipementSource{ID: "titi", Name: "toto paris", Type: "ASCENSEUR", Cause: "Problème technique",
-		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
-	ess = append(ess, es)
-	updatedAt := time.Now()
-
-	for _, es := range ess {
-		ed, err := NewEquipmentDetail(es, updatedAt, loc)
-		require.Nil(err)
-		equipments = append(equipments, *ed)
-	}
-	manager.UpdateEquipments(equipments)
-	equipDetails, err := manager.GetEquipments()
-	require.Nil(err)
-	require.Len(equipments, 3)
-
-	assert.Equal("toto", equipDetails[0].ID)
-	assert.Equal("tata", equipDetails[1].ID)
-	assert.Equal("titi", equipDetails[2].ID)
-}
-
-func TestEquipmentsWithBadEmbeddedType(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	loc, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	equipmentsWithBadEType := make([]EquipementSource, 0)
-	es := EquipementSource{ID: "toto", Name: "toto paris", Type: "ASC", Cause: "Problème technique",
-		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
-	equipmentsWithBadEType = append(equipmentsWithBadEType, es)
-	es = EquipementSource{ID: "tata", Name: "tata paris", Type: "ASC", Cause: "Problème technique",
-		Effect: "Accès", Start: "2018-09-17", End: "2018-09-18", Hour: "23:30:00"}
-	equipmentsWithBadEType = append(equipmentsWithBadEType, es)
-	updatedAt := time.Now()
-
-	for _, badEType := range equipmentsWithBadEType {
-		ed, err := NewEquipmentDetail(badEType, updatedAt, loc)
-		assert.Error(err)
-		assert.Nil(ed)
-	}
 }
 
 func TestParseDirectionType(t *testing.T) {
@@ -438,8 +382,8 @@ func TestKeepDirection(t *testing.T) {
 func TestNewFreeFloating(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	provider := ProviderNode{Name: "Pony"}
-	ff := Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
+	provider := data.ProviderNode{Name: "Pony"}
+	ff := data.Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
 		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
 	f := NewFreeFloating(ff)
 	require.NotNil(f)
@@ -460,18 +404,18 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	assert := assert.New(t)
 
 	var manager DataManager
-	p1 := ProviderNode{Name: "Pony"}
-	p2 := ProviderNode{Name: "Tier"}
+	p1 := data.ProviderNode{Name: "Pony"}
+	p2 := data.ProviderNode{Name: "Tier"}
 
-	vehicles := make([]Vehicle, 0)
+	vehicles := make([]data.Vehicle, 0)
 	freeFloatings := make([]FreeFloating, 0)
-	v := Vehicle{PublicId: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
+	v := data.Vehicle{PublicId: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
 		Latitude: 48.847232, Longitude: 2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
 	vehicles = append(vehicles, v)
-	v = Vehicle{PublicId: "718WSK", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==4b", Type: "SCOOTER",
+	v = data.Vehicle{PublicId: "718WSK", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==4b", Type: "SCOOTER",
 		Latitude: 48.847299, Longitude: 2.37772, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test2"}
 	vehicles = append(vehicles, v)
-	v = Vehicle{PublicId: "0JT9J6", Provider: p2, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==55c", Type: "SCOOTER",
+	v = data.Vehicle{PublicId: "0JT9J6", Provider: p2, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==55c", Type: "SCOOTER",
 		Latitude: 48.847326, Longitude: 2.377734, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test3"}
 	vehicles = append(vehicles, v)
 
@@ -625,7 +569,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
-	pn := PredictionNode{
+	pn := data.PredictionNode{
 		Line:     "40",
 		Sens:     0,
 		Date:     "2021-02-22T00:00:00",
@@ -636,7 +580,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	p := NewPrediction(pn, location)
 	require.NotNil(p)
 	predictions = append(predictions, *p)
-	pn = PredictionNode{
+	pn = data.PredictionNode{
 		Line:     "40",
 		Sens:     0,
 		Date:     "2021-02-22T00:00:00",

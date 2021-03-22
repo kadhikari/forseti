@@ -7,7 +7,9 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/internal/equipments"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -144,6 +146,9 @@ func main() {
 	// Manage activation of the periodic refresh of vehicle occupancy data
 	ManageVehicleOccupancyActivation(manager, config.OccupancyActive)
 
+	// create API router
+	router := forseti.SetupRouter(manager, nil)
+
 	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load departures data at startup: %s (%s)", err, config.DeparturesURIStr)
@@ -152,11 +157,6 @@ func main() {
 	err = forseti.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
-	}
-
-	err = forseti.RefreshEquipments(manager, config.EquipmentsURI, config.ConnectionTimeout)
-	if err != nil {
-		logrus.Errorf("Impossible to load equipments data at startup: %s (%s)", err, config.EquipmentsURIStr)
 	}
 
 	err = forseti.RefreshFreeFloatings(
@@ -183,7 +183,7 @@ func main() {
 
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
-	go RefreshEquipmentLoop(manager, config.EquipmentsURI, config.EquipmentsRefresh, config.ConnectionTimeout)
+
 	go RefreshFreeFloatingLoop(
 		manager,
 		config.FreeFloatingsURI,
@@ -196,10 +196,26 @@ func main() {
 	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 		config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 
-	err = forseti.SetupRouter(manager, nil).Run()
+	// With equipments
+	Equipments(manager, &config, router)
+
+	// start router
+	err = router.Run()
 	if err != nil {
 		logrus.Fatalf("Impossible to start gin: %s", err)
 	}
+}
+
+func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+	if len(config.EquipmentsURI.String()) == 0 || config.EquipmentsRefresh.Seconds() <= 0 {
+		logrus.Debug("Equipments is disabled")
+		return
+	}
+	equipmentsContext := &equipments.EquipmentsContext{}
+	manager.SetEquipmentsContext(equipmentsContext)
+	go equipments.RefreshEquipmentLoop(equipmentsContext, config.EquipmentsURI,
+		config.EquipmentsRefresh, config.ConnectionTimeout)
+	equipments.AddEquipmentsEntryPoint(router, equipmentsContext)
 }
 
 func RefreshDepartureLoop(manager *forseti.DataManager,
@@ -233,23 +249,6 @@ func RefreshParkingLoop(manager *forseti.DataManager,
 		}
 		logrus.Debug("Parking data updated")
 		time.Sleep(parkingsRefresh)
-	}
-}
-
-func RefreshEquipmentLoop(manager *forseti.DataManager,
-	equipmentsURI url.URL,
-	equipmentsRefresh, connectionTimeout time.Duration) {
-	if len(equipmentsURI.String()) == 0 || equipmentsRefresh.Seconds() <= 0 {
-		logrus.Debug("Equipment data refreshing is disabled")
-		return
-	}
-	for {
-		err := forseti.RefreshEquipments(manager, equipmentsURI, connectionTimeout)
-		if err != nil {
-			logrus.Error("Error while reloading equipment data: ", err)
-		}
-		logrus.Debug("Equipment data updated")
-		time.Sleep(equipmentsRefresh)
 	}
 }
 

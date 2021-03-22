@@ -10,12 +10,15 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/utils"
 )
 
 var spFileName = "mapping_stops.csv"
 var courseFileName = "extraction_courses.csv"
 var location = "Europe/Paris"
-var vehicleCapacity = 100
 
 type FreeFloatingType int
 
@@ -290,85 +293,6 @@ func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 
 func (p *ParkingLineConsumer) Terminate() {}
 
-// EquipmentDetail defines how a equipment object is represented in a response
-type EquipmentDetail struct {
-	ID                  string              `json:"id"`
-	Name                string              `json:"name"`
-	EmbeddedType        string              `json:"embedded_type"`
-	CurrentAvailability CurrentAvailability `json:"current_availaibity"`
-}
-
-type CurrentAvailability struct {
-	Status    string    `json:"status"`
-	Cause     Cause     `json:"cause"`
-	Effect    Effect    `json:"effect"`
-	Periods   []Period  `json:"periods"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type Cause struct {
-	Label string `json:"label"`
-}
-
-type Effect struct {
-	Label string `json:"label"`
-}
-
-type Period struct {
-	Begin time.Time `json:"begin"`
-	End   time.Time `json:"end"`
-}
-
-func EmbeddedType(s string) (string, error) {
-	switch {
-	case s == "ASCENSEUR":
-		return "elevator", nil
-	case s == "ESCALIER":
-		return "escalator", nil
-	default:
-		return "", fmt.Errorf("Unsupported EmbeddedType %s", s)
-	}
-}
-
-// NewEquipmentDetail creates a new EquipmentDetail object from the object EquipementSource
-func NewEquipmentDetail(es EquipementSource, updatedAt time.Time, location *time.Location) (*EquipmentDetail, error) {
-	start, err := time.ParseInLocation("2006-01-02", es.Start, location)
-	if err != nil {
-		return nil, err
-	}
-
-	end, err := time.ParseInLocation("2006-01-02", es.End, location)
-	if err != nil {
-		return nil, err
-	}
-
-	hour, err := time.ParseInLocation("15:04:05", es.Hour, location)
-	if err != nil {
-		return nil, err
-	}
-
-	// Add time part to end date
-	end = hour.AddDate(end.Year(), int(end.Month())-1, end.Day()-1)
-
-	etype, err := EmbeddedType(es.Type)
-	if err != nil {
-		return nil, err
-	}
-	now := time.Now()
-
-	return &EquipmentDetail{
-		ID:           es.ID,
-		Name:         es.Name,
-		EmbeddedType: etype,
-		CurrentAvailability: CurrentAvailability{
-			Status:    GetEquipmentStatus(start, end, now),
-			Cause:     Cause{Label: es.Cause},
-			Effect:    Effect{Label: es.Effect},
-			Periods:   []Period{Period{Begin: start, End: end}},
-			UpdatedAt: updatedAt},
-	}, nil
-}
-
 //FreeFloating defines how the object is represented in a response
 type Coord struct {
 	Lat float64 `json:"lat,omitempty"`
@@ -395,7 +319,7 @@ func (ff ByDistance) Less(i, j int) bool { return ff[i].Distance < ff[j].Distanc
 func (ff ByDistance) Swap(i, j int)      { ff[i], ff[j] = ff[j], ff[i] }
 
 // NewFreeFloating creates a new FreeFloating object from the object Vehicle
-func NewFreeFloating(ve Vehicle) *FreeFloating {
+func NewFreeFloating(ve data.Vehicle) *FreeFloating {
 	return &FreeFloating{
 		PublicId:     ve.PublicId,
 		ProviderName: ve.Provider.Name,
@@ -521,7 +445,7 @@ type Prediction struct {
 	CreatedAt time.Time
 }
 
-func NewPrediction(p PredictionNode, location *time.Location) *Prediction {
+func NewPrediction(p data.PredictionNode, location *time.Location) *Prediction {
 	date, err := time.ParseInLocation("2006-01-02T15:04:05", p.Date, location)
 	if err != nil {
 		return &Prediction{}
@@ -600,10 +524,6 @@ type DataManager struct {
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
 
-	equipments          *[]EquipmentDetail
-	lastEquipmentUpdate time.Time
-	equipmentsMutex     sync.RWMutex
-
 	freeFloatings          *[]FreeFloating
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
@@ -616,6 +536,8 @@ type DataManager struct {
 	vehicleOccupancies           *map[int]VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
+
+	equipmentsContext *equipments.EquipmentsContext
 }
 
 func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
@@ -696,6 +618,14 @@ func (d *DataManager) GetLastParkingsDataUpdate() time.Time {
 	return d.lastParkingUpdate
 }
 
+func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {
+	d.equipmentsContext = equipmentsContext
+}
+
+func (d *DataManager) GetEquipmentsContext() *equipments.EquipmentsContext {
+	return d.equipmentsContext
+}
+
 func (d *DataManager) GetParkingsByIds(ids []string) (parkings []Parking, errors []error) {
 	for _, id := range ids {
 		if p, err := d.GetParkingById(id); err == nil {
@@ -752,48 +682,6 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	return p, e
 }
 
-func (d *DataManager) UpdateEquipments(equipments []EquipmentDetail) {
-	d.equipmentsMutex.Lock()
-	defer d.equipmentsMutex.Unlock()
-
-	d.equipments = &equipments
-	d.lastEquipmentUpdate = time.Now()
-}
-
-func (d *DataManager) GetLastEquipmentsDataUpdate() time.Time {
-	d.equipmentsMutex.RLock()
-	defer d.equipmentsMutex.RUnlock()
-
-	return d.lastEquipmentUpdate
-}
-
-func (d *DataManager) GetEquipments() (equipments []EquipmentDetail, e error) {
-	var equipmentDetails []EquipmentDetail
-	{
-		d.equipmentsMutex.RLock()
-		defer d.equipmentsMutex.RUnlock()
-
-		if d.equipments == nil {
-			e = fmt.Errorf("No equipments in the data")
-			return
-		}
-
-		equipmentDetails = *d.equipments
-	}
-
-	return equipmentDetails, nil
-}
-
-// GetEquipmentStatus returns availability of equipment
-func GetEquipmentStatus(start time.Time, end time.Time, now time.Time) string {
-	if now.Before(start) || now.After(end) {
-		return "available"
-	} else {
-		return "unavailable"
-	}
-
-}
-
 func (d *DataManager) ManageFreeFloatingStatus(activate bool) {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
@@ -843,7 +731,7 @@ func (d *DataManager) GetFreeFloatings(param *FreeFloatingRequestParameter) (fre
 			}
 
 			// Calculate distance from coord in the request
-			distance := coordDistance(param.coord, ff.Coord)
+			distance := utils.CoordDistance(param.coord.Lat, param.coord.Lon, ff.Coord.Lat, ff.Coord.Lon)
 			ff.Distance = math.Round(distance)
 			if int(distance) > param.distance {
 				continue

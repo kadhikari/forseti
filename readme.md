@@ -54,6 +54,8 @@ You can also use the pre-built docker image: navitia/forseti
 
 you have to change the configuration in docker-compose: environment section
 
+The directory "~/workspace/data/forseti" must contain the data necessary for occupancy: `extraction_courses.csv` and `mapping_stops.csv`
+
 ```
 docker-compose --compatibility up
 ```

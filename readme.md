@@ -11,7 +11,7 @@ At this time only realtime departures are being handled.
 
 Build
 =====
-To build this project you need at least [go 1.11](https://golang.org/dl)
+To build this project you need at least [go 1.15](https://golang.org/dl)
 Dependencies are handled by go modules as such it is recommended to not checkout this in your *GOPATH*.
 
 To build the project you just need to run the following command:
@@ -24,7 +24,7 @@ If you want to run the tests you can run this:
 make test
 ```
 
-Finally the linter is available with `make lint` but it requirement to install [golangci-lint v1.11.2](https://github.com/golangci/golangci-lint)
+Finally the linter is available with `make lint` but it requirement to install [golangci-lint v1.37.1](https://github.com/golangci/golangci-lint)
 The command `make linter-install` will install golangci-lint by piping the untrusted output of an url into a shell, be careful.
 
 
@@ -48,7 +48,20 @@ Or only /free_floatings
 
 ```
 
+Run with Docker:
+===
 You can also use the pre-built docker image: navitia/forseti
+
+you have to change the configuration in docker-compose: environment section
+
+The directory "~/workspace/data/forseti" must contain the data necessary for occupancy: `extraction_courses.csv` and `mapping_stops.csv`
+
+```
+docker-compose --compatibility up
+```
+
+And connect to : http://127.0.0.1:8088
+
 
 How does it work
 ================

@@ -60,6 +60,9 @@ The directory "~/workspace/data/forseti" must contain the data necessary for occ
 docker-compose --compatibility up
 ```
 
+And connect to : http://127.0.0.1:8088
+
+
 How does it work
 ================
 The web api is powered by [gin](https://github.com/gin-gonic/gin)

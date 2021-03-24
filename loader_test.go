@@ -15,6 +15,9 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/utils"
 )
 
 var sftpPort string
@@ -71,7 +74,7 @@ func TestGetSFTPFileTimeout(t *testing.T) {
 	}
 	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri, time.Microsecond)
+	_, err = utils.GetFileWithSftp(*uri, time.Microsecond)
 	require.NotNil(t, err)
 }
 func TestGetSFTPFile(t *testing.T) {
@@ -80,14 +83,14 @@ func TestGetSFTPFile(t *testing.T) {
 	}
 	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	reader, err := getFileWithSftp(*uri, defaultTimeout)
+	reader, err := utils.GetFileWithSftp(*uri, defaultTimeout)
 	require.Nil(t, err)
 	b := make([]byte, 100)
 	len, err := reader.Read(b)
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
 
-	reader, err = getFile(*uri, defaultTimeout)
+	reader, err = utils.GetFile(*uri, defaultTimeout)
 	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
@@ -100,14 +103,14 @@ func TestGetSFTPFS(t *testing.T) {
 	}
 	uri, err := url.Parse(fmt.Sprintf("file://%s/oneline.txt", fixtureDir))
 	require.Nil(t, err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(t, err)
 	b := make([]byte, 100)
 	len, err := reader.Read(b)
 	assert.Nil(t, err)
 	assert.Equal(t, oneline, string(b[0:len]))
 
-	reader, err = getFile(*uri, defaultTimeout)
+	reader, err = utils.GetFile(*uri, defaultTimeout)
 	assert.Nil(t, err)
 	len, err = reader.Read(b)
 	assert.Nil(t, err)
@@ -121,31 +124,31 @@ func TestGetSFTPFileError(t *testing.T) {
 	}
 	uri, err := url.Parse(fmt.Sprintf("sftp://forseti:wrongpass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri, defaultTimeout)
+	_, err = utils.GetFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
 
-	_, err = getFile(*uri, defaultTimeout)
+	_, err = utils.GetFile(*uri, defaultTimeout)
 	require.Error(t, err)
 
 	uri, err = url.Parse(fmt.Sprintf("sftp://monuser:pass@localhost:%s/oneline.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri, defaultTimeout)
+	_, err = utils.GetFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
-	_, err = getFile(*uri, defaultTimeout)
+	_, err = utils.GetFile(*uri, defaultTimeout)
 	require.Error(t, err)
 
 	uri, err = url.Parse(fmt.Sprintf("sftp://forseti:pass@localhost:%s/not.txt", sftpPort))
 	require.Nil(t, err)
-	_, err = getFileWithSftp(*uri, defaultTimeout)
+	_, err = utils.GetFileWithSftp(*uri, defaultTimeout)
 	require.Error(t, err)
-	_, err = getFile(*uri, defaultTimeout)
+	_, err = utils.GetFile(*uri, defaultTimeout)
 	require.Error(t, err)
 }
 
 func TestLoadDepartureData(t *testing.T) {
 	uri, err := url.Parse(fmt.Sprintf("file://%s/oneline.txt", fixtureDir))
 	require.Nil(t, err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(t, err)
 
 	consumer := makeDepartureLineConsumer()
@@ -169,7 +172,7 @@ func TestLoadDepartureData(t *testing.T) {
 func TestLoadFull(t *testing.T) {
 	uri, err := url.Parse(fmt.Sprintf("file://%s/extract_edylic.txt", fixtureDir))
 	require.Nil(t, err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(t, err)
 
 	consumer := makeDepartureLineConsumer()
@@ -194,7 +197,7 @@ func TestLoadParkingData(t *testing.T) {
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/parkings.txt", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	consumer := makeParkingLineConsumer()
@@ -326,7 +329,7 @@ func TestRefreshDataError(t *testing.T) {
 
 	var manager DataManager
 
-	reader, err := getFile(*misssingFieldURI, defaultTimeout)
+	reader, err := utils.GetFile(*misssingFieldURI, defaultTimeout)
 	require.Nil(t, err)
 
 	err = LoadData(reader, makeDepartureLineConsumer())
@@ -351,7 +354,7 @@ func TestRefreshDataError(t *testing.T) {
 	require.Nil(t, err)
 	checkSecond(t, departures)
 
-	reader, err = getFile(*invalidDateURI, defaultTimeout)
+	reader, err = utils.GetFile(*invalidDateURI, defaultTimeout)
 	require.Nil(t, err)
 	err = LoadData(reader, makeDepartureLineConsumer())
 	require.Error(t, err)
@@ -364,53 +367,19 @@ func TestRefreshDataError(t *testing.T) {
 	checkSecond(t, departures)
 }
 
-func TestLoadEquipmentsData(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	uri, err := url.Parse(fmt.Sprintf("file://%s/NET_ACCESS.XML", fixtureDir))
-	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
-	require.Nil(err)
-
-	eds, err := LoadXmlData(reader)
-	require.Nil(err)
-
-	assert.Len(eds, 3)
-
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-	var ed EquipmentDetail
-	for _, e := range eds {
-		if e.ID == "821" {
-			ed = e
-			break
-		}
-	}
-	assert.Equal("821", ed.ID)
-	assert.Equal("elevator", ed.EmbeddedType)
-	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", ed.Name)
-	assert.Equal("Problème technique", ed.CurrentAvailability.Cause.Label)
-	assert.Equal("available", ed.CurrentAvailability.Status)
-	assert.Equal("Accès impossible direction Gare de Vaise.", ed.CurrentAvailability.Effect.Label)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].Begin)
-	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), ed.CurrentAvailability.Periods[0].End)
-	assert.Equal(time.Date(2018, 9, 15, 12, 1, 31, 0, location), ed.CurrentAvailability.UpdatedAt)
-}
-
 func TestLoadFreeFloatingsFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	data := &Data{}
+	data := &data.Data{}
 	err = json.Unmarshal([]byte(jsonData), data)
 	require.Nil(err)
 
@@ -479,13 +448,13 @@ func TestLoadRouteSchedulesFromFile(t *testing.T) {
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	navitiaRoutes := &NavitiaRoutes{}
+	navitiaRoutes := &data.NavitiaRoutes{}
 	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
 	require.Nil(err)
 	sens := 0
@@ -509,13 +478,13 @@ func TestLoadPredictionsFromFile(t *testing.T) {
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	predicts := &PredictionData{}
+	predicts := &data.PredictionData{}
 	err = json.Unmarshal([]byte(jsonData), predicts)
 	require.Nil(err)
 	predictions := LoadPredictionsData(predicts, location)

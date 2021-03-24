@@ -14,6 +14,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/sirupsen/logrus"
+
+	"github.com/CanalTP/forseti/internal/utils"
 )
 
 type DeparturesResponse struct {
@@ -69,12 +71,6 @@ func (p ByParkingResponseId) Swap(i, j int)      { p[i], p[j] = p[j], p[i] }
 type ParkingsResponse struct {
 	Parkings []ParkingResponse `json:"records,omitempty"`
 	Errors   []string          `json:"errors,omitempty"`
-}
-
-// EquipmentsResponse defines the structure returned by the /equipments endpoint
-type EquipmentsResponse struct {
-	Equipments []EquipmentDetail `json:"equipments_details,omitempty"`
-	Error      string            `json:"errors,omitempty"`
 }
 
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
@@ -151,12 +147,17 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			manager.ManageVehicleOccupancyStatus(toActive)
 		}
 
+		var lastEquipmentDataUpdate time.Time
+		if manager.GetEquipmentsContext() != nil {
+			lastEquipmentDataUpdate = manager.GetEquipmentsContext().GetLastEquipmentsDataUpdate()
+		}
+
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
 			ForsetiVersion,
 			manager.GetLastDepartureDataUpdate(),
 			manager.GetLastParkingsDataUpdate(),
-			manager.GetLastEquipmentsDataUpdate(),
+			lastEquipmentDataUpdate,
 			LoadingStatus{manager.LoadFreeFloatingData(), manager.GetLastFreeFloatingsDataUpdate()},
 			LoadingStatus{manager.LoadOccupancyData(), manager.GetLastVehicleOccupanciesDataUpdate()},
 		})
@@ -198,21 +199,6 @@ func ParkingsHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
-func EquipmentsHandler(manager *DataManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		response := EquipmentsResponse{}
-
-		equipments, err := manager.GetEquipments()
-		if err != nil {
-			response.Error = "No data loaded"
-			c.JSON(http.StatusServiceUnavailable, response)
-			return
-		}
-		response.Equipments = equipments
-		c.JSON(http.StatusOK, response)
-	}
-}
-
 func updateParameterTypes(param *FreeFloatingRequestParameter, types []string) {
 	for _, value := range types {
 		enumType := ParseFreeFloatingTypeFromParam(value)
@@ -227,9 +213,9 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	var e error
 	p := FreeFloatingRequestParameter{}
 	countStr := c.DefaultQuery("count", "10")
-	p.count = stringToInt(countStr, 10)
+	p.count = utils.StringToInt(countStr, 10)
 	distanceStr := c.DefaultQuery("distance", "500")
-	p.distance = stringToInt(distanceStr, 500)
+	p.distance = utils.StringToInt(distanceStr, 500)
 
 	types := c.Request.URL.Query()["type[]"]
 	updateParameterTypes(&p, types)
@@ -323,7 +309,6 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
-	r.GET("/equipments", EquipmentsHandler(manager))
 	r.GET("/free_floatings", FreeFloatingsHandler(manager))
 	r.GET("/vehicle_occupancies", VehicleOccupanciesHandler(manager))
 

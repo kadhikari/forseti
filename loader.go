@@ -4,20 +4,19 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"encoding/xml"
 	"fmt"
 
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
-	"os"
 	"time"
 
-	"github.com/pkg/sftp"
 	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/crypto/ssh"
 	"golang.org/x/text/encoding/charmap"
+
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/utils"
 )
 
 var (
@@ -47,21 +46,6 @@ var (
 	parkingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
 		Namespace: "forseti",
 		Subsystem: "parkings",
-		Name:      "loading_errors",
-		Help:      "current number of http request being served",
-	})
-
-	equipmentsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "forseti",
-		Subsystem: "equipments",
-		Name:      "load_durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	})
-
-	equipmentsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "forseti",
-		Subsystem: "equipments",
 		Name:      "loading_errors",
 		Help:      "current number of http request being served",
 	})
@@ -102,71 +86,10 @@ func init() {
 	prometheus.MustRegister(departureLoadingErrors)
 	prometheus.MustRegister(parkingsLoadingDuration)
 	prometheus.MustRegister(parkingsLoadingErrors)
-	prometheus.MustRegister(equipmentsLoadingDuration)
-	prometheus.MustRegister(equipmentsLoadingErrors)
+	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
+	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
 	prometheus.MustRegister(freeFloatingsLoadingDuration)
 	prometheus.MustRegister(freeFloatingsLoadingErrors)
-}
-
-func getFile(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
-	if uri.Scheme == "sftp" {
-		return getFileWithSftp(uri, connectionTimeout)
-	} else if uri.Scheme == "file" {
-		return getFileWithFS(uri)
-	} else {
-		return nil, fmt.Errorf("Unsupported protocols %s", uri.Scheme)
-	}
-
-}
-
-func getFileWithFS(uri url.URL) (io.Reader, error) {
-	file, err := os.Open(uri.Path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	var buffer bytes.Buffer
-	if _, err = buffer.ReadFrom(file); err != nil {
-		return nil, err
-	}
-	return &buffer, nil
-}
-
-func getFileWithSftp(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
-	password, _ := uri.User.Password()
-	sshConfig := &ssh.ClientConfig{
-		User: uri.User.Username(),
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(), //nolint:gosec
-		Timeout:         connectionTimeout,
-	}
-
-	sshClient, err := ssh.Dial("tcp", uri.Host, sshConfig)
-	if err != nil {
-		return nil, err
-	}
-	defer sshClient.Close()
-
-	// open an SFTP session over an existing ssh connection.
-	client, err := sftp.NewClient(sshClient)
-	if err != nil {
-		return nil, err
-	}
-	defer client.Close()
-
-	file, err := client.Open(uri.Path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	var buffer bytes.Buffer
-	if _, err = file.WriteTo(&buffer); err != nil {
-		return nil, err
-	}
-	return &buffer, nil
-
 }
 
 type LoadDataOptions struct {
@@ -218,75 +141,9 @@ func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options Load
 	return nil
 }
 
-// CalculateDate adds date and hour parts
-func CalculateDate(info Info, location *time.Location) (time.Time, error) {
-	date, err := time.ParseInLocation("2006-01-02", info.Date, location)
-	if err != nil {
-		return time.Now(), err
-	}
-
-	hour, err := time.ParseInLocation("15:04:05", info.Hour, location)
-	if err != nil {
-		return time.Now(), err
-	}
-
-	// Add time part to end date
-	date = hour.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
-
-	return date, nil
-}
-
-func LoadXmlData(file io.Reader) ([]EquipmentDetail, error) {
-
-	location, err := time.LoadLocation(location)
-	if err != nil {
-		return nil, err
-	}
-
-	XMLdata, err := ioutil.ReadAll(file)
-	if err != nil {
-		return nil, err
-	}
-	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
-	decoder.CharsetReader = getCharsetReader
-
-	var root Root
-	err = decoder.Decode(&root)
-	if err != nil {
-		return nil, err
-	}
-
-	equipments := make(map[string]EquipmentDetail)
-	//Calculate updated_at from Info.Date and Info.Hour
-	updatedAt, err := CalculateDate(root.Info, location)
-	if err != nil {
-		return nil, err
-	}
-	// for each root.Data.Lines.Stations create an object Equipment
-	for _, l := range root.Data.Lines {
-		for _, s := range l.Stations {
-			for _, e := range s.Equipments {
-				ed, err := NewEquipmentDetail(e, updatedAt, location)
-				if err != nil {
-					return nil, err
-				}
-				equipments[ed.ID] = *ed
-			}
-		}
-	}
-
-	// Transform the map to array of EquipmentDetail
-	equipmentDetails := make([]EquipmentDetail, 0)
-	for _, ed := range equipments {
-		equipmentDetails = append(equipmentDetails, ed)
-	}
-
-	return equipmentDetails, nil
-}
-
 func RefreshDepartures(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	file, err := getFile(uri, connectionTimeout)
+	file, err := utils.GetFile(uri, connectionTimeout)
 	if err != nil {
 		departureLoadingErrors.Inc()
 		return err
@@ -304,7 +161,7 @@ func RefreshDepartures(manager *DataManager, uri url.URL, connectionTimeout time
 
 func RefreshParkings(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
 	begin := time.Now()
-	file, err := getFile(uri, connectionTimeout)
+	file, err := utils.GetFile(uri, connectionTimeout)
 	if err != nil {
 		parkingsLoadingErrors.Inc()
 		return err
@@ -336,25 +193,6 @@ func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 	return nil, fmt.Errorf("Unknown Charset")
 }
 
-func RefreshEquipments(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
-	begin := time.Now()
-	file, err := getFile(uri, connectionTimeout)
-
-	if err != nil {
-		equipmentsLoadingErrors.Inc()
-		return err
-	}
-
-	equipments, err := LoadXmlData(file)
-	if err != nil {
-		equipmentsLoadingErrors.Inc()
-		return err
-	}
-	manager.UpdateEquipments(equipments)
-	equipmentsLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
-}
-
 func CallHttpClient(siteHost, token string) (*http.Response, error) {
 	client := &http.Client{}
 	data := url.Values{}
@@ -375,7 +213,7 @@ func CallHttpClient(siteHost, token string) (*http.Response, error) {
 	return client.Do(req)
 }
 
-func LoadFreeFloatingData(data *Data) ([]FreeFloating, error) {
+func LoadFreeFloatingData(data *data.Data) ([]FreeFloating, error) {
 	// Read response body in json
 	freeFloatings := make([]FreeFloating, 0)
 	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
@@ -397,7 +235,7 @@ func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, conne
 		return err
 	}
 
-	data := &Data{}
+	data := &data.Data{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(data)
 	if err != nil {
@@ -429,7 +267,7 @@ func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (
 
 func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]StopPoint, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, spFileName)
-	file, err := getFile(uri, connectionTimeout)
+	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
 		occupanciesLoadingErrors.Inc()
@@ -451,7 +289,7 @@ func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]St
 
 func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Course, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, courseFileName)
-	file, err := getFile(uri, connectionTimeout)
+	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
 		occupanciesLoadingErrors.Inc()
@@ -472,7 +310,7 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRouteSchedulesData(startIndex int, navitiaRoutes *NavitiaRoutes, direction int,
+func LoadRouteSchedulesData(startIndex int, navitiaRoutes *data.NavitiaRoutes, direction int,
 	location *time.Location) []RouteSchedule {
 	// Read RouteSchedule response body in json
 	// Normally there is one vehiclejourney for each departure.
@@ -512,7 +350,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 		return nil, err
 	}
 
-	navitiaRoutes := &NavitiaRoutes{}
+	navitiaRoutes := &data.NavitiaRoutes{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(navitiaRoutes)
 	if err != nil {
@@ -535,7 +373,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 		return nil, err
 	}
 
-	navitiaRoutes = &NavitiaRoutes{}
+	navitiaRoutes = &data.NavitiaRoutes{}
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(navitiaRoutes)
 	if err != nil {
@@ -588,7 +426,7 @@ func LoadRoutesForAllLines(manager *DataManager, navitia_url url.URL, navitia_to
 	return nil
 }
 
-func LoadPredictionsData(predictionData *PredictionData, location *time.Location) []Prediction {
+func LoadPredictionsData(predictionData *data.PredictionData, location *time.Location) []Prediction {
 	predictions := make([]Prediction, 0)
 	for _, predict := range *predictionData {
 		predictions = append(predictions, *NewPrediction(predict, location))
@@ -610,7 +448,7 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 		return nil, err
 	}
 
-	predicts := &PredictionData{}
+	predicts := &data.PredictionData{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(predicts)
 	if err != nil {
@@ -634,7 +472,7 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 				continue
 			}
 			// Schedule datettime = predict.Date + firstTime
-			dateTime := addDateAndTime(predict.Date, firstTime)
+			dateTime := utils.AddDateAndTime(predict.Date, firstTime)
 			vehicleJourneyId = manager.GetVehicleJourneyId(predict, dateTime)
 		}
 
@@ -643,7 +481,7 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 			stopId := manager.GetStopId(predict.StopName, predict.Direction)
 			rs := manager.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
 			if rs != nil {
-				vo, err := NewVehicleOccupancy(*rs, calculateOccupancy(predict.Occupancy))
+				vo, err := NewVehicleOccupancy(*rs, utils.CalculateOccupancy(predict.Occupancy))
 
 				if err != nil {
 					continue

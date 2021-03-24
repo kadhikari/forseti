@@ -1,4 +1,4 @@
-package forseti
+package utils
 
 import (
 	"math"
@@ -6,7 +6,9 @@ import (
 	"time"
 )
 
-func stringToInt(inputStr string, defaultValue int) int {
+var vehicleCapacity = 100
+
+func StringToInt(inputStr string, defaultValue int) int {
 	input, err := strconv.Atoi(inputStr)
 	if err != nil {
 		input = defaultValue
@@ -18,14 +20,14 @@ func hsin(theta float64) float64 {
 	return math.Pow(math.Sin(theta/2), 2)
 }
 
-func coordDistance(from, to Coord) float64 {
+func CoordDistance(lat1 float64, lon1 float64, lat2 float64, lon2 float64) float64 {
 	// convert to radians
 	// must cast radius as float to multiply later
 	var la1, lo1, la2, lo2, r float64
-	la1 = from.Lat * math.Pi / 180
-	lo1 = from.Lon * math.Pi / 180
-	la2 = to.Lat * math.Pi / 180
-	lo2 = to.Lon * math.Pi / 180
+	la1 = lat1 * math.Pi / 180
+	lo1 = lon1 * math.Pi / 180
+	la2 = lat2 * math.Pi / 180
+	lo2 = lon2 * math.Pi / 180
 
 	r = 6378100 // Earth radius in METERS
 
@@ -36,11 +38,11 @@ func coordDistance(from, to Coord) float64 {
 }
 
 // In time part we have '0000-01-01' as date so subtract 1 from month and Day
-func addDateAndTime(date, time time.Time) (dateTime time.Time) {
+func AddDateAndTime(date, time time.Time) (dateTime time.Time) {
 	return time.AddDate(date.Year(), int(date.Month())-1, date.Day()-1)
 }
 
-func calculateOccupancy(charge int) int {
+func CalculateOccupancy(charge int) int {
 	if charge == 0 {
 		return 0
 	}

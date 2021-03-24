@@ -15,6 +15,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/utils"
 )
 
 func TestDeparturesApi(t *testing.T) {
@@ -288,34 +291,6 @@ func TestParkingsPRAPIwithParkingsID(t *testing.T) {
 	assert.Contains(response.Errors[0], "picsou")
 }
 
-func TestEquipmentsAPI(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
-	equipmentURI, err := url.Parse(fmt.Sprintf("file://%s/NET_ACCESS.XML", fixtureDir))
-	require.Nil(err)
-
-	var manager DataManager
-
-	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
-
-	err = RefreshEquipments(&manager, *equipmentURI, defaultTimeout)
-	assert.Nil(err)
-
-	c.Request = httptest.NewRequest("GET", "/equipments", nil)
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	var response EquipmentsResponse
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.Equipments)
-	require.NotEmpty(response.Equipments)
-	assert.Len(response.Equipments, 3)
-	assert.Empty(response.Error)
-}
-
 func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -323,13 +298,13 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	// Load freefloatings from a json file
 	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	data := &Data{}
+	data := &data.Data{}
 	err = json.Unmarshal([]byte(jsonData), data)
 	require.Nil(err)
 
@@ -443,13 +418,13 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	// Load RouteSchedules from file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	navitiaRoutes := &NavitiaRoutes{}
+	navitiaRoutes := &data.NavitiaRoutes{}
 	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
 	require.Nil(err)
 	sens := 0
@@ -461,13 +436,13 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	// Load prediction from a file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
 	require.Nil(err)
-	reader, err = getFileWithFS(*uri)
+	reader, err = utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err = ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	predicts := &PredictionData{}
+	predicts := &data.PredictionData{}
 	err = json.Unmarshal([]byte(jsonData), predicts)
 	require.Nil(err)
 	predictions := LoadPredictionsData(predicts, loc)
@@ -571,13 +546,13 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	// Load freefloatings from a json file
 	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
 	require.Nil(err)
-	reader, err := getFileWithFS(*uri)
+	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
 
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	data := &Data{}
+	data := &data.Data{}
 	err = json.Unmarshal([]byte(jsonData), data)
 	require.Nil(err)
 

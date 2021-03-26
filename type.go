@@ -7,72 +7,17 @@ import (
 	"math"
 	"sort"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/equipments"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 )
 
 var spFileName = "mapping_stops.csv"
 var courseFileName = "extraction_courses.csv"
 var location = "Europe/Paris"
-
-type FreeFloatingType int
-
-const (
-	BikeType FreeFloatingType = iota
-	ScooterType
-	MotorScooterType
-	StationType
-	CarType
-	OtherType
-	UnknownType
-)
-
-func (f FreeFloatingType) String() string {
-	return [...]string{"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER", "UNKNOWN"}[f]
-}
-
-type FreeFloatingRequestParameter struct {
-	distance int
-	coord    Coord
-	count    int
-	types    []FreeFloatingType
-}
-
-func ParseFreeFloatingTypeFromParam(value string) FreeFloatingType {
-	switch strings.ToLower(value) {
-	case "bike":
-		return BikeType
-	case "scooter":
-		return ScooterType
-	case "motorscooter":
-		return MotorScooterType
-	case "station":
-		return StationType
-	case "car":
-		return CarType
-	case "other":
-		return OtherType
-	default:
-		return UnknownType
-	}
-}
-
-func keepIt(ff FreeFloating, types []FreeFloatingType) bool {
-	if len(types) == 0 {
-		return true
-	}
-	for _, value := range types {
-		if strings.EqualFold(ff.Type, value.String()) {
-			return true
-		}
-	}
-	return false
-}
 
 type VehicleOccupancyRequestParameter struct {
 	StopId           string
@@ -293,46 +238,6 @@ func (p *ParkingLineConsumer) Consume(line []string, loc *time.Location) error {
 
 func (p *ParkingLineConsumer) Terminate() {}
 
-//FreeFloating defines how the object is represented in a response
-type Coord struct {
-	Lat float64 `json:"lat,omitempty"`
-	Lon float64 `json:"lon,omitempty"`
-}
-
-type FreeFloating struct {
-	PublicId     string   `json:"public_id,omitempty"`
-	ProviderName string   `json:"provider_name,omitempty"`
-	Id           string   `json:"id,omitempty"`
-	Type         string   `json:"type,omitempty"`
-	Coord        Coord    `json:"coord,omitempty"`
-	Propulsion   string   `json:"propulsion,omitempty"`
-	Battery      int      `json:"battery,omitempty"`
-	Deeplink     string   `json:"deeplink,omitempty"`
-	Attributes   []string `json:"attributes,omitempty"`
-	Distance     float64  `json:"distance,omitempty"`
-}
-
-type ByDistance []FreeFloating
-
-func (ff ByDistance) Len() int           { return len(ff) }
-func (ff ByDistance) Less(i, j int) bool { return ff[i].Distance < ff[j].Distance }
-func (ff ByDistance) Swap(i, j int)      { ff[i], ff[j] = ff[j], ff[i] }
-
-// NewFreeFloating creates a new FreeFloating object from the object Vehicle
-func NewFreeFloating(ve data.Vehicle) *FreeFloating {
-	return &FreeFloating{
-		PublicId:     ve.PublicId,
-		ProviderName: ve.Provider.Name,
-		Id:           ve.Id,
-		Type:         ve.Type,
-		Coord:        Coord{Lat: ve.Latitude, Lon: ve.Longitude},
-		Propulsion:   ve.Propulsion,
-		Battery:      ve.Battery,
-		Deeplink:     ve.Deeplink,
-		Attributes:   ve.Attributes,
-	}
-}
-
 // Structure and Consumer to creates StopPoint objects based on a line read from a CSV
 type StopPoint struct {
 	Id        string // Stoppoint uri from navitia
@@ -524,11 +429,7 @@ type DataManager struct {
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
 
-	freeFloatings          *[]FreeFloating
-	lastFreeFloatingUpdate time.Time
-	freeFloatingsMutex     sync.RWMutex
-	loadFreeFloatingData   bool
-	loadOccupancyData      bool
+	freeFloatingsContext *freefloatings.FreeFloatingsContext
 
 	stopPoints                   *map[string]StopPoint
 	courses                      *map[string][]Course
@@ -536,6 +437,7 @@ type DataManager struct {
 	vehicleOccupancies           *map[int]VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
+	loadOccupancyData            bool
 
 	equipmentsContext *equipments.EquipmentsContext
 }
@@ -626,6 +528,14 @@ func (d *DataManager) GetEquipmentsContext() *equipments.EquipmentsContext {
 	return d.equipmentsContext
 }
 
+func (d *DataManager) SetFreeFloatingsContext(freeFloatingsContext *freefloatings.FreeFloatingsContext) {
+	d.freeFloatingsContext = freeFloatingsContext
+}
+
+func (d *DataManager) GetFreeFloatingsContext() *freefloatings.FreeFloatingsContext {
+	return d.freeFloatingsContext
+}
+
 func (d *DataManager) GetParkingsByIds(ids []string) (parkings []Parking, errors []error) {
 	for _, id := range ids {
 		if p, err := d.GetParkingById(id); err == nil {
@@ -680,75 +590,6 @@ func (d *DataManager) GetParkingById(id string) (p Parking, e error) {
 	}
 
 	return p, e
-}
-
-func (d *DataManager) ManageFreeFloatingStatus(activate bool) {
-	d.freeFloatingsMutex.Lock()
-	defer d.freeFloatingsMutex.Unlock()
-
-	d.loadFreeFloatingData = activate
-}
-
-func (d *DataManager) LoadFreeFloatingData() bool {
-	d.freeFloatingsMutex.RLock()
-	defer d.freeFloatingsMutex.RUnlock()
-	return d.loadFreeFloatingData
-}
-
-func (d *DataManager) UpdateFreeFloating(freeFloatings []FreeFloating) {
-	d.freeFloatingsMutex.Lock()
-	defer d.freeFloatingsMutex.Unlock()
-
-	d.freeFloatings = &freeFloatings
-	d.lastFreeFloatingUpdate = time.Now()
-}
-
-func (d *DataManager) GetLastFreeFloatingsDataUpdate() time.Time {
-	d.freeFloatingsMutex.RLock()
-	defer d.freeFloatingsMutex.RUnlock()
-
-	return d.lastFreeFloatingUpdate
-}
-
-func (d *DataManager) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
-	resp := make([]FreeFloating, 0)
-	{
-		d.freeFloatingsMutex.RLock()
-		defer d.freeFloatingsMutex.RUnlock()
-
-		if d.freeFloatings == nil {
-			e = fmt.Errorf("No free-floatings in the data")
-			return
-		}
-
-		// Implementation of filters: distance, type[]
-		for _, ff := range *d.freeFloatings {
-			// Filter on type[]
-			keep := keepIt(ff, param.types)
-
-			if !keep {
-				continue
-			}
-
-			// Calculate distance from coord in the request
-			distance := utils.CoordDistance(param.coord.Lat, param.coord.Lon, ff.Coord.Lat, ff.Coord.Lon)
-			ff.Distance = math.Round(distance)
-			if int(distance) > param.distance {
-				continue
-			}
-
-			// Keep the wanted object
-			if keep {
-				resp = append(resp, ff)
-			}
-
-			if len(resp) == param.count {
-				break
-			}
-		}
-		sort.Sort(ByDistance(resp))
-	}
-	return resp, nil
 }
 
 func (d *DataManager) ManageVehicleOccupancyStatus(activate bool) {

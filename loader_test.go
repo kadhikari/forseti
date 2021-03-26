@@ -367,40 +367,6 @@ func TestRefreshDataError(t *testing.T) {
 	checkSecond(t, departures)
 }
 
-func TestLoadFreeFloatingsFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
-	require.Nil(err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(err)
-
-	jsonData, err := ioutil.ReadAll(reader)
-	require.Nil(err)
-
-	data := &data.Data{}
-	err = json.Unmarshal([]byte(jsonData), data)
-	require.Nil(err)
-
-	freeFloatings, err := LoadFreeFloatingData(data)
-
-	require.Nil(err)
-	assert.NotEqual(len(freeFloatings), 0)
-	assert.Len(freeFloatings, 3)
-	assert.NotEmpty(freeFloatings[0].Id)
-	assert.Equal("NSCBH3", freeFloatings[0].PublicId)
-	assert.Equal("Pony", freeFloatings[0].ProviderName)
-	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ==", freeFloatings[0].Id)
-	assert.Equal("BIKE", freeFloatings[0].Type)
-	assert.Equal("ASSIST", freeFloatings[0].Propulsion)
-	assert.Equal(55, freeFloatings[0].Battery)
-	assert.Equal("http://test1", freeFloatings[0].Deeplink)
-	assert.Equal(48.847232, freeFloatings[0].Coord.Lat)
-	assert.Equal(2.377601, freeFloatings[0].Coord.Lon)
-	assert.Equal([]string{"ELECTRIC"}, freeFloatings[0].Attributes)
-}
-
 func TestLoadStopPointsFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)

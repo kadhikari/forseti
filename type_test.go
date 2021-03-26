@@ -379,67 +379,6 @@ func TestKeepDirection(t *testing.T) {
 	assert.True(keepDirection(DirectionTypeUnknown, DirectionTypeBoth))
 }
 
-func TestNewFreeFloating(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-	provider := data.ProviderNode{Name: "Pony"}
-	ff := data.Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
-		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
-	f := NewFreeFloating(ff)
-	require.NotNil(f)
-
-	assert.Equal("NSCBH3", f.PublicId)
-	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ", f.Id)
-	assert.Equal("Pony", f.ProviderName)
-	assert.Equal("BIKE", f.Type)
-	assert.Equal(45.180335, f.Coord.Lat)
-	assert.Equal(5.7069425, f.Coord.Lon)
-	assert.Equal("ASSIST", f.Propulsion)
-	assert.Equal(85, f.Battery)
-	assert.Equal("http://test", f.Deeplink)
-}
-
-func TestDataManagerGetFreeFloatings(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	var manager DataManager
-	p1 := data.ProviderNode{Name: "Pony"}
-	p2 := data.ProviderNode{Name: "Tier"}
-
-	vehicles := make([]data.Vehicle, 0)
-	freeFloatings := make([]FreeFloating, 0)
-	v := data.Vehicle{PublicId: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
-		Latitude: 48.847232, Longitude: 2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
-	vehicles = append(vehicles, v)
-	v = data.Vehicle{PublicId: "718WSK", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==4b", Type: "SCOOTER",
-		Latitude: 48.847299, Longitude: 2.37772, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test2"}
-	vehicles = append(vehicles, v)
-	v = data.Vehicle{PublicId: "0JT9J6", Provider: p2, Id: "cG9ueTpCSUtFOjEwMDQ0MQ==55c", Type: "SCOOTER",
-		Latitude: 48.847326, Longitude: 2.377734, Propulsion: "ELECTRIC", Battery: 85, Deeplink: "http://test3"}
-	vehicles = append(vehicles, v)
-
-	for _, vehicle := range vehicles {
-		freeFloatings = append(freeFloatings, *NewFreeFloating(vehicle))
-	}
-	manager.UpdateFreeFloating(freeFloatings)
-	// init parameters:
-	types := make([]FreeFloatingType, 0)
-	types = append(types, StationType)
-	types = append(types, ScooterType)
-	coord := Coord{Lat: 48.846781, Lon: 2.37715}
-	p := FreeFloatingRequestParameter{distance: 500, coord: coord, count: 10, types: types}
-	free_floatings, err := manager.GetFreeFloatings(&p)
-	require.Nil(err)
-	require.Len(free_floatings, 2)
-
-	assert.Equal("718WSK", free_floatings[0].PublicId)
-	assert.Equal("Pony", free_floatings[0].ProviderName)
-	assert.Equal("SCOOTER", free_floatings[0].Type)
-	assert.Equal("0JT9J6", free_floatings[1].PublicId)
-	assert.Equal("Tier", free_floatings[1].ProviderName)
-}
-
 func TestNewStopPoint(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)

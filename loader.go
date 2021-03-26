@@ -1,7 +1,6 @@
 package forseti
 
 import (
-	"bytes"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -16,6 +15,7 @@ import (
 
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
@@ -50,21 +50,6 @@ var (
 		Help:      "current number of http request being served",
 	})
 
-	freeFloatingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "forseti",
-		Subsystem: "free_floatings",
-		Name:      "load_durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	})
-
-	freeFloatingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "forseti",
-		Subsystem: "free_floatings",
-		Name:      "loading_errors",
-		Help:      "current number of http request being served",
-	})
-
 	occupanciesLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "forseti",
 		Subsystem: "vehicle_occupancies",
@@ -88,8 +73,8 @@ func init() {
 	prometheus.MustRegister(parkingsLoadingErrors)
 	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
 	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
-	prometheus.MustRegister(freeFloatingsLoadingDuration)
-	prometheus.MustRegister(freeFloatingsLoadingErrors)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
 }
 
 type LoadDataOptions struct {
@@ -191,67 +176,6 @@ func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 	}
 
 	return nil, fmt.Errorf("Unknown Charset")
-}
-
-func CallHttpClient(siteHost, token string) (*http.Response, error) {
-	client := &http.Client{}
-	data := url.Values{}
-	data.Set("query", "query($id: Int!) {area(id: $id) {vehicles{publicId, provider{name}, id, type, attributes ,"+
-		"latitude: lat, longitude: lng, propulsion, battery, deeplink } } }")
-	// Manage area id in the query (Paris id=6)
-	// TODO: load vehicles for more than one area (city)
-	area_id := 6
-	data.Set("variables", fmt.Sprintf("{\"id\": %d}", area_id))
-	req, err := http.NewRequest(
-		"POST",
-		fmt.Sprintf("%s/v1?access_token=%s", siteHost, token),
-		bytes.NewBufferString(data.Encode()))
-	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
-	if err != nil {
-		return nil, err
-	}
-	return client.Do(req)
-}
-
-func LoadFreeFloatingData(data *data.Data) ([]FreeFloating, error) {
-	// Read response body in json
-	freeFloatings := make([]FreeFloating, 0)
-	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
-		freeFloatings = append(freeFloatings, *NewFreeFloating(data.Data.Area.Vehicles[i]))
-	}
-	return freeFloatings, nil
-}
-
-func RefreshFreeFloatings(manager *DataManager, uri url.URL, token string, connectionTimeout time.Duration) error {
-	// Continue using last loaded data if loading is deactivated
-	if !manager.LoadFreeFloatingData() {
-		return nil
-	}
-	begin := time.Now()
-	resp, err := CallHttpClient(uri.String(), token)
-
-	if err != nil {
-		freeFloatingsLoadingErrors.Inc()
-		return err
-	}
-
-	data := &data.Data{}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(data)
-	if err != nil {
-		freeFloatingsLoadingErrors.Inc()
-		return err
-	}
-
-	freeFloatings, err := LoadFreeFloatingData(data)
-	if err != nil {
-		freeFloatingsLoadingErrors.Inc()
-		return err
-	}
-
-	manager.UpdateFreeFloating(freeFloatings)
-	freeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
 }
 
 func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (*http.Response, error) {

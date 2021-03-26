@@ -495,8 +495,6 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 
-	fmt.Println("KIKOU ", startTime)
-	fmt.Println("KIKOU ", response.FreeFloatings.LastUpdate)
 	assert.True(response.FreeFloatings.LastUpdate.After(startTime))
 	assert.True(response.FreeFloatings.LastUpdate.Before(time.Now()))
 	assert.False(response.FreeFloatings.RefreshActive)

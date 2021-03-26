@@ -47,7 +47,10 @@ func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
 	}
 }
 
-func RefreshFreeFloatings(context *FreeFloatingsContext, uri url.URL, token string, connectionTimeout time.Duration) error {
+func RefreshFreeFloatings(context *FreeFloatingsContext,
+	uri url.URL,
+	token string,
+	connectionTimeout time.Duration) error {
 	// Continue using last loaded data if loading is deactivated
 	if !context.LoadFreeFloatingsData() {
 		return nil

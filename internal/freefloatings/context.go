@@ -46,6 +46,7 @@ func (d *FreeFloatingsContext) GetLastFreeFloatingsDataUpdate() time.Time {
 	return d.lastFreeFloatingUpdate
 }
 
+//nolint
 func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
 	resp := make([]FreeFloating, 0)
 	{

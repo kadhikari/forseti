@@ -1,4 +1,5 @@
 version: "3.2"
+
 services:
   forseti:
     image: navitia/forseti:${FORSETI_IMAGE_VERSION:-latest}
@@ -13,6 +14,8 @@ services:
         - traefik.docker.network=lb-common
         # Traefik service that listens to HTTP
         - traefik.redirectorservice.frontend.entryPoints=http
+    networks:
+      - lb-common
     logging:
       driver: "fluentd"
       options:
@@ -52,3 +55,8 @@ services:
       - FORSETI_OCCUPANCY_SERVICE_TOKEN=
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
+
+networks:
+  lb-common:
+    name: lb-common
+    external: true

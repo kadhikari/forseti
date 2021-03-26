@@ -2,9 +2,24 @@ version: "3.2"
 services:
   forseti:
     image: navitia/forseti:master
-    ports:
-      - target: 8080
-        published: 8088
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+      labels:
+        - traefik.frontend.rule=Host:${TRAEFIK_ENDPOINT_NAME:-forseti-demo-dev.canaltp.prod} # FixMe: The name written isn't decided yet
+        - traefik.enable=true
+        - traefik.port=8080
+        - traefik.docker.network=lb-common
+        # Traefik service that listens to HTTP
+        - traefik.redirectorservice.frontend.entryPoints=http
+    logging:
+      driver: "fluentd"
+      options:
+        tag: forseti.${FORSETI_COMPONENT_NAME:-demo} # Default value "demo"
+        fluentd-async-connect: "true"
+    volumes:
+      - ./data:/data # FixMe: We need to deploy a dir "data" inside /srv/forseti-${connector}/data/ (and put data given here)
     environment:
       - GIN_MODE=release
       - TZ=Europe/Paris
@@ -37,11 +52,3 @@ services:
       - FORSETI_OCCUPANCY_SERVICE_TOKEN=
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=300s
-
-    volumes:
-      - ~/workspace/data/forseti:/data
-
-    deploy:
-      resources:
-        limits:
-          memory: 1024M

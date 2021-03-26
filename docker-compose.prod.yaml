@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   forseti:
-    image: navitia/forseti:master
+    image: navitia/forseti:${FORSETI_IMAGE_VERSION:-latest}
     deploy:
       resources:
         limits:

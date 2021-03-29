@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
@@ -291,102 +292,19 @@ func TestParkingsPRAPIwithParkingsID(t *testing.T) {
 	assert.Contains(response.Errors[0], "picsou")
 }
 
-func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	// Load freefloatings from a json file
-	uri, err := url.Parse(fmt.Sprintf("file://%s/vehicles.json", fixtureDir))
-	require.Nil(err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(err)
-
-	jsonData, err := ioutil.ReadAll(reader)
-	require.Nil(err)
-
-	data := &data.Data{}
-	err = json.Unmarshal([]byte(jsonData), data)
-	require.Nil(err)
-
-	freeFloatings, err := LoadFreeFloatingData(data)
-	require.Nil(err)
-
-	var manager DataManager
-	manager.UpdateFreeFloating(freeFloatings)
-	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
-
-	// Request without any parameter (coord is mandatory)
-	c.Request = httptest.NewRequest("GET", "/free_floatings", nil)
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(503, w.Code)
-
-	var response FreeFloatingsResponse
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Len(response.FreeFloatings, 0)
-	assert.Equal("Bad request: coord is mandatory", response.Error)
-
-	// Request with coord in parameter
-	response.Error = ""
-	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.FreeFloatings)
-	assert.Len(response.FreeFloatings, 3)
-	assert.Empty(response.Error)
-
-	// Request with coord, count in parameter
-	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=2", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.FreeFloatings)
-	assert.Len(response.FreeFloatings, 2)
-	assert.Empty(response.Error)
-
-	// Request with coord, type[] in parameter
-	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&type[]=BIKE&type[]=toto", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.FreeFloatings)
-	assert.Len(response.FreeFloatings, 1)
-
-	// Verify attributes
-	assert.Equal("cG9ueTpCSUtFOjEwMDQ0MQ==", response.FreeFloatings[0].Id)
-	assert.Equal("NSCBH3", response.FreeFloatings[0].PublicId)
-	assert.Equal("http://test1", response.FreeFloatings[0].Deeplink)
-	assert.Equal("Pony", response.FreeFloatings[0].ProviderName)
-	assert.Equal([]string{"ELECTRIC"}, response.FreeFloatings[0].Attributes)
-	assert.Equal(55, response.FreeFloatings[0].Battery)
-	assert.Equal("ASSIST", response.FreeFloatings[0].Propulsion)
-	assert.Equal(48.847232, response.FreeFloatings[0].Coord.Lat)
-	assert.Equal(2.377601, response.FreeFloatings[0].Coord.Lon)
-	assert.Equal(60.0, response.FreeFloatings[0].Distance)
-}
-
 func TestParameterTypes(t *testing.T) {
 	// valid types : {"BIKE", "SCOOTER", "MOTORSCOOTER", "STATION", "CAR", "OTHER"}
 	// As toto is not a valid type it will not be added in types
 	assert := assert.New(t)
-	p := FreeFloatingRequestParameter{}
+	var p freefloatings.FreeFloatingRequestParameter = freefloatings.FreeFloatingRequestParameter{}
 	types := make([]string, 0)
 	types = append(types, "STATION")
 	types = append(types, "toto")
 	types = append(types, "MOTORSCOOTER")
 	types = append(types, "OTHER")
 
-	updateParameterTypes(&p, types)
-	assert.Len(p.types, 3)
+	freefloatings.UpdateParameterTypes(&p, types)
+	assert.Len(p.Types, 3)
 }
 
 func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
@@ -556,24 +474,27 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonData), data)
 	require.Nil(err)
 
-	freeFloatings, err := LoadFreeFloatingData(data)
+	freeFloatings, err := freefloatings.LoadFreeFloatingsData(data)
 	require.Nil(err)
 
-	var manager DataManager
-	manager.UpdateFreeFloating(freeFloatings)
-	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
+	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 
+	freeFloatingsContext.UpdateFreeFloating(freeFloatings)
+	c, router := gin.CreateTestContext(httptest.NewRecorder())
+	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
+
+	manager := &DataManager{}
+	manager.SetFreeFloatingsContext(freeFloatingsContext)
+	router.GET("/status", StatusHandler(manager))
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
+	router.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 
 	var response StatusResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
-	// fmt.Println(response)
-
 	require.Nil(err)
+
 	assert.True(response.FreeFloatings.LastUpdate.After(startTime))
 	assert.True(response.FreeFloatings.LastUpdate.Before(time.Now()))
 	assert.False(response.FreeFloatings.RefreshActive)
@@ -582,7 +503,7 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	// Activate the periodic refresh of data
 	c.Request = httptest.NewRequest("GET", "/status?free_floatings=true", nil)
 	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
+	router.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 

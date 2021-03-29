@@ -8,6 +8,7 @@ import (
 
 	"github.com/CanalTP/forseti"
 	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -140,9 +141,6 @@ func main() {
 
 	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
-	// Manage activation of the periodic refresh of Fluctuo data
-	ManagefreeFloatingActivation(manager, config.FreeFloatingsActive)
-
 	// Manage activation of the periodic refresh of vehicle occupancy data
 	ManageVehicleOccupancyActivation(manager, config.OccupancyActive)
 
@@ -157,16 +155,6 @@ func main() {
 	err = forseti.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
-	}
-
-	err = forseti.RefreshFreeFloatings(
-		manager,
-		config.FreeFloatingsURI,
-		config.FreeFloatingsToken,
-		config.ConnectionTimeout,
-	)
-	if err != nil {
-		logrus.Errorf("Impossible to load free_floatings data at startup: %s (%s)", err, config.FreeFloatingsURIStr)
 	}
 
 	err = forseti.LoadAllForVehicleOccupancies(
@@ -184,13 +172,6 @@ func main() {
 	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 
-	go RefreshFreeFloatingLoop(
-		manager,
-		config.FreeFloatingsURI,
-		config.FreeFloatingsToken,
-		config.FreeFloatingsRefresh,
-		config.ConnectionTimeout,
-	)
 	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken,
 		config.OccupancyRefresh, config.ConnectionTimeout, location)
 	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
@@ -198,6 +179,9 @@ func main() {
 
 	// With equipments
 	Equipments(manager, &config, router)
+
+	// With freefloating
+	FreeFloating(manager, &config, router)
 
 	// start router
 	err = router.Run()
@@ -216,6 +200,26 @@ func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine
 	go equipments.RefreshEquipmentLoop(equipmentsContext, config.EquipmentsURI,
 		config.EquipmentsRefresh, config.ConnectionTimeout)
 	equipments.AddEquipmentsEntryPoint(router, equipmentsContext)
+}
+
+func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+	if len(config.FreeFloatingsURI.String()) == 0 || config.FreeFloatingsRefresh.Seconds() <= 0 {
+		logrus.Debug("Equipments is disabled")
+		return
+	}
+
+	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
+	manager.SetFreeFloatingsContext(freeFloatingsContext)
+
+	// Manage activation of the periodic refresh of Fluctuo data
+	freefloatings.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
+
+	go freefloatings.RefreshFreeFloatingLoop(freeFloatingsContext,
+		config.FreeFloatingsURI,
+		config.FreeFloatingsToken,
+		config.EquipmentsRefresh,
+		config.ConnectionTimeout)
+	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
 
 func RefreshDepartureLoop(manager *forseti.DataManager,
@@ -249,32 +253,6 @@ func RefreshParkingLoop(manager *forseti.DataManager,
 		}
 		logrus.Debug("Parking data updated")
 		time.Sleep(parkingsRefresh)
-	}
-}
-
-func ManagefreeFloatingActivation(manager *forseti.DataManager, freeFloatingsActive bool) {
-	manager.ManageFreeFloatingStatus(freeFloatingsActive)
-}
-
-func RefreshFreeFloatingLoop(manager *forseti.DataManager,
-	freeFloatingsURI url.URL,
-	freeFloatingsToken string,
-	freeFloatingsRefresh,
-	connectionTimeout time.Duration) {
-	if len(freeFloatingsURI.String()) == 0 || freeFloatingsRefresh.Seconds() <= 0 {
-		logrus.Debug("FreeFloating data refreshing is disabled")
-		return
-	}
-
-	// Wait 10 seconds before reloading external freefloating informations
-	time.Sleep(10 * time.Second)
-	for {
-		err := forseti.RefreshFreeFloatings(manager, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
-		if err != nil {
-			logrus.Error("Error while reloading freefloating data: ", err)
-		}
-		logrus.Debug("Free_floating data updated")
-		time.Sleep(freeFloatingsRefresh)
 	}
 }
 

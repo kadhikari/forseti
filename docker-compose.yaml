@@ -8,7 +8,7 @@ services:
         limits:
           memory: 1024M
       labels:
-        - traefik.frontend.rule=Host:${TRAEFIK_ENDPOINT_NAME:-forseti-demo-dev.canaltp.prod} # FixMe: The name written isn't decided yet
+        - traefik.frontend.rule=Host:${TRAEFIK_ENDPOINT_NAME:-forseti-dev-demo.canaltp.prod}
         - traefik.enable=true
         - traefik.port=8080
         - traefik.docker.network=lb-common
@@ -19,10 +19,10 @@ services:
     logging:
       driver: "fluentd"
       options:
-        tag: forseti.${FORSETI_COMPONENT_NAME:-demo} # Default value "demo"
+        tag: forseti.${FORSETI_PROVIDER_NAME:-demo} # Default value "demo"
         fluentd-async-connect: "true"
     volumes:
-      - ./data:/data # FixMe: We need to deploy a dir "data" inside /srv/forseti-${connector}/data/ (and put data given here)
+      - ./data:/data 
     environment:
       - GIN_MODE=release
       - TZ=Europe/Paris

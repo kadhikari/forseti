@@ -145,52 +145,6 @@ func TestGetSFTPFileError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestLoadDepartureData(t *testing.T) {
-	uri, err := url.Parse(fmt.Sprintf("file://%s/oneline.txt", fixtureDir))
-	require.Nil(t, err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(t, err)
-
-	consumer := makeDepartureLineConsumer()
-	departures := consumer.data
-	err = LoadData(reader, consumer)
-	require.Nil(t, err)
-	assert.Len(t, departures, 1)
-
-	require.Contains(t, departures, "1")
-	require.Len(t, departures["1"], 1)
-
-	d := departures["1"][0]
-	assert.Equal(t, "1", d.Stop)
-	assert.Equal(t, "87A", d.Line)
-	assert.Equal(t, "E", d.Type)
-	assert.Equal(t, "35998", d.Direction)
-	assert.Equal(t, "Mions Bourdelle", d.DirectionName)
-	assert.Equal(t, "2018-09-17 20:28:00 +0200 CEST", d.Datetime.String())
-}
-
-func TestLoadFull(t *testing.T) {
-	uri, err := url.Parse(fmt.Sprintf("file://%s/extract_edylic.txt", fixtureDir))
-	require.Nil(t, err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(t, err)
-
-	consumer := makeDepartureLineConsumer()
-	departures := consumer.data
-	err = LoadData(reader, consumer)
-	require.Nil(t, err)
-	assert.Len(t, departures, 347)
-
-	require.Contains(t, departures, "3")
-	require.Len(t, departures["3"], 4)
-
-	//lets check that the sort is OK
-	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures["3"][0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures["3"][1].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures["3"][2].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures["3"][3].Datetime.String())
-}
-
 func TestLoadParkingData(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -201,10 +155,10 @@ func TestLoadParkingData(t *testing.T) {
 	require.Nil(err)
 
 	consumer := makeParkingLineConsumer()
-	err = LoadDataWithOptions(reader, consumer, LoadDataOptions{
-		delimiter:     ';',
-		nbFields:      0,
-		skipFirstLine: true,
+	err = utils.LoadDataWithOptions(reader, consumer, utils.LoadDataOptions{
+		Delimiter:     ';',
+		NbFields:      0,
+		SkipFirstLine: true,
 	})
 	require.Nil(err)
 
@@ -223,148 +177,6 @@ func TestLoadParkingData(t *testing.T) {
 	assert.Equal(105, p.TotalStandardSpaces)
 	assert.Equal(0, p.AvailableAccessibleSpaces)
 	assert.Equal(3, p.TotalAccessibleSpaces)
-}
-
-func checkFirst(t *testing.T, departures []Departure) {
-	require.Len(t, departures, 4)
-	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[2].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[3].Datetime.String())
-}
-
-func checkSecond(t *testing.T, departures []Departure) {
-	require.Len(t, departures, 3)
-	assert.Equal(t, "2018-09-17 20:42:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[2].Datetime.String())
-}
-
-func TestRefreshData(t *testing.T) {
-	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
-	require.Nil(t, err)
-	secondURI, err := url.Parse(fmt.Sprintf("file://%s/second.txt", fixtureDir))
-	require.Nil(t, err)
-
-	var manager DataManager
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
-	assert.Nil(t, err)
-	departures, err := manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	checkFirst(t, departures)
-
-	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
-	assert.Nil(t, err)
-	departures, err = manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	checkSecond(t, departures)
-}
-
-func TestMultipleStopsID(t *testing.T) {
-	firstURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
-	require.Nil(t, err)
-
-	var manager DataManager
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
-	assert.Nil(t, err)
-	departures, err := manager.GetDeparturesByStops([]string{"3", "4"})
-	require.Nil(t, err)
-	require.Len(t, departures, 8)
-	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:32:37 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[2].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:39:37 +0200 CEST", departures[3].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[4].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:55:55 +0200 CEST", departures[5].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[6].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:02:55 +0200 CEST", departures[7].Datetime.String())
-
-	departures, err = manager.GetDeparturesByStops([]string{"3", "832813923", "4"})
-	require.Nil(t, err)
-	require.Len(t, departures, 8)
-}
-
-func TestByDirectionType(t *testing.T) {
-	firstURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
-	require.Nil(t, err)
-
-	var manager DataManager
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
-	assert.Nil(t, err)
-	departures, err := manager.GetDeparturesByStopsAndDirectionType([]string{"3", "4"}, DirectionTypeForward)
-	require.Nil(t, err)
-	require.Len(t, departures, 4)
-	assert.Equal(t, "2018-09-17 20:38:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:39:37 +0200 CEST", departures[1].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:01:55 +0200 CEST", departures[2].Datetime.String())
-	assert.Equal(t, "2018-09-17 21:02:55 +0200 CEST", departures[3].Datetime.String())
-
-	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"3"}, DirectionTypeBackward)
-	require.Nil(t, err)
-	require.Len(t, departures, 2)
-	assert.Equal(t, "2018-09-17 20:28:37 +0200 CEST", departures[0].Datetime.String())
-	assert.Equal(t, "2018-09-17 20:52:55 +0200 CEST", departures[1].Datetime.String())
-
-	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"5"}, DirectionTypeForward)
-	require.Nil(t, err)
-	require.Len(t, departures, 4)
-
-	departures, err = manager.GetDeparturesByStopsAndDirectionType([]string{"5"}, DirectionTypeBackward)
-	require.Nil(t, err)
-	require.Len(t, departures, 0)
-}
-
-func TestRefreshDataError(t *testing.T) {
-	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
-	require.Nil(t, err)
-
-	misssingFieldURI, err := url.Parse(fmt.Sprintf("file://%s/missingfield.txt", fixtureDir))
-	require.Nil(t, err)
-
-	invalidDateURI, err := url.Parse(fmt.Sprintf("file://%s/invaliddate.txt", fixtureDir))
-	require.Nil(t, err)
-
-	secondURI, err := url.Parse(fmt.Sprintf("file://%s/second.txt", fixtureDir))
-	require.Nil(t, err)
-
-	var manager DataManager
-
-	reader, err := utils.GetFile(*misssingFieldURI, defaultTimeout)
-	require.Nil(t, err)
-
-	err = LoadData(reader, makeDepartureLineConsumer())
-	require.Error(t, err)
-
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
-	require.Nil(t, err)
-	departures, err := manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	checkFirst(t, departures)
-
-	err = RefreshDepartures(&manager, *misssingFieldURI, defaultTimeout)
-	require.Error(t, err)
-	//data hasn't been updated
-	departures, err = manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	checkFirst(t, departures)
-
-	err = RefreshDepartures(&manager, *secondURI, defaultTimeout)
-	require.Nil(t, err)
-	departures, err = manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	checkSecond(t, departures)
-
-	reader, err = utils.GetFile(*invalidDateURI, defaultTimeout)
-	require.Nil(t, err)
-	err = LoadData(reader, makeDepartureLineConsumer())
-	require.Error(t, err)
-
-	err = RefreshDepartures(&manager, *invalidDateURI, defaultTimeout)
-	require.Error(t, err)
-	departures, err = manager.GetDeparturesByStops([]string{"3"})
-	require.Nil(t, err)
-	//we still get old departures
-	checkSecond(t, departures)
 }
 
 func TestLoadStopPointsFromFile(t *testing.T) {

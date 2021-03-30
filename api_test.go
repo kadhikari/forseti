@@ -17,135 +17,10 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
-
-func TestDeparturesApi(t *testing.T) {
-	assert := assert.New(t)
-	require := require.New(t)
-	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
-	require.Nil(err)
-
-	multipleURI, err := url.Parse(fmt.Sprintf("file://%s/multiple.txt", fixtureDir))
-	require.Nil(err)
-
-	var manager DataManager
-
-	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
-
-	c.Request = httptest.NewRequest("GET", "/departures", nil)
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(400, w.Code)
-	response := DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Nil(response.Departures)
-	assert.NotEmpty(response.Message)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(503, w.Code)
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Nil(response.Departures)
-	assert.NotEmpty(response.Message)
-
-	//we load some data
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
-	assert.Nil(err)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	assert.NotEmpty(response.Departures)
-	assert.Len(*response.Departures, 4)
-
-	//these is no stop 5 in our dataset
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=5", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	require.Empty(response.Departures)
-
-	//load data with more than one stops
-	err = RefreshDepartures(&manager, *multipleURI, defaultTimeout)
-	assert.Nil(err)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	assert.NotEmpty(response.Departures)
-	assert.Len(*response.Departures, 8)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=both", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	assert.NotEmpty(response.Departures)
-	assert.Len(*response.Departures, 8)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=forward", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	assert.NotEmpty(response.Departures)
-	assert.Len(*response.Departures, 4)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=backward", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-
-	response = DeparturesResponse{}
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	assert.Empty(response.Message)
-	require.NotNil(response.Departures)
-	assert.NotEmpty(response.Departures)
-	assert.Len(*response.Departures, 2)
-
-	c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=aller", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(400, w.Code)
-}
 
 func TestStatusApiExist(t *testing.T) {
 	require := require.New(t)
@@ -166,17 +41,20 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	firstURI, err := url.Parse(fmt.Sprintf("file://%s/first.txt", fixtureDir))
 	require.Nil(err)
 
+	departuresContext := &departures.DeparturesContext{}
 	var manager DataManager
+	manager.SetDeparturesContext(departuresContext)
 
-	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	engine = SetupRouter(&manager, engine)
+	c, router := gin.CreateTestContext(httptest.NewRecorder())
+	departures.AddDeparturesEntryPoint(router, departuresContext)
+	router.GET("/status", StatusHandler(&manager))
 
-	err = RefreshDepartures(&manager, *firstURI, defaultTimeout)
+	err = departures.RefreshDepartures(departuresContext, *firstURI, defaultTimeout)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
+	router.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 
 	var response StatusResponse

@@ -13,11 +13,6 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-type DeparturesResponse struct {
-	Message    string       `json:"message,omitempty"`
-	Departures *[]Departure `json:"departures,omitempty"` // the pointer allow us to display an empty array in json
-}
-
 type LoadingStatus struct {
 	RefreshActive bool      `json:"refresh_active"`
 	LastUpdate    time.Time `json:"last_update"`
@@ -94,32 +89,6 @@ var (
 	)
 )
 
-func DeparturesHandler(manager *DataManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		response := DeparturesResponse{}
-		stopID, found := c.GetQueryArray("stop_id")
-		if !found {
-			response.Message = "stopID is required"
-			c.JSON(http.StatusBadRequest, response)
-			return
-		}
-		directionType, err := ParseDirectionTypeFromNavitia(c.Query("direction_type"))
-		if err != nil {
-			response.Message = err.Error()
-			c.JSON(http.StatusBadRequest, response)
-			return
-		}
-		departures, err := manager.GetDeparturesByStopsAndDirectionType(stopID, directionType)
-		if err != nil {
-			response.Message = "No data loaded"
-			c.JSON(http.StatusServiceUnavailable, response)
-			return
-		}
-		response.Departures = &departures
-		c.JSON(http.StatusOK, response)
-	}
-}
-
 func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var lastFreeFloatingsDataUpdate time.Time
@@ -147,10 +116,15 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			lastEquipmentDataUpdate = manager.GetEquipmentsContext().GetLastEquipmentsDataUpdate()
 		}
 
+		var lastDeparturesDataUpdate time.Time
+		if manager.GetDeparturesContext() != nil {
+			lastDeparturesDataUpdate = manager.GetDeparturesContext().GetLastDepartureDataUpdate()
+		}
+
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
 			ForsetiVersion,
-			manager.GetLastDepartureDataUpdate(),
+			lastDeparturesDataUpdate,
 			manager.GetLastParkingsDataUpdate(),
 			lastEquipmentDataUpdate,
 			LoadingStatus{loadFreeFloatingData, lastFreeFloatingsDataUpdate},
@@ -237,7 +211,6 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	r.Use(gin.Recovery())
 	pprof.Register(r)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
-	r.GET("/departures", DeparturesHandler(manager))
 	r.GET("/status", StatusHandler(manager))
 	r.GET("/parkings/P+R", ParkingsHandler(manager))
 	r.GET("/vehicle_occupancies", VehicleOccupanciesHandler(manager))

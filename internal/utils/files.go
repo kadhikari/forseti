@@ -2,6 +2,7 @@ package utils
 
 import (
 	"bytes"
+	"encoding/csv"
 	"fmt"
 	"io"
 	"net/url"
@@ -10,7 +11,11 @@ import (
 
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
+
+	"github.com/CanalTP/forseti/internal/data"
 )
+
+var location = "Europe/Paris"
 
 func GetFile(uri url.URL, connectionTimeout time.Duration) (io.Reader, error) {
 	if uri.Scheme == "sftp" {
@@ -71,4 +76,53 @@ func GetFileWithSftp(uri url.URL, connectionTimeout time.Duration) (io.Reader, e
 	}
 	return &buffer, nil
 
+}
+
+type LoadDataOptions struct {
+	SkipFirstLine bool
+	Delimiter     rune
+	NbFields      int
+}
+
+func LoadData(file io.Reader, lineConsumer data.LineConsumer) error {
+
+	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
+		Delimiter:     ';',
+		NbFields:      0, // do not check record size in csv.reader
+		SkipFirstLine: false,
+	})
+}
+
+func LoadDataWithOptions(file io.Reader, lineConsumer data.LineConsumer, options LoadDataOptions) error {
+
+	location, err := time.LoadLocation(location)
+	if err != nil {
+		return err
+	}
+
+	reader := csv.NewReader(file)
+	reader.Comma = options.Delimiter
+	reader.FieldsPerRecord = options.NbFields
+
+	// Loop through lines & turn into object
+	for {
+		line, err := reader.Read()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return err
+		}
+
+		if options.SkipFirstLine {
+			options.SkipFirstLine = false
+			continue
+		}
+
+		if err := lineConsumer.Consume(line, location); err != nil {
+			return err
+		}
+	}
+
+	lineConsumer.Terminate()
+	return nil
 }

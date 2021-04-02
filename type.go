@@ -1,16 +1,14 @@
 package forseti
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"math"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 )
@@ -23,141 +21,6 @@ type VehicleOccupancyRequestParameter struct {
 	StopId           string
 	VehicleJourneyId string
 	Date             time.Time
-}
-
-type DirectionType int
-
-const (
-	DirectionTypeUnknown DirectionType = iota
-	DirectionTypeForward
-	DirectionTypeBackward
-	DirectionTypeBoth
-)
-
-func (d DirectionType) String() string {
-	return [...]string{"unknown", "forward", "backward", "both"}[d]
-}
-
-// MarshalJSON marshals the enum as a quoted json string
-func (d DirectionType) MarshalJSON() ([]byte, error) {
-	buffer := bytes.NewBufferString(`"`)
-	buffer.WriteString(d.String())
-	buffer.WriteString(`"`)
-	return buffer.Bytes(), nil
-}
-
-// UnmarshalJSON unmarshals a quoted json string to the enum value
-func (d *DirectionType) UnmarshalJSON(b []byte) error {
-	var j string
-	err := json.Unmarshal(b, &j)
-	if err != nil {
-		return err
-	}
-	// Note that if the string cannot be found then it will be set to the zero value, 'Created' in this case.
-	*d, err = ParseDirectionTypeFromNavitia(j)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func ParseDirectionType(value string) DirectionType {
-	switch value {
-	case "ALL": //Aller => forward in french
-		return DirectionTypeForward
-	case "RET": // Retour => backward in french
-		return DirectionTypeBackward
-	default:
-		return DirectionTypeUnknown
-
-	}
-}
-
-func ParseDirectionTypeFromNavitia(value string) (DirectionType, error) {
-	switch value {
-	case "forward":
-		return DirectionTypeForward, nil
-	case "backward":
-		return DirectionTypeBackward, nil
-	case "", "both":
-		return DirectionTypeBoth, nil
-	case "unknown":
-		return DirectionTypeUnknown, nil
-	default:
-		return DirectionTypeUnknown, fmt.Errorf("impossible to parse %s", value)
-
-	}
-}
-
-type LineConsumer interface {
-	Consume([]string, *time.Location) error
-	Terminate()
-}
-
-// Departure represent a departure for a public transport vehicle
-type Departure struct {
-	Line          string        `json:"line"`
-	Stop          string        `json:"stop"`
-	Type          string        `json:"type"`
-	Direction     string        `json:"direction"`
-	DirectionName string        `json:"direction_name"`
-	Datetime      time.Time     `json:"datetime"`
-	DirectionType DirectionType `json:"direction_type,omitempty"`
-	//VJ            string
-	//Route         string
-}
-
-func NewDeparture(record []string, location *time.Location) (Departure, error) {
-	if len(record) < 7 {
-		return Departure{}, fmt.Errorf("Missing field in record")
-	}
-	dt, err := time.ParseInLocation("2006-01-02 15:04:05", record[5], location)
-	if err != nil {
-		return Departure{}, err
-	}
-	var directionType DirectionType
-	if len(record) >= 10 {
-		directionType = ParseDirectionType(record[9])
-	}
-
-	return Departure{
-		Stop:          record[0],
-		Line:          record[1],
-		Type:          record[4],
-		Datetime:      dt,
-		Direction:     record[6],
-		DirectionName: record[2],
-		DirectionType: directionType,
-	}, nil
-}
-
-// DepartureLineConsumer constructs a departure from a slice of strings
-type DepartureLineConsumer struct {
-	data map[string][]Departure
-}
-
-func makeDepartureLineConsumer() *DepartureLineConsumer {
-	return &DepartureLineConsumer{make(map[string][]Departure)}
-}
-
-func (p *DepartureLineConsumer) Consume(line []string, loc *time.Location) error {
-
-	departure, err := NewDeparture(line, loc)
-	if err != nil {
-		return err
-	}
-
-	p.data[departure.Stop] = append(p.data[departure.Stop], departure)
-	return nil
-}
-
-func (p *DepartureLineConsumer) Terminate() {
-	//sort the departures
-	for _, v := range p.data {
-		sort.Slice(v, func(i, j int) bool {
-			return v[i].Datetime.Before(v[j].Datetime)
-		})
-	}
 }
 
 // Parking defines details and spaces available for P+R parkings
@@ -421,10 +284,6 @@ func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, er
 
 // Data manager for all apis
 type DataManager struct {
-	departures          *map[string][]Departure
-	lastDepartureUpdate time.Time
-	departuresMutex     sync.RWMutex
-
 	parkings          *map[string]Parking
 	lastParkingUpdate time.Time
 	parkingsMutex     sync.RWMutex
@@ -440,69 +299,8 @@ type DataManager struct {
 	loadOccupancyData            bool
 
 	equipmentsContext *equipments.EquipmentsContext
-}
 
-func (d *DataManager) UpdateDepartures(departures map[string][]Departure) {
-	d.departuresMutex.Lock()
-	defer d.departuresMutex.Unlock()
-
-	d.departures = &departures
-	d.lastDepartureUpdate = time.Now()
-}
-
-func (d *DataManager) GetLastDepartureDataUpdate() time.Time {
-	d.departuresMutex.RLock()
-	defer d.departuresMutex.RUnlock()
-
-	return d.lastDepartureUpdate
-}
-
-func (d *DataManager) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
-	return d.GetDeparturesByStopsAndDirectionType(stopsID, DirectionTypeBoth)
-}
-func (d *DataManager) GetDeparturesByStopsAndDirectionType(
-	stopsID []string,
-	directionType DirectionType) ([]Departure, error) {
-
-	var departures []Departure
-	{
-		d.departuresMutex.RLock()
-		defer d.departuresMutex.RUnlock()
-
-		if d.departures == nil {
-			return []Departure{}, fmt.Errorf("no departures")
-		}
-		for _, stopID := range stopsID {
-			departures = append(departures, (*d.departures)[stopID]...)
-		}
-	}
-
-	if departures == nil {
-		//there is no departures for this stop, we return an empty slice
-		return []Departure{}, nil
-	}
-	departures = filterDeparturesByDirectionType(departures, directionType)
-	sort.Slice(departures, func(i, j int) bool {
-		return departures[i].Datetime.Before(departures[j].Datetime)
-	})
-	return departures, nil
-}
-
-func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {
-	return (wantedDirectionType == departureDirectionType ||
-		departureDirectionType == DirectionTypeUnknown ||
-		wantedDirectionType == DirectionTypeBoth)
-}
-
-func filterDeparturesByDirectionType(departures []Departure, directionType DirectionType) []Departure {
-	n := 0
-	for _, d := range departures {
-		if keepDirection(d.DirectionType, directionType) {
-			departures[n] = d
-			n++
-		}
-	}
-	return departures[:n]
+	departuresContext *departures.DeparturesContext
 }
 
 func (d *DataManager) UpdateParkings(parkings map[string]Parking) {
@@ -534,6 +332,14 @@ func (d *DataManager) SetFreeFloatingsContext(freeFloatingsContext *freefloating
 
 func (d *DataManager) GetFreeFloatingsContext() *freefloatings.FreeFloatingsContext {
 	return d.freeFloatingsContext
+}
+
+func (d *DataManager) SetDeparturesContext(departuresContext *departures.DeparturesContext) {
+	d.departuresContext = departuresContext
+}
+
+func (d *DataManager) GetDeparturesContext() *departures.DeparturesContext {
+	return d.departuresContext
 }
 
 func (d *DataManager) GetParkingsByIds(ids []string) (parkings []Parking, errors []error) {

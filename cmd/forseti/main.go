@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 
@@ -147,11 +148,6 @@ func main() {
 	// create API router
 	router := forseti.SetupRouter(manager, nil)
 
-	err = forseti.RefreshDepartures(manager, config.DeparturesURI, config.ConnectionTimeout)
-	if err != nil {
-		logrus.Errorf("Impossible to load departures data at startup: %s (%s)", err, config.DeparturesURIStr)
-	}
-
 	err = forseti.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
 	if err != nil {
 		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
@@ -169,7 +165,6 @@ func main() {
 		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
 	}
 
-	go RefreshDepartureLoop(manager, config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 
 	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken,
@@ -182,6 +177,9 @@ func main() {
 
 	// With freefloating
 	FreeFloating(manager, &config, router)
+
+	// With departures
+	Departures(manager, &config, router)
 
 	// start router
 	err = router.Run()
@@ -204,7 +202,7 @@ func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine
 
 func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engine) {
 	if len(config.FreeFloatingsURI.String()) == 0 || config.FreeFloatingsRefresh.Seconds() <= 0 {
-		logrus.Debug("Equipments is disabled")
+		logrus.Debug("FreeFloating is disabled")
 		return
 	}
 
@@ -222,21 +220,16 @@ func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engi
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
 
-func RefreshDepartureLoop(manager *forseti.DataManager,
-	departuresURI url.URL,
-	departuresRefresh, connectionTimeout time.Duration) {
-	if len(departuresURI.String()) == 0 || departuresRefresh.Seconds() <= 0 {
-		logrus.Debug("Departure data refreshing is disabled")
+func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+	if len(config.DeparturesURI.String()) == 0 || config.DeparturesRefresh.Seconds() <= 0 {
+		logrus.Debug("Departures is disabled")
 		return
 	}
-	for {
-		err := forseti.RefreshDepartures(manager, departuresURI, connectionTimeout)
-		if err != nil {
-			logrus.Error("Error while reloading departures data: ", err)
-		}
-		logrus.Debug("Departure data updated")
-		time.Sleep(departuresRefresh)
-	}
+	departuresContext := &departures.DeparturesContext{}
+	manager.SetDeparturesContext(departuresContext)
+	go departures.RefreshDeparturesLoop(departuresContext, config.DeparturesURI,
+		config.DeparturesRefresh, config.ConnectionTimeout)
+	departures.AddDeparturesEntryPoint(router, departuresContext)
 }
 
 func RefreshParkingLoop(manager *forseti.DataManager,

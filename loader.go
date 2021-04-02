@@ -1,7 +1,6 @@
 package forseti
 
 import (
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 
@@ -14,27 +13,13 @@ import (
 	"golang.org/x/text/encoding/charmap"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
 var (
-	departureLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "forseti",
-		Subsystem: "departures",
-		Name:      "load_durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	})
-
-	departureLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "forseti",
-		Subsystem: "departures",
-		Name:      "loading_errors",
-		Help:      "current number of http request being served",
-	})
-
 	parkingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "forseti",
 		Subsystem: "parkings",
@@ -67,81 +52,14 @@ var (
 )
 
 func init() {
-	prometheus.MustRegister(departureLoadingDuration)
-	prometheus.MustRegister(departureLoadingErrors)
+	prometheus.MustRegister(departures.DepartureLoadingDuration)
+	prometheus.MustRegister(departures.DepartureLoadingErrors)
 	prometheus.MustRegister(parkingsLoadingDuration)
 	prometheus.MustRegister(parkingsLoadingErrors)
 	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
 	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
-}
-
-type LoadDataOptions struct {
-	skipFirstLine bool
-	delimiter     rune
-	nbFields      int
-}
-
-func LoadData(file io.Reader, lineConsumer LineConsumer) error {
-
-	return LoadDataWithOptions(file, lineConsumer, LoadDataOptions{
-		delimiter:     ';',
-		nbFields:      0, // do not check record size in csv.reader
-		skipFirstLine: false,
-	})
-}
-
-func LoadDataWithOptions(file io.Reader, lineConsumer LineConsumer, options LoadDataOptions) error {
-
-	location, err := time.LoadLocation(location)
-	if err != nil {
-		return err
-	}
-
-	reader := csv.NewReader(file)
-	reader.Comma = options.delimiter
-	reader.FieldsPerRecord = options.nbFields
-
-	// Loop through lines & turn into object
-	for {
-		line, err := reader.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return err
-		}
-
-		if options.skipFirstLine {
-			options.skipFirstLine = false
-			continue
-		}
-
-		if err := lineConsumer.Consume(line, location); err != nil {
-			return err
-		}
-	}
-
-	lineConsumer.Terminate()
-	return nil
-}
-
-func RefreshDepartures(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
-	begin := time.Now()
-	file, err := utils.GetFile(uri, connectionTimeout)
-	if err != nil {
-		departureLoadingErrors.Inc()
-		return err
-	}
-
-	departureConsumer := makeDepartureLineConsumer()
-	if err = LoadData(file, departureConsumer); err != nil {
-		departureLoadingErrors.Inc()
-		return err
-	}
-	manager.UpdateDepartures(departureConsumer.data)
-	departureLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
 }
 
 func RefreshParkings(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
@@ -153,12 +71,12 @@ func RefreshParkings(manager *DataManager, uri url.URL, connectionTimeout time.D
 	}
 
 	parkingsConsumer := makeParkingLineConsumer()
-	loadDataOptions := LoadDataOptions{
-		delimiter:     ';',
-		nbFields:      0,    // We might not have etereogenous lines
-		skipFirstLine: true, // First line is a header
+	loadDataOptions := utils.LoadDataOptions{
+		Delimiter:     ';',
+		NbFields:      0,    // We might not have etereogenous lines
+		SkipFirstLine: true, // First line is a header
 	}
-	err = LoadDataWithOptions(file, parkingsConsumer, loadDataOptions)
+	err = utils.LoadDataWithOptions(file, parkingsConsumer, loadDataOptions)
 	if err != nil {
 		parkingsLoadingErrors.Inc()
 		return err
@@ -199,12 +117,12 @@ func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]St
 	}
 
 	stopPointsConsumer := makeStopPointLineConsumer()
-	loadDataOptions := LoadDataOptions{
-		delimiter:     ';',
-		nbFields:      0,    // We might not have etereogenous lines
-		skipFirstLine: true, // First line is a header
+	loadDataOptions := utils.LoadDataOptions{
+		Delimiter:     ';',
+		NbFields:      0,    // We might not have etereogenous lines
+		SkipFirstLine: true, // First line is a header
 	}
-	err = LoadDataWithOptions(file, stopPointsConsumer, loadDataOptions)
+	err = utils.LoadDataWithOptions(file, stopPointsConsumer, loadDataOptions)
 	if err != nil {
 		return nil, err
 	}
@@ -221,12 +139,12 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	}
 
 	courseLineConsumer := makeCourseLineConsumer()
-	loadDataOptions := LoadDataOptions{
-		delimiter:     ';',
-		nbFields:      0,    // We might not have etereogenous lines
-		skipFirstLine: true, // First line is a header
+	loadDataOptions := utils.LoadDataOptions{
+		Delimiter:     ';',
+		NbFields:      0,    // We might not have etereogenous lines
+		SkipFirstLine: true, // First line is a header
 	}
-	err = LoadDataWithOptions(file, courseLineConsumer, loadDataOptions)
+	err = utils.LoadDataWithOptions(file, courseLineConsumer, loadDataOptions)
 	if err != nil {
 		fmt.Println("LoadCourses Error: ", err.Error())
 		return nil, err

@@ -114,3 +114,8 @@ type PredictionNode struct {
 	Charge    float64   `json:"charge"`
 	CreatedAt time.Time `json:"created_at"`
 }
+
+type LineConsumer interface {
+	Consume([]string, *time.Location) error
+	Terminate()
+}

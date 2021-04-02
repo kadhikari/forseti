@@ -10,6 +10,7 @@ import (
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/parkings"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -148,11 +149,6 @@ func main() {
 	// create API router
 	router := forseti.SetupRouter(manager, nil)
 
-	err = forseti.RefreshParkings(manager, config.ParkingsURI, config.ConnectionTimeout)
-	if err != nil {
-		logrus.Errorf("Impossible to load parkings data at startup: %s (%s)", err, config.ParkingsURIStr)
-	}
-
 	err = forseti.LoadAllForVehicleOccupancies(
 		manager,
 		config.OccupancyFilesURI,
@@ -164,8 +160,6 @@ func main() {
 	if err != nil {
 		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
 	}
-
-	go RefreshParkingLoop(manager, config.ParkingsURI, config.ParkingsRefresh, config.ConnectionTimeout)
 
 	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken,
 		config.OccupancyRefresh, config.ConnectionTimeout, location)
@@ -180,6 +174,9 @@ func main() {
 
 	// With departures
 	Departures(manager, &config, router)
+
+	// With parkings
+	Parkings(manager, &config, router)
 
 	// start router
 	err = router.Run()
@@ -232,21 +229,16 @@ func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 }
 
-func RefreshParkingLoop(manager *forseti.DataManager,
-	parkingsURI url.URL,
-	parkingsRefresh, connectionTimeout time.Duration) {
-	if len(parkingsURI.String()) == 0 || parkingsRefresh.Seconds() <= 0 {
-		logrus.Debug("Parking data refreshing is disabled")
+func Parkings(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+	if len(config.ParkingsURI.String()) == 0 || config.ParkingsRefresh.Seconds() <= 0 {
+		logrus.Debug("Parkings is disabled")
 		return
 	}
-	for {
-		err := forseti.RefreshParkings(manager, parkingsURI, connectionTimeout)
-		if err != nil {
-			logrus.Error("Error while reloading parking data: ", err)
-		}
-		logrus.Debug("Parking data updated")
-		time.Sleep(parkingsRefresh)
-	}
+	parkingsContext := &parkings.ParkingsContext{}
+	manager.SetParkingsContext(parkingsContext)
+	go parkings.RefreshParkingsLoop(parkingsContext, config.ParkingsURI,
+		config.ParkingsRefresh, config.ConnectionTimeout)
+	parkings.AddParkingsEntryPoint(router, parkingsContext)
 }
 
 func ManageVehicleOccupancyActivation(manager *forseti.DataManager, vehicleoccupanciesActive bool) {

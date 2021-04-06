@@ -1,28 +1,10 @@
-version: "3.8"
-
+version: "3.2"
 services:
   forseti:
-    image: navitia/forseti:${FORSETI_IMAGE_VERSION:-latest}
-    deploy:
-      resources:
-        limits:
-          memory: 1024M
-      labels:
-        - traefik.frontend.rule=Host:${TRAEFIK_ENDPOINT_NAME:-forseti-dev-demo.canaltp.prod}
-        - traefik.enable=true
-        - traefik.port=8080
-        - traefik.docker.network=lb-common
-        # Traefik service that listens to HTTP
-        - traefik.redirectorservice.frontend.entryPoints=http
-    networks:
-      - lb-common
-    logging:
-      driver: "fluentd"
-      options:
-        tag: forseti.${FORSETI_PROVIDER_NAME:-demo} # Default value "demo"
-        fluentd-async-connect: "true"
-    volumes:
-      - ./data:/data 
+    image: navitia/forseti:master
+    ports:
+      - target: 8080
+        published: 8088
     environment:
       - GIN_MODE=release
       - TZ=Europe/Paris
@@ -56,7 +38,10 @@ services:
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
 
-networks:
-  lb-common:
-    name: lb-common
-    external: true
+    volumes:
+      - ~/workspace/data/forseti:/data
+
+    deploy:
+      resources:
+        limits:
+          memory: 1024M

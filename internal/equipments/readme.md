@@ -3,7 +3,7 @@
 ## Introduction
 
 We use this service to collect some informations about Stop areas equipments like **Escalators/Elevators**.
-The realtime information is readed inside a Ftp server provider inside an **Xml file**.
+The realtime information is readed within an **Xml file**.
 
 ## Api
 

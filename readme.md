@@ -84,7 +84,7 @@ Use the pre-built docker image: [navitia/forseti](https://hub.docker.com/r/navit
 Several **tags** exists:
 
 - release/latest - The main tag. This is the last stable version
-- 0.X.0 - Each main version is tagged with a num
+- X.X.X - Each main version is tagged with a num
 - master - The current branch of development
 
 A docker compose is available for a local run.<br>

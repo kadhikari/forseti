@@ -145,40 +145,6 @@ func TestGetSFTPFileError(t *testing.T) {
 	require.Error(t, err)
 }
 
-func TestLoadParkingData(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	uri, err := url.Parse(fmt.Sprintf("file://%s/parkings.txt", fixtureDir))
-	require.Nil(err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(err)
-
-	consumer := makeParkingLineConsumer()
-	err = utils.LoadDataWithOptions(reader, consumer, utils.LoadDataOptions{
-		Delimiter:     ';',
-		NbFields:      0,
-		SkipFirstLine: true,
-	})
-	require.Nil(err)
-
-	parkings := consumer.parkings
-	assert.Len(parkings, 19)
-	require.Contains(parkings, "DECC")
-
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	p := parkings["DECC"]
-	assert.Equal("DECC", p.ID)
-	assert.Equal("Décines Centre", p.Label)
-	assert.Equal(time.Date(2018, 9, 17, 19, 29, 0, 0, location), p.UpdatedTime)
-	assert.Equal(82, p.AvailableStandardSpaces)
-	assert.Equal(105, p.TotalStandardSpaces)
-	assert.Equal(0, p.AvailableAccessibleSpaces)
-	assert.Equal(3, p.TotalAccessibleSpaces)
-}
-
 func TestLoadStopPointsFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)

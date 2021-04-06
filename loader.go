@@ -16,25 +16,11 @@ import (
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
 var (
-	parkingsLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "forseti",
-		Subsystem: "parkings",
-		Name:      "load_durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	})
-
-	parkingsLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "forseti",
-		Subsystem: "parkings",
-		Name:      "loading_errors",
-		Help:      "current number of http request being served",
-	})
-
 	occupanciesLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
 		Namespace: "forseti",
 		Subsystem: "vehicle_occupancies",
@@ -54,38 +40,12 @@ var (
 func init() {
 	prometheus.MustRegister(departures.DepartureLoadingDuration)
 	prometheus.MustRegister(departures.DepartureLoadingErrors)
-	prometheus.MustRegister(parkingsLoadingDuration)
-	prometheus.MustRegister(parkingsLoadingErrors)
+	prometheus.MustRegister(parkings.ParkingsLoadingDuration)
+	prometheus.MustRegister(parkings.ParkingsLoadingErrors)
 	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
 	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
-}
-
-func RefreshParkings(manager *DataManager, uri url.URL, connectionTimeout time.Duration) error {
-	begin := time.Now()
-	file, err := utils.GetFile(uri, connectionTimeout)
-	if err != nil {
-		parkingsLoadingErrors.Inc()
-		return err
-	}
-
-	parkingsConsumer := makeParkingLineConsumer()
-	loadDataOptions := utils.LoadDataOptions{
-		Delimiter:     ';',
-		NbFields:      0,    // We might not have etereogenous lines
-		SkipFirstLine: true, // First line is a header
-	}
-	err = utils.LoadDataWithOptions(file, parkingsConsumer, loadDataOptions)
-	if err != nil {
-		parkingsLoadingErrors.Inc()
-		return err
-	}
-
-	manager.UpdateParkings(parkingsConsumer.parkings)
-	parkingsLoadingDuration.Observe(time.Since(begin).Seconds())
-
-	return nil
 }
 
 func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {

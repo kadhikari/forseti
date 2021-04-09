@@ -1,22 +1,18 @@
 package forseti
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-
-	"io/ioutil"
 	"net/url"
 	"os"
 	"testing"
 	"time"
 
 	"github.com/ory/dockertest"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
@@ -36,13 +32,13 @@ func TestMain(m *testing.M) {
 
 	flag.Parse() //required to get Short() from testing
 	if testing.Short() {
-		log.Warn("skipping test Docker in short mode.")
+		logrus.Warn("skipping test Docker in short mode.")
 		os.Exit(m.Run())
 	}
 
 	pool, err := dockertest.NewPool("")
 	if err != nil {
-		log.Fatalf("Could not connect to docker: %s", err)
+		logrus.Fatalf("Could not connect to docker: %s", err)
 	}
 	opts := dockertest.RunOptions{
 		Repository: "atmoz/sftp",
@@ -52,7 +48,7 @@ func TestMain(m *testing.M) {
 	}
 	resource, err := pool.RunWithOptions(&opts)
 	if err != nil {
-		log.Fatalf("Could not start resource: %s", err)
+		logrus.Fatalf("Could not start resource: %s", err)
 	}
 	//lets wait a bit for the docker to start :(
 	time.Sleep(3 * time.Second)
@@ -62,7 +58,7 @@ func TestMain(m *testing.M) {
 
 	// You can't defer this because os.Exit doesn't care for defer
 	if err := pool.Purge(resource); err != nil {
-		log.Fatalf("Could not purge resource: %s", err)
+		logrus.Fatalf("Could not purge resource: %s", err)
 	}
 
 	os.Exit(code)
@@ -143,101 +139,4 @@ func TestGetSFTPFileError(t *testing.T) {
 	require.Error(t, err)
 	_, err = utils.GetFile(*uri, defaultTimeout)
 	require.Error(t, err)
-}
-
-func TestLoadStopPointsFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	// FileName for StopPoints should be mapping_stops.csv
-	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
-	require.Nil(err)
-	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
-	require.Nil(err)
-	assert.Equal(len(stopPoints), 25)
-	stopPoint := stopPoints["Copernic0"]
-	assert.Equal(stopPoint.Name, "Copernic")
-	assert.Equal(stopPoint.Direction, 0)
-	assert.Equal(stopPoint.Id, "stop_point:0:SP:80:4029")
-}
-
-func TestLoadCoursesFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	// FileName for StopPoints should be extraction_courses.csv
-	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
-	require.Nil(err)
-	courses, err := LoadCourses(*uri, defaultTimeout)
-	require.Nil(err)
-	// It's map size (line_code=40)
-	assert.Equal(len(courses), 1)
-	course40 := courses["40"]
-	assert.Equal(len(course40), 310)
-	assert.Equal(course40[0].LineCode, "40")
-	assert.Equal(course40[0].Course, "2774327")
-	assert.Equal(course40[0].DayOfWeek, 1)
-	time, err := time.ParseInLocation("15:04:05", "05:47:18", location)
-	require.Nil(err)
-	assert.Equal(course40[0].FirstTime, time)
-}
-
-func TestLoadRouteSchedulesFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	uri, err := url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
-	require.Nil(err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(err)
-
-	jsonData, err := ioutil.ReadAll(reader)
-	require.Nil(err)
-
-	navitiaRoutes := &data.NavitiaRoutes{}
-	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
-	require.Nil(err)
-	sens := 0
-	startIndex := 1
-	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
-	assert.Equal(len(routeSchedules), 141)
-	assert.Equal(routeSchedules[0].Id, 1)
-	assert.Equal(routeSchedules[0].LineCode, "40")
-	assert.Equal(routeSchedules[0].VehicleJourneyId, "vehicle_journey:0:123713787-1")
-	assert.Equal(routeSchedules[0].StopId, "stop_point:0:SP:80:4131")
-	assert.Equal(routeSchedules[0].Direction, 0)
-	assert.Equal(routeSchedules[0].Departure, true)
-	assert.Equal(routeSchedules[0].DateTime, time.Date(2021, 1, 18, 06, 0, 0, 0, location))
-}
-
-func TestLoadPredictionsFromFile(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-
-	uri, err := url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
-	require.Nil(err)
-	reader, err := utils.GetFileWithFS(*uri)
-	require.Nil(err)
-
-	jsonData, err := ioutil.ReadAll(reader)
-	require.Nil(err)
-
-	predicts := &data.PredictionData{}
-	err = json.Unmarshal([]byte(jsonData), predicts)
-	require.Nil(err)
-	predictions := LoadPredictionsData(predicts, location)
-	assert.Equal(len(predictions), 65)
-	assert.Equal(predictions[0].LineCode, "40")
-	assert.Equal(predictions[0].Order, 0)
-	assert.Equal(predictions[0].Direction, 0)
-	assert.Equal(predictions[0].Date, time.Date(2021, 1, 18, 0, 0, 0, 0, location))
-	assert.Equal(predictions[0].Course, "2774327")
-	assert.Equal(predictions[0].StopName, "Pont de Sevres")
-	assert.Equal(predictions[0].Occupancy, 12)
 }

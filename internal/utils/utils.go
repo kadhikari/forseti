@@ -2,6 +2,7 @@ package utils
 
 import (
 	"math"
+	"net/http"
 	"strconv"
 	"time"
 )
@@ -48,4 +49,15 @@ func CalculateOccupancy(charge int) int {
 	}
 	occupancy := (charge * 100) / vehicleCapacity
 	return occupancy
+}
+
+func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (*http.Response, error) {
+	client := &http.Client{Timeout: 10 * connectionTimeout}
+	req, err := http.NewRequest("GET", url, nil)
+	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
+	req.Header.Set(header, token)
+	if err != nil {
+		return nil, err
+	}
+	return client.Do(req)
 }

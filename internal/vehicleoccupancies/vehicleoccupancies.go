@@ -273,7 +273,8 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	return predictions, nil
 }
 
-func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext, predictions []Prediction) map[int]VehicleOccupancy {
+func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext,
+	predictions []Prediction) map[int]VehicleOccupancy {
 	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
 	occupanciesWithCharge := make(map[int]VehicleOccupancy)
 	var vehicleJourneyId = ""
@@ -305,8 +306,9 @@ func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext, predic
 	return occupanciesWithCharge
 }
 
-func LoadAllForVehicleOccupancies(context *VehicleOccupanciesContext, files_uri, navitia_url, predict_url url.URL, navitia_token,
-	predict_token string, connectionTimeout time.Duration, location *time.Location) error {
+func LoadAllForVehicleOccupancies(context *VehicleOccupanciesContext, files_uri, navitia_url,
+	predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration,
+	location *time.Location) error {
 	// Load referential Stoppoints file
 	stopPoints, err := LoadStopPoints(files_uri, connectionTimeout)
 	if err != nil {

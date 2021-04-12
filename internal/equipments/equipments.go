@@ -107,7 +107,7 @@ func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
 		return charmap.ISO8859_1.NewDecoder().Reader(input), nil
 	}
 
-	return nil, fmt.Errorf("Unknown Charset")
+	return nil, fmt.Errorf("unknown Charset")
 }
 
 // NewEquipmentDetail creates a new EquipmentDetail object from the object EquipementSource

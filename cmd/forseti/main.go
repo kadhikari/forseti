@@ -6,10 +6,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/api"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
@@ -140,12 +141,12 @@ func main() {
 	}
 
 	initLog(config.JSONLog, config.LogLevel)
-	manager := &forseti.DataManager{}
+	manager := &manager.DataManager{}
 
 	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
 	// create API router
-	router := forseti.SetupRouter(manager, nil)
+	router := api.SetupRouter(manager, nil)
 
 	// With equipments
 	Equipments(manager, &config, router)
@@ -169,7 +170,7 @@ func main() {
 	}
 }
 
-func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Equipments(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.EquipmentsURI.String()) == 0 || config.EquipmentsRefresh.Seconds() <= 0 {
 		logrus.Debug("Equipments is disabled")
 		return
@@ -181,7 +182,7 @@ func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine
 	equipments.AddEquipmentsEntryPoint(router, equipmentsContext)
 }
 
-func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.FreeFloatingsURI.String()) == 0 || config.FreeFloatingsRefresh.Seconds() <= 0 {
 		logrus.Debug("FreeFloating is disabled")
 		return
@@ -201,7 +202,7 @@ func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engi
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
 
-func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.DeparturesURI.String()) == 0 || config.DeparturesRefresh.Seconds() <= 0 {
 		logrus.Debug("Departures is disabled")
 		return
@@ -213,7 +214,7 @@ func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 }
 
-func Parkings(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.ParkingsURI.String()) == 0 || config.ParkingsRefresh.Seconds() <= 0 {
 		logrus.Debug("Parkings is disabled")
 		return
@@ -225,7 +226,7 @@ func Parkings(manager *forseti.DataManager, config *Config, router *gin.Engine) 
 	parkings.AddParkingsEntryPoint(router, parkingsContext)
 }
 
-func VehiculeOccupancies(manager *forseti.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
 	if len(config.OccupancyNavitiaURI.String()) == 0 || len(config.OccupancyServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle occupancies is disabled")
 		return

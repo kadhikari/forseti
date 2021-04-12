@@ -1,9 +1,17 @@
-package forseti
+package api
 
 import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/internal/departures"
+	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
+	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/contrib/ginrus"
@@ -49,7 +57,7 @@ var (
 	)
 )
 
-func StatusHandler(manager *DataManager) gin.HandlerFunc {
+func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var lastFreeFloatingsDataUpdate time.Time
 		var loadFreeFloatingData bool = false
@@ -94,7 +102,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
-			ForsetiVersion,
+			forseti.ForsetiVersion,
 			lastDeparturesDataUpdate,
 			lastParkingsDataUpdate,
 			lastEquipmentDataUpdate,
@@ -104,7 +112,7 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 	}
 }
 
-func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
+func SetupRouter(manager *manager.DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
 	}
@@ -132,4 +140,14 @@ func instrumentGin() gin.HandlerFunc {
 func init() {
 	prometheus.MustRegister(httpDurations)
 	prometheus.MustRegister(httpInFlight)
+	prometheus.MustRegister(departures.DepartureLoadingDuration)
+	prometheus.MustRegister(departures.DepartureLoadingErrors)
+	prometheus.MustRegister(parkings.ParkingsLoadingDuration)
+	prometheus.MustRegister(parkings.ParkingsLoadingErrors)
+	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
+	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
+	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingDuration)
+	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingErrors)
 }

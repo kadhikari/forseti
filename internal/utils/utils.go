@@ -1,14 +1,10 @@
 package utils
 
 import (
-	"fmt"
-	"io"
 	"math"
 	"net/http"
 	"strconv"
 	"time"
-
-	"golang.org/x/text/encoding/charmap"
 )
 
 var vehicleCapacity = 100
@@ -64,12 +60,4 @@ func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (
 		return nil, err
 	}
 	return client.Do(req)
-}
-
-func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
-	if charset == "ISO-8859-1" {
-		return charmap.ISO8859_1.NewDecoder().Reader(input), nil
-	}
-
-	return nil, fmt.Errorf("Unknown Charset")
 }

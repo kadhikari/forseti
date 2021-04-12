@@ -49,7 +49,8 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 	return d.parkingsContext
 }
 
-func (d *DataManager) SetVehiculeOccupanciesContext(vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext) {
+func (d *DataManager) SetVehiculeOccupanciesContext(
+	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 

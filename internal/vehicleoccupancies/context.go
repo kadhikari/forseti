@@ -130,7 +130,8 @@ func (d *VehicleOccupanciesContext) GetVehicleJourneyId(predict Prediction, data
 	return result
 }
 
-func (d *VehicleOccupanciesContext) GetRouteSchedule(vjId, stopId string, direction int) (routeSchedule *RouteSchedule) {
+func (d *VehicleOccupanciesContext) GetRouteSchedule(vjId, stopId string, direction int) (
+	routeSchedule *RouteSchedule) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 	for _, rs := range *d.routeSchedules {

@@ -1,4 +1,4 @@
-package forseti
+package manager
 
 import (
 	"github.com/CanalTP/forseti/internal/departures"
@@ -10,15 +10,11 @@ import (
 
 // Data manager for all apis
 type DataManager struct {
-	freeFloatingsContext *freefloatings.FreeFloatingsContext
-
+	freeFloatingsContext       *freefloatings.FreeFloatingsContext
 	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext
-
-	equipmentsContext *equipments.EquipmentsContext
-
-	departuresContext *departures.DeparturesContext
-
-	parkingsContext *parkings.ParkingsContext
+	equipmentsContext          *equipments.EquipmentsContext
+	departuresContext          *departures.DeparturesContext
+	parkingsContext            *parkings.ParkingsContext
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {

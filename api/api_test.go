@@ -1,8 +1,9 @@
-package forseti
+package api
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"io/ioutil"
 	"net/http/httptest"
@@ -17,14 +18,29 @@ import (
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 )
 
+var defaultTimeout time.Duration = time.Second * 10
+
+var fixtureDir string
+
+func TestMain(m *testing.M) {
+
+	fixtureDir = os.Getenv("FIXTUREDIR")
+	if fixtureDir == "" {
+		panic("$FIXTUREDIR isn't set")
+	}
+
+	os.Exit(m.Run())
+}
+
 func TestStatusApiExist(t *testing.T) {
 	require := require.New(t)
-	var manager DataManager
+	var manager manager.DataManager
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	SetupRouter(&manager, engine)
@@ -42,7 +58,7 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	require.Nil(err)
 
 	departuresContext := &departures.DeparturesContext{}
-	var manager DataManager
+	var manager manager.DataManager
 	manager.SetDeparturesContext(departuresContext)
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
@@ -73,7 +89,7 @@ func TestStatusApiHasLastParkingUpdateTime(t *testing.T) {
 	require.Nil(err)
 
 	parkingsContext := &parkings.ParkingsContext{}
-	var manager DataManager
+	var manager manager.DataManager
 	manager.SetParkingsContext(parkingsContext)
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
@@ -114,7 +130,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	startTime := time.Now()
 	require := require.New(t)
 	assert := assert.New(t)
-	var manager DataManager
+	var manager manager.DataManager
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
@@ -290,7 +306,7 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 
-	manager := &DataManager{}
+	manager := &manager.DataManager{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
 	router.GET("/status", StatusHandler(manager))
 	c.Request = httptest.NewRequest("GET", "/status", nil)

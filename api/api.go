@@ -1,9 +1,17 @@
-package forseti
+package api
 
 import (
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/internal/departures"
+	"github.com/CanalTP/forseti/internal/equipments"
+	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
+	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-contrib/pprof"
 	"github.com/gin-gonic/contrib/ginrus"
@@ -29,12 +37,6 @@ type StatusResponse struct {
 	VehicleOccupancies  LoadingStatus `json:"vehicle_occupancies,omitempty"`
 }
 
-// VehicleOccupanciesResponse defines the structure returned by the /vehicle_occupancies endpoint
-type VehicleOccupanciesResponse struct {
-	VehicleOccupancies []VehicleOccupancy `json:"vehicle_occupancies,omitempty"`
-	Error              string             `json:"error,omitempty"`
-}
-
 var (
 	httpDurations = prometheus.NewHistogramVec(prometheus.HistogramOpts{
 		Namespace: "forseti",
@@ -55,7 +57,7 @@ var (
 	)
 )
 
-func StatusHandler(manager *DataManager) gin.HandlerFunc {
+func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var lastFreeFloatingsDataUpdate time.Time
 		var loadFreeFloatingData bool = false
@@ -70,11 +72,17 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 			loadFreeFloatingData = manager.GetFreeFloatingsContext().LoadFreeFloatingsData()
 		}
 
-		// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
-		vehicleOccupancyStatus := c.Query("vehicle_occupancies")
-		if len(vehicleOccupancyStatus) > 0 {
-			toActive, _ := strconv.ParseBool(vehicleOccupancyStatus)
-			manager.ManageVehicleOccupancyStatus(toActive)
+		var lastVehicleOccupanciesDataUpdate time.Time
+		var loadVehicleOccupanciesData bool = false
+		if manager.GetVehiculeOccupanciesContext() != nil {
+			// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
+			vehicleOccupancyStatus := c.Query("vehicle_occupancies")
+			if len(vehicleOccupancyStatus) > 0 {
+				toActive, _ := strconv.ParseBool(vehicleOccupancyStatus)
+				manager.GetVehiculeOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+			}
+			lastVehicleOccupanciesDataUpdate = manager.GetVehiculeOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
+			loadVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().LoadOccupancyData()
 		}
 
 		var lastEquipmentDataUpdate time.Time
@@ -94,51 +102,17 @@ func StatusHandler(manager *DataManager) gin.HandlerFunc {
 
 		c.JSON(http.StatusOK, StatusResponse{
 			"ok",
-			ForsetiVersion,
+			forseti.ForsetiVersion,
 			lastDeparturesDataUpdate,
 			lastParkingsDataUpdate,
 			lastEquipmentDataUpdate,
 			LoadingStatus{loadFreeFloatingData, lastFreeFloatingsDataUpdate},
-			LoadingStatus{manager.LoadOccupancyData(), manager.GetLastVehicleOccupanciesDataUpdate()},
+			LoadingStatus{loadVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
 		})
 	}
 }
 
-func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupancyRequestParameter) {
-	p := VehicleOccupancyRequestParameter{}
-	p.StopId = c.Query("stop_id")
-	p.VehicleJourneyId = c.Query("vehiclejourney_id")
-	loc, _ := time.LoadLocation(location)
-	// We accept two date formats in the parameter
-	date, err := time.ParseInLocation("20060102", c.Query("date"), loc)
-	if err != nil {
-		date, err = time.ParseInLocation("2006-01-02", c.Query("date"), loc)
-	}
-	if err != nil {
-		p.Date = time.Now().Truncate(24 * time.Hour)
-	} else {
-		p.Date = date
-	}
-	return &p
-}
-
-func VehicleOccupanciesHandler(manager *DataManager) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		response := VehicleOccupanciesResponse{}
-		parameter := InitVehicleOccupanyrequestParameter(c)
-		vehicleOccupancies, err := manager.GetVehicleOccupancies(parameter)
-
-		if err != nil {
-			response.Error = "No data loaded"
-			c.JSON(http.StatusServiceUnavailable, response)
-			return
-		}
-		response.VehicleOccupancies = vehicleOccupancies
-		c.JSON(http.StatusOK, response)
-	}
-}
-
-func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
+func SetupRouter(manager *manager.DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
 	}
@@ -148,7 +122,6 @@ func SetupRouter(manager *DataManager, r *gin.Engine) *gin.Engine {
 	pprof.Register(r)
 	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 	r.GET("/status", StatusHandler(manager))
-	r.GET("/vehicle_occupancies", VehicleOccupanciesHandler(manager))
 
 	return r
 }
@@ -167,4 +140,14 @@ func instrumentGin() gin.HandlerFunc {
 func init() {
 	prometheus.MustRegister(httpDurations)
 	prometheus.MustRegister(httpInFlight)
+	prometheus.MustRegister(departures.DepartureLoadingDuration)
+	prometheus.MustRegister(departures.DepartureLoadingErrors)
+	prometheus.MustRegister(parkings.ParkingsLoadingDuration)
+	prometheus.MustRegister(parkings.ParkingsLoadingErrors)
+	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
+	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
+	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
+	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingDuration)
+	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingErrors)
 }

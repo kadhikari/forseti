@@ -6,11 +6,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/api"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -139,32 +141,12 @@ func main() {
 	}
 
 	initLog(config.JSONLog, config.LogLevel)
-	manager := &forseti.DataManager{}
+	manager := &manager.DataManager{}
 
 	location, _ := time.LoadLocation(config.TimeZoneLocation)
 
-	// Manage activation of the periodic refresh of vehicle occupancy data
-	ManageVehicleOccupancyActivation(manager, config.OccupancyActive)
-
 	// create API router
-	router := forseti.SetupRouter(manager, nil)
-
-	err = forseti.LoadAllForVehicleOccupancies(
-		manager,
-		config.OccupancyFilesURI,
-		config.OccupancyNavitiaURI,
-		config.OccupancyServiceURI,
-		config.OccupancyNavitiaToken,
-		config.OccupancyServiceToken,
-		config.ConnectionTimeout, location)
-	if err != nil {
-		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
-	}
-
-	go RefreshVehicleOccupanciesLoop(manager, config.OccupancyServiceURI, config.OccupancyServiceToken,
-		config.OccupancyRefresh, config.ConnectionTimeout, location)
-	go RefreshRouteSchedulesLoop(manager, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	router := api.SetupRouter(manager, nil)
 
 	// With equipments
 	Equipments(manager, &config, router)
@@ -178,6 +160,9 @@ func main() {
 	// With parkings
 	Parkings(manager, &config, router)
 
+	// With vehicle occupancies
+	VehiculeOccupancies(manager, &config, router, location)
+
 	// start router
 	err = router.Run()
 	if err != nil {
@@ -185,7 +170,7 @@ func main() {
 	}
 }
 
-func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Equipments(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.EquipmentsURI.String()) == 0 || config.EquipmentsRefresh.Seconds() <= 0 {
 		logrus.Debug("Equipments is disabled")
 		return
@@ -197,7 +182,7 @@ func Equipments(manager *forseti.DataManager, config *Config, router *gin.Engine
 	equipments.AddEquipmentsEntryPoint(router, equipmentsContext)
 }
 
-func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.FreeFloatingsURI.String()) == 0 || config.FreeFloatingsRefresh.Seconds() <= 0 {
 		logrus.Debug("FreeFloating is disabled")
 		return
@@ -217,7 +202,7 @@ func FreeFloating(manager *forseti.DataManager, config *Config, router *gin.Engi
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
 
-func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.DeparturesURI.String()) == 0 || config.DeparturesRefresh.Seconds() <= 0 {
 		logrus.Debug("Departures is disabled")
 		return
@@ -229,7 +214,7 @@ func Departures(manager *forseti.DataManager, config *Config, router *gin.Engine
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 }
 
-func Parkings(manager *forseti.DataManager, config *Config, router *gin.Engine) {
+func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) {
 	if len(config.ParkingsURI.String()) == 0 || config.ParkingsRefresh.Seconds() <= 0 {
 		logrus.Debug("Parkings is disabled")
 		return
@@ -241,51 +226,36 @@ func Parkings(manager *forseti.DataManager, config *Config, router *gin.Engine) 
 	parkings.AddParkingsEntryPoint(router, parkingsContext)
 }
 
-func ManageVehicleOccupancyActivation(manager *forseti.DataManager, vehicleoccupanciesActive bool) {
-	manager.ManageVehicleOccupancyStatus(vehicleoccupanciesActive)
-}
-
-func RefreshVehicleOccupanciesLoop(manager *forseti.DataManager,
-	predictionURI url.URL,
-	predictionToken string,
-	predictionRefresh,
-	connectionTimeout time.Duration,
-	location *time.Location) {
-	if len(predictionURI.String()) == 0 || predictionRefresh.Seconds() <= 0 {
-		logrus.Debug("VehicleOccupancy data refreshing is disabled")
+func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+	if len(config.OccupancyNavitiaURI.String()) == 0 || len(config.OccupancyServiceURI.String()) == 0 {
+		logrus.Debug("Vehicle occupancies is disabled")
 		return
 	}
 
-	// Wait 10 seconds before reloading vehicleoccupacy informations
-	time.Sleep(10 * time.Second)
-	for {
-		err := forseti.RefreshVehicleOccupancies(manager, predictionURI, predictionToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading VehicleOccupancy data: ", err)
-		}
-		logrus.Debug("vehicle_occupancies data updated")
-		time.Sleep(predictionRefresh)
-	}
-}
+	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
+	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 
-func RefreshRouteSchedulesLoop(manager *forseti.DataManager,
-	navitiaURI url.URL,
-	navitiaToken string,
-	routeScheduleRefresh,
-	connectionTimeout time.Duration,
-	location *time.Location) {
-	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
-		logrus.Debug("RouteSchedule data refreshing is disabled")
-		return
+	// Manage activation of the periodic refresh of vehicle occupancy data
+	vehicleoccupancies.ManageVehicleOccupancyStatus(vehiculeOccupanciesContext, config.OccupancyActive)
+
+	err := vehicleoccupancies.LoadAllForVehicleOccupancies(
+		vehiculeOccupanciesContext,
+		config.OccupancyFilesURI,
+		config.OccupancyNavitiaURI,
+		config.OccupancyServiceURI,
+		config.OccupancyNavitiaToken,
+		config.OccupancyServiceToken,
+		config.ConnectionTimeout, location)
+	if err != nil {
+		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
 	}
-	for {
-		err := forseti.LoadRoutesForAllLines(manager, navitiaURI, navitiaToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading RouteSchedule data: ", err)
-		}
-		logrus.Debug("RouteSchedule data updated")
-		time.Sleep(routeScheduleRefresh)
-	}
+
+	go vehicleoccupancies.RefreshVehicleOccupanciesLoop(vehiculeOccupanciesContext, config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyRefresh, config.ConnectionTimeout, location)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
+
+	go vehicleoccupancies.RefreshRouteSchedulesLoop(vehiculeOccupanciesContext, config.OccupancyNavitiaURI,
+		config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 }
 
 func initLog(jsonLog bool, logLevel string) {

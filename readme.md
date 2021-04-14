@@ -30,7 +30,7 @@ The API list is as follows :
 - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
 - [/equipments](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md) returns informations on Equipments in StopAreas. [doc](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md)
 - `/free_floatings?coord=2.37715%3B48.846781` returns informations on freefloatings  within a certain radius as a crow flies from the point
-- `/vehicle_occupancies` returns occupany of a vehicles at a stop.
+- [/vehicle_occupancies] (https://github.com/canaltp/forseti/blob/master/internal/vehicleoccupancies/readme.md) returns occupany of a vehicles at a stop. [doc](https://github.com/canaltp/forseti/blob/master/internal/vehicleoccupancies/readme.md)
 
 For each service, a goroutine is created to handle the refresh of the data by downloading them every refresh-interval (default: 30s) and load them. Once these data have been loaded there is swap of pointer being done so that every new requests will get the new dataset.
 

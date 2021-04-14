@@ -1,67 +1,32 @@
-package forseti
+package vehicleoccupancies
 
 import (
-	"bytes"
-	"encoding/xml"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"strconv"
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/equipments"
 )
 
-func TestData(t *testing.T) {
-	assert := assert.New(t)
-	fileName := fmt.Sprintf("/%s/NET_ACCESS.XML", fixtureDir)
-	xmlFile, err := os.Open(fileName)
-	if err != nil {
-		fmt.Println("Error opening file:", err)
-		require.Fail(t, err.Error())
+var defaultTimeout time.Duration = time.Second * 10
+var fixtureDir string
+
+func TestMain(m *testing.M) {
+
+	fixtureDir = os.Getenv("FIXTUREDIR")
+	if fixtureDir == "" {
+		panic("$FIXTUREDIR isn't set")
 	}
-	defer xmlFile.Close()
-	XMLdata, err := ioutil.ReadAll(xmlFile)
-	assert.Nil(err)
 
-	decoder := xml.NewDecoder(bytes.NewReader(XMLdata))
-	decoder.CharsetReader = getCharsetReader
-
-	var root data.Root
-	err = decoder.Decode(&root)
-	assert.Nil(err)
-
-	assert.Equal(len(root.Data.Lines), 8)
-}
-
-func TestNewEquipmentDetail(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	location, err := time.LoadLocation("Europe/Paris")
-	require.Nil(err)
-	updatedAt := time.Now()
-	es := data.EquipementSource{ID: "821", Name: "direction Gare de Vaise, accès Gare Routière ou Parc Relais",
-		Type: "ASCENSEUR", Cause: "Problème technique", Effect: "Accès impossible direction Gare de Vaise.",
-		Start: "2018-09-14", End: "2018-09-14", Hour: "13:00:00"}
-	e, err := equipments.NewEquipmentDetail(es, updatedAt, location)
-
-	require.Nil(err)
-	require.NotNil(e)
-
-	assert.Equal("821", e.ID)
-	assert.Equal("direction Gare de Vaise, accès Gare Routière ou Parc Relais", e.Name)
-	assert.Equal("elevator", e.EmbeddedType)
-	assert.Equal("Problème technique", e.CurrentAvailability.Cause.Label)
-	assert.Equal("Accès impossible direction Gare de Vaise.", e.CurrentAvailability.Effect.Label)
-	assert.Equal(time.Date(2018, 9, 14, 0, 0, 0, 0, location), e.CurrentAvailability.Periods[0].Begin)
-	assert.Equal(time.Date(2018, 9, 14, 13, 0, 0, 0, location), e.CurrentAvailability.Periods[0].End)
-	assert.Equal(updatedAt, e.CurrentAvailability.UpdatedAt)
+	os.Exit(m.Run())
 }
 
 func TestNewStopPoint(t *testing.T) {
@@ -144,7 +109,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	var manager DataManager
+	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
 
 	// Load StopPoints
 	stopPoints := make(map[string]StopPoint)
@@ -162,8 +127,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141", "2"})
 	assert.NotNil(err)
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
-	manager.InitStopPoint(stopPoints)
-	assert.Equal(len(*manager.stopPoints), 4)
+	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
+	assert.Equal(len(*vehiculeOccupanciesContext.stopPoints), 4)
 
 	// Load Courses
 	courses := make(map[string][]Course)
@@ -177,8 +142,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	course, err = NewCourse(courseLine, location)
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
-	manager.InitCourse(courses)
-	assert.Equal(len(*manager.courses), 1)
+	vehiculeOccupanciesContext.InitCourse(courses)
+	assert.Equal(len(*vehiculeOccupanciesContext.courses), 1)
 
 	// Load RouteSchedules
 	routeSchedules := make([]RouteSchedule, 0)
@@ -188,8 +153,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	manager.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*manager.routeSchedules), 2)
+	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*vehiculeOccupanciesContext.routeSchedules), 2)
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
@@ -218,14 +183,14 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(predictions), 2)
 
 	// Create VehicleOccupancies from existing data
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(&manager, predictions)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 2)
-	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*manager.vehicleOccupancies), 2)
+	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(*vehiculeOccupanciesContext.vehicleOccupancies), 2)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err := manager.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err := vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 2)
 
@@ -234,7 +199,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 		StopId:           "stop_point:0:SP:80:4029",
 		VehicleJourneyId: "",
 		Date:             date}
-	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
@@ -250,7 +215,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with another StopId in the paraameter
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = manager.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
@@ -262,4 +227,101 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 75)
+}
+
+func TestLoadStopPointsFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	// FileName for StopPoints should be mapping_stops.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
+	require.Nil(err)
+	assert.Equal(len(stopPoints), 25)
+	stopPoint := stopPoints["Copernic0"]
+	assert.Equal(stopPoint.Name, "Copernic")
+	assert.Equal(stopPoint.Direction, 0)
+	assert.Equal(stopPoint.Id, "stop_point:0:SP:80:4029")
+}
+
+func TestLoadCoursesFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	// FileName for StopPoints should be extraction_courses.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	courses, err := LoadCourses(*uri, defaultTimeout)
+	require.Nil(err)
+	// It's map size (line_code=40)
+	assert.Equal(len(courses), 1)
+	course40 := courses["40"]
+	assert.Equal(len(course40), 310)
+	assert.Equal(course40[0].LineCode, "40")
+	assert.Equal(course40[0].Course, "2774327")
+	assert.Equal(course40[0].DayOfWeek, 1)
+	time, err := time.ParseInLocation("15:04:05", "05:47:18", location)
+	require.Nil(err)
+	assert.Equal(course40[0].FirstTime, time)
+}
+
+func TestLoadRouteSchedulesFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
+	require.Nil(err)
+	reader, err := utils.GetFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	navitiaRoutes := &data.NavitiaRoutes{}
+	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
+	require.Nil(err)
+	sens := 0
+	startIndex := 1
+	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
+	assert.Equal(len(routeSchedules), 141)
+	assert.Equal(routeSchedules[0].Id, 1)
+	assert.Equal(routeSchedules[0].LineCode, "40")
+	assert.Equal(routeSchedules[0].VehicleJourneyId, "vehicle_journey:0:123713787-1")
+	assert.Equal(routeSchedules[0].StopId, "stop_point:0:SP:80:4131")
+	assert.Equal(routeSchedules[0].Direction, 0)
+	assert.Equal(routeSchedules[0].Departure, true)
+	assert.Equal(routeSchedules[0].DateTime, time.Date(2021, 1, 18, 06, 0, 0, 0, location))
+}
+
+func TestLoadPredictionsFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
+	require.Nil(err)
+	reader, err := utils.GetFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	predicts := &data.PredictionData{}
+	err = json.Unmarshal([]byte(jsonData), predicts)
+	require.Nil(err)
+	predictions := LoadPredictionsData(predicts, location)
+	assert.Equal(len(predictions), 65)
+	assert.Equal(predictions[0].LineCode, "40")
+	assert.Equal(predictions[0].Order, 0)
+	assert.Equal(predictions[0].Direction, 0)
+	assert.Equal(predictions[0].Date, time.Date(2021, 1, 18, 0, 0, 0, 0, location))
+	assert.Equal(predictions[0].Course, "2774327")
+	assert.Equal(predictions[0].StopName, "Pont de Sevres")
+	assert.Equal(predictions[0].Occupancy, 12)
 }

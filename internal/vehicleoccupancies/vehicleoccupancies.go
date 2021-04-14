@@ -1,70 +1,79 @@
-package forseti
+package vehicleoccupancies
 
 import (
 	"encoding/json"
 	"fmt"
-
-	"io"
-	"net/http"
 	"net/url"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-	"golang.org/x/text/encoding/charmap"
-
 	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/departures"
-	"github.com/CanalTP/forseti/internal/equipments"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/sirupsen/logrus"
 )
 
-var (
-	occupanciesLoadingDuration = prometheus.NewHistogram(prometheus.HistogramOpts{
-		Namespace: "forseti",
-		Subsystem: "vehicle_occupancies",
-		Name:      "load_durations_seconds",
-		Help:      "http request latency distributions.",
-		Buckets:   prometheus.ExponentialBuckets(0.001, 1.5, 15),
-	})
+var spFileName = "mapping_stops.csv"
+var courseFileName = "extraction_courses.csv"
 
-	occupanciesLoadingErrors = prometheus.NewCounter(prometheus.CounterOpts{
-		Namespace: "forseti",
-		Subsystem: "vehicle_occupancies",
-		Name:      "loading_errors",
-		Help:      "current number of http request being served",
-	})
-)
-
-func init() {
-	prometheus.MustRegister(departures.DepartureLoadingDuration)
-	prometheus.MustRegister(departures.DepartureLoadingErrors)
-	prometheus.MustRegister(parkings.ParkingsLoadingDuration)
-	prometheus.MustRegister(parkings.ParkingsLoadingErrors)
-	prometheus.MustRegister(equipments.EquipmentsLoadingDuration)
-	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
-	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
-	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
+func ManageVehicleOccupancyStatus(context *VehicleOccupanciesContext, vehicleOccupanciesActive bool) {
+	context.ManageVehicleOccupancyStatus(vehicleOccupanciesActive)
 }
 
-func getCharsetReader(charset string, input io.Reader) (io.Reader, error) {
-	if charset == "ISO-8859-1" {
-		return charmap.ISO8859_1.NewDecoder().Reader(input), nil
+func RefreshVehicleOccupanciesLoop(context *VehicleOccupanciesContext,
+	predictionURI url.URL,
+	predictionToken string,
+	predictionRefresh,
+	connectionTimeout time.Duration,
+	location *time.Location) {
+	if len(predictionURI.String()) == 0 || predictionRefresh.Seconds() <= 0 {
+		logrus.Debug("VehicleOccupancy data refreshing is disabled")
+		return
 	}
 
-	return nil, fmt.Errorf("Unknown Charset")
+	// Wait 10 seconds before reloading vehicleoccupacy informations
+	time.Sleep(10 * time.Second)
+	for {
+		err := RefreshVehicleOccupancies(context, predictionURI, predictionToken, connectionTimeout, location)
+		if err != nil {
+			logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+		}
+		logrus.Debug("vehicle_occupancies data updated")
+		time.Sleep(predictionRefresh)
+	}
 }
 
-func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (*http.Response, error) {
-	client := &http.Client{Timeout: 10 * connectionTimeout}
-	req, err := http.NewRequest("GET", url, nil)
-	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
-	req.Header.Set(header, token)
-	if err != nil {
-		return nil, err
+func RefreshVehicleOccupancies(context *VehicleOccupanciesContext, predict_url url.URL, predict_token string,
+	connectionTimeout time.Duration, location *time.Location) error {
+	// Continue using last loaded data if loading is deactivated
+	if !context.LoadOccupancyData() {
+		return nil
 	}
-	return client.Do(req)
+	begin := time.Now()
+	predictions, _ := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(context, predictions)
+
+	context.UpdateVehicleOccupancies(occupanciesWithCharge)
+	VehicleOccupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext,
+	navitiaURI url.URL,
+	navitiaToken string,
+	routeScheduleRefresh,
+	connectionTimeout time.Duration,
+	location *time.Location) {
+	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
+		logrus.Debug("RouteSchedule data refreshing is disabled")
+		return
+	}
+	for {
+		err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
+		if err != nil {
+			logrus.Error("Error while reloading RouteSchedule data: ", err)
+		}
+		logrus.Debug("RouteSchedule data updated")
+		time.Sleep(routeScheduleRefresh)
+	}
 }
 
 func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]StopPoint, error) {
@@ -72,7 +81,7 @@ func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]St
 	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -94,7 +103,7 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -146,9 +155,9 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	callUrl := fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s", uri.String(),
 		"line:0:004004040:40", direction, dateTime)
 	header := "Authorization"
-	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
+	resp, err := utils.GetHttpClient(callUrl, token, header, connectionTimeout)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -156,7 +165,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(navitiaRoutes)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -169,9 +178,9 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	// Call and load routes for line=45
 	callUrl = fmt.Sprintf("%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s", uri.String(),
 		"line:0:004004029:45", direction, dateTime)
-	resp, err = GetHttpClient(callUrl, token, header, connectionTimeout)
+	resp, err = utils.GetHttpClient(callUrl, token, header, connectionTimeout)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -179,7 +188,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	decoder = json.NewDecoder(resp.Body)
 	err = decoder.Decode(navitiaRoutes)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -193,7 +202,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	return routeSchedules, nil
 }
 
-func LoadRoutesForAllLines(manager *DataManager, navitia_url url.URL, navitia_token string,
+func LoadRoutesForAllLines(context *VehicleOccupanciesContext, navitia_url url.URL, navitia_token string,
 	connectionTimeout time.Duration, location *time.Location) error {
 	// Load Forward RouteSchedules (sens=0) for lines 40 and 45
 	startIndex := 1
@@ -224,7 +233,8 @@ func LoadRoutesForAllLines(manager *DataManager, navitia_url url.URL, navitia_to
 	for i := range backward {
 		routeSchedules = append(routeSchedules, backward[i])
 	}
-	manager.InitRouteSchedule(routeSchedules)
+
+	context.InitRouteSchedule(routeSchedules)
 	return nil
 }
 
@@ -244,9 +254,9 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	end_date := begin.AddDate(0, 0, 0).Format("2006-01-02")
 	callUrl := fmt.Sprintf("%s/futuredata/getfuturedata?start_time=%s&end_time=%s", uri.String(), start_date, end_date)
 	header := "Ocp-Apim-Subscription-Key"
-	resp, err := GetHttpClient(callUrl, token, header, connectionTimeout)
+	resp, err := utils.GetHttpClient(callUrl, token, header, connectionTimeout)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -254,7 +264,7 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(predicts)
 	if err != nil {
-		occupanciesLoadingErrors.Inc()
+		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -263,25 +273,26 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	return predictions, nil
 }
 
-func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Prediction) map[int]VehicleOccupancy {
+func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext,
+	predictions []Prediction) map[int]VehicleOccupancy {
 	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
 	occupanciesWithCharge := make(map[int]VehicleOccupancy)
 	var vehicleJourneyId = ""
 	for _, predict := range predictions {
 		if predict.Order == 0 {
-			firstTime, err := manager.GetCourseFirstTime(predict)
+			firstTime, err := context.GetCourseFirstTime(predict)
 			if err != nil {
 				continue
 			}
 			// Schedule datettime = predict.Date + firstTime
 			dateTime := utils.AddDateAndTime(predict.Date, firstTime)
-			vehicleJourneyId = manager.GetVehicleJourneyId(predict, dateTime)
+			vehicleJourneyId = context.GetVehicleJourneyId(predict, dateTime)
 		}
 
 		if len(vehicleJourneyId) > 0 {
 			// Fetch StopId from manager corresponding to predict.StopName and predict.Direction
-			stopId := manager.GetStopId(predict.StopName, predict.Direction)
-			rs := manager.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
+			stopId := context.GetStopId(predict.StopName, predict.Direction)
+			rs := context.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
 			if rs != nil {
 				vo, err := NewVehicleOccupancy(*rs, utils.CalculateOccupancy(predict.Occupancy))
 
@@ -295,45 +306,31 @@ func CreateOccupanciesFromPredictions(manager *DataManager, predictions []Predic
 	return occupanciesWithCharge
 }
 
-func RefreshVehicleOccupancies(manager *DataManager, predict_url url.URL, predict_token string,
-	connectionTimeout time.Duration, location *time.Location) error {
-	// Continue using last loaded data if loading is deactivated
-	if !manager.LoadOccupancyData() {
-		return nil
-	}
-	begin := time.Now()
-	predictions, _ := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(manager, predictions)
-
-	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
-	occupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
-}
-
-func LoadAllForVehicleOccupancies(manager *DataManager, files_uri, navitia_url, predict_url url.URL, navitia_token,
-	predict_token string, connectionTimeout time.Duration, location *time.Location) error {
+func LoadAllForVehicleOccupancies(context *VehicleOccupanciesContext, files_uri, navitia_url,
+	predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration,
+	location *time.Location) error {
 	// Load referential Stoppoints file
 	stopPoints, err := LoadStopPoints(files_uri, connectionTimeout)
 	if err != nil {
 		return err
 	}
-	manager.InitStopPoint(stopPoints)
+	context.InitStopPoint(stopPoints)
 
 	// Load referential course file
 	courses, err := LoadCourses(files_uri, connectionTimeout)
 	if err != nil {
 		return err
 	}
-	manager.InitCourse(courses)
+	context.InitCourse(courses)
 
 	// Load all RouteSchedules for line 40 and 45
-	err = LoadRoutesForAllLines(manager, navitia_url, navitia_token, connectionTimeout, location)
+	err = LoadRoutesForAllLines(context, navitia_url, navitia_token, connectionTimeout, location)
 	if err != nil {
 		return err
 	}
 
 	// Load predictions for external service and update VehicleOccupancies with charge
-	err = RefreshVehicleOccupancies(manager, predict_url, predict_token, connectionTimeout, location)
+	err = RefreshVehicleOccupancies(context, predict_url, predict_token, connectionTimeout, location)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,9 @@
-package forseti
+package api
 
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"io/ioutil"
 	"net/http/httptest"
@@ -17,13 +18,29 @@ import (
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 )
+
+var defaultTimeout time.Duration = time.Second * 10
+
+var fixtureDir string
+
+func TestMain(m *testing.M) {
+
+	fixtureDir = os.Getenv("FIXTUREDIR")
+	if fixtureDir == "" {
+		panic("$FIXTUREDIR isn't set")
+	}
+
+	os.Exit(m.Run())
+}
 
 func TestStatusApiExist(t *testing.T) {
 	require := require.New(t)
-	var manager DataManager
+	var manager manager.DataManager
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
 	SetupRouter(&manager, engine)
@@ -41,7 +58,7 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	require.Nil(err)
 
 	departuresContext := &departures.DeparturesContext{}
-	var manager DataManager
+	var manager manager.DataManager
 	manager.SetDeparturesContext(departuresContext)
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
@@ -72,7 +89,7 @@ func TestStatusApiHasLastParkingUpdateTime(t *testing.T) {
 	require.Nil(err)
 
 	parkingsContext := &parkings.ParkingsContext{}
-	var manager DataManager
+	var manager manager.DataManager
 	manager.SetParkingsContext(parkingsContext)
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
@@ -113,26 +130,28 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	startTime := time.Now()
 	require := require.New(t)
 	assert := assert.New(t)
-	var manager DataManager
+	var manager manager.DataManager
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
+
+	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
+	stopPoints, err := vehicleoccupancies.LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	manager.InitStopPoint(stopPoints)
-	assert.Equal(len(*manager.stopPoints), 25)
+	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
+	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 25)
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	courses, err := LoadCourses(*uri, defaultTimeout)
+	courses, err := vehicleoccupancies.LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	manager.InitCourse(courses)
-	assert.Equal(len(*manager.courses), 1)
-	coursesFor40 := (*manager.courses)["40"]
+	vehiculeOccupanciesContext.InitCourse(courses)
+	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 1)
+	coursesFor40 := (vehiculeOccupanciesContext.GetCourses())["40"]
 	assert.Equal(len(coursesFor40), 310)
 
 	// Load RouteSchedules from file
@@ -149,9 +168,9 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	sens := 0
 	startIndex := 1
-	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
-	manager.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*manager.routeSchedules), 141)
+	routeSchedules := vehicleoccupancies.LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
+	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(vehiculeOccupanciesContext.GetRouteSchedules()), 141)
 
 	// Load prediction from a file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
@@ -165,18 +184,19 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predicts := &data.PredictionData{}
 	err = json.Unmarshal([]byte(jsonData), predicts)
 	require.Nil(err)
-	predictions := LoadPredictionsData(predicts, loc)
+	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 65)
 
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(&manager, predictions)
-	manager.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*manager.vehicleOccupancies), 35)
+	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(vehiculeOccupanciesContext.GetVehiclesOccupancies()), 35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehiculeOccupanciesContext)
 	engine = SetupRouter(&manager, engine)
 
 	// Request without any parameter (Date with default value = Now().Format("20060102"))
-	response := VehicleOccupanciesResponse{}
+	response := vehicleoccupancies.VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -197,7 +217,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Len(response.VehicleOccupancies, 35)
 	assert.Empty(response.Error)
 
-	resp := VehicleOccupanciesResponse{}
+	resp := vehicleoccupancies.VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest(
 		"GET",
 		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
@@ -211,7 +231,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Len(resp.VehicleOccupancies, 7)
 	assert.Empty(resp.Error)
 
-	resp = VehicleOccupanciesResponse{}
+	resp = vehicleoccupancies.VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest("GET",
 		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121",
 		nil)
@@ -232,6 +252,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 11)
 
 	// Verify /status
+	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -285,7 +306,7 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 
-	manager := &DataManager{}
+	manager := &manager.DataManager{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
 	router.GET("/status", StatusHandler(manager))
 	c.Request = httptest.NewRequest("GET", "/status", nil)

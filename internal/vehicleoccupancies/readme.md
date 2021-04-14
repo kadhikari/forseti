@@ -2,7 +2,7 @@
 
 ## Introduction
 
-We use this service to collect information about occupancy of a vehicles at a stop.
+We use this service to collect information about occupancy of vehicles at a stop.
 The realtime information is readed within Csv files and an external api service.
 
 ## Api

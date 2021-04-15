@@ -3,7 +3,7 @@
 ## Introduction
 
 We use this service to collect some informations about the next departures for a stop (parameter `stop_id`).
-The realtime information is readed within an **.txt** like a **Csv** Style (**;** delimiter).
+The realtime information is read within an **.txt** like a **Csv** Style (**;** delimiter).
 
 ## Api
 
@@ -19,4 +19,3 @@ Exemple:
 ```
 ./forseti --departures-uri file:///forseti/fixtures/extract_edylic.txt --departures-refresh=1s
 ```
-

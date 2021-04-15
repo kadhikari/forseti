@@ -26,7 +26,7 @@ The API list is as follows :
 
 - `/status` exposes general information about the webservice
 - `/metrics` exposes metrics in the prometheus text format
-- `/departures` returns the next departures for a stop (parameter `stop_id`)
+- [`/departures`](https://github.com/canaltp/forseti/blob/master/internal/departures/readme.md) returns the next departures for a stop (parameter `stop_id`). [doc](https://github.com/canaltp/forseti/blob/master/internal/departures/readme.md)
 - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
 - [/equipments](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md) returns informations on Equipments in StopAreas. [doc](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md)
 - `/free_floatings?coord=2.37715%3B48.846781` returns informations on freefloatings  within a certain radius as a crow flies from the point

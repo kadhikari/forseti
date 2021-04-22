@@ -247,7 +247,7 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		config.OccupancyServiceToken,
 		config.ConnectionTimeout, location)
 	if err != nil {
-		logrus.Errorf("Impossible to load StopPoints data at startup: %s (%s)", err, config.OccupancyFilesURIStr)
+		logrus.Errorf("Impossible to load data at startup: %s", err)
 	}
 
 	go vehicleoccupancies.RefreshVehicleOccupanciesLoop(vehiculeOccupanciesContext, config.OccupancyServiceURI,

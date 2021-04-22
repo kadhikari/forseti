@@ -1,9 +1,12 @@
 package utils
 
 import (
+	"fmt"
+	"io/ioutil"
 	"math"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -60,4 +63,33 @@ func GetHttpClient(url, token, header string, connectionTimeout time.Duration) (
 		return nil, err
 	}
 	return client.Do(req)
+}
+
+func CheckResponseStatus(resp *http.Response) error {
+	if resp.StatusCode != http.StatusOK {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		if resp.StatusCode == http.StatusUnauthorized || resp.StatusCode == http.StatusNotFound ||
+			resp.StatusCode == http.StatusInternalServerError {
+			mes := getMessageError(string(bodyBytes))
+			return fmt.Errorf("ERROR %d: %s", resp.StatusCode, mes)
+
+		} else {
+			return fmt.Errorf("ERROR %d: no details for this error", resp.StatusCode)
+		}
+	}
+	return nil
+}
+
+func Split(r rune) bool {
+	return r == '{' || r == '}' || r == ':' || r == ','
+}
+
+func getMessageError(bodyString string) string {
+	bodySplit := strings.FieldsFunc(bodyString, Split)
+	for idx, field := range bodySplit {
+		if strings.Contains(field, "message") {
+			return strings.Trim(strings.TrimSpace(bodySplit[idx+1]), "\"")
+		}
+	}
+	return "no details for this error"
 }

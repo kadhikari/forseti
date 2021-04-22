@@ -32,7 +32,7 @@ func RefreshVehicleOccupanciesLoop(context *VehicleOccupanciesContext,
 
 	if (context.courses == nil || context.stopPoints == nil) ||
 		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
-		logrus.Error("VEHICULE_OCCUPANCIES: routine Vehicule_occupancies stopped, no stopPoints or courses loaded at start")
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
 	} else {
 		// Wait 10 seconds before reloading vehicleoccupacy informations
 		time.Sleep(10 * time.Second)
@@ -79,7 +79,7 @@ func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext, navitiaURI ur
 
 	if (context.courses == nil || context.stopPoints == nil) ||
 		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
-		logrus.Error("VEHICULE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
 	} else {
 		for {
 			err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)

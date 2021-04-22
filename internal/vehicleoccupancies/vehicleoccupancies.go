@@ -30,16 +30,21 @@ func RefreshVehicleOccupanciesLoop(context *VehicleOccupanciesContext,
 		return
 	}
 
-	// Wait 10 seconds before reloading vehicleoccupacy informations
-	time.Sleep(10 * time.Second)
-	for {
-		err := RefreshVehicleOccupancies(context, predictionURI, predictionToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading VehicleOccupancy data: ", err)
-		} else {
-			logrus.Debug("vehicle_occupancies data updated")
+	if (context.courses == nil || context.stopPoints == nil) ||
+		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
+		logrus.Error("VEHICULE_OCCUPANCIES: routine Vehicule_occupancies stopped, no stopPoints or courses loaded at start")
+	} else {
+		// Wait 10 seconds before reloading vehicleoccupacy informations
+		time.Sleep(10 * time.Second)
+		for {
+			err := RefreshVehicleOccupancies(context, predictionURI, predictionToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+			} else {
+				logrus.Debug("vehicle_occupancies data updated")
+			}
+			time.Sleep(predictionRefresh)
 		}
-		time.Sleep(predictionRefresh)
 	}
 }
 
@@ -64,24 +69,27 @@ func RefreshVehicleOccupancies(context *VehicleOccupanciesContext, predict_url u
 	return nil
 }
 
-func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext,
-	navitiaURI url.URL,
-	navitiaToken string,
-	routeScheduleRefresh,
-	connectionTimeout time.Duration,
-	location *time.Location) {
+func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext, navitiaURI url.URL, navitiaToken string,
+	routeScheduleRefresh, connectionTimeout time.Duration, location *time.Location) {
+
 	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
 		logrus.Debug("RouteSchedule data refreshing is disabled")
 		return
 	}
-	for {
-		err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading RouteSchedule data: ", err)
-		} else {
-			logrus.Debug("RouteSchedule data updated")
+
+	if (context.courses == nil || context.stopPoints == nil) ||
+		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
+		logrus.Error("VEHICULE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
+	} else {
+		for {
+			err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading RouteSchedule data: ", err)
+			} else {
+				logrus.Debug("RouteSchedule data updated")
+			}
+			time.Sleep(routeScheduleRefresh)
 		}
-		time.Sleep(routeScheduleRefresh)
 	}
 }
 

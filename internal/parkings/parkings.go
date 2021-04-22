@@ -19,8 +19,9 @@ func RefreshParkingsLoop(context *ParkingsContext,
 		err := RefreshParkings(context, parkingsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading parking data: ", err)
+		} else {
+			logrus.Debug("Parking data updated")
 		}
-		logrus.Debug("Parking data updated")
 		time.Sleep(parkingsRefresh)
 	}
 }

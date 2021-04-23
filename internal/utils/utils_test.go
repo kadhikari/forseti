@@ -182,14 +182,13 @@ func TestGetSFTPFileError(t *testing.T) {
 func TestChekrespStatus200(t *testing.T) {
 	require := require.New(t)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter) {
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, `{""}`)
 	}
 
-	req := httptest.NewRequest("GET", "http://forseti.com/Test200", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler(w)
 	resp := w.Result()
 	err := CheckResponseStatus(resp)
 	require.Nil(err)
@@ -199,15 +198,14 @@ func TestChekrespStatus404WithOutMessage(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, `{}`)
 	}
 
-	req := httptest.NewRequest("GET", "http://forseti.com/Test404", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler(w)
 	resp := w.Result()
 	err := CheckResponseStatus(resp)
 	require.Error(err)
@@ -219,15 +217,14 @@ func TestChekrespStatus404WithMessage(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusNotFound)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, `{"message": "page or data not found"}`)
 	}
 
-	req := httptest.NewRequest("GET", "http://forseti.com/Test404", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler(w)
 	resp := w.Result()
 	err := CheckResponseStatus(resp)
 	require.Error(err)
@@ -239,15 +236,14 @@ func TestChekrespStatus401(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusUnauthorized)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, `{"message": "unauthorized access is denied"}`)
 	}
 
-	req := httptest.NewRequest("GET", "http://forseti.com/Test401", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler(w)
 	resp := w.Result()
 	err := CheckResponseStatus(resp)
 	require.Error(err)
@@ -259,15 +255,14 @@ func TestChekrespStatusNotManage(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	handler := func(w http.ResponseWriter, r *http.Request) {
+	handler := func(w http.ResponseWriter) {
 		w.WriteHeader(http.StatusContinue)
 		w.Header().Set("Content-Type", "application/json")
 		fmt.Fprintln(w, `{"message": "message from not manage status"}`)
 	}
 
-	req := httptest.NewRequest("GET", "http://forseti.com/TestNotManage", nil)
 	w := httptest.NewRecorder()
-	handler(w, req)
+	handler(w)
 	resp := w.Result()
 	err := CheckResponseStatus(resp)
 	require.Error(err)

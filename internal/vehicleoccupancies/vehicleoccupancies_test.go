@@ -77,7 +77,6 @@ func TestStopPointFileWithOutField(t *testing.T) {
 	sp, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	vehiculeOccupanciesContext.InitStopPoint(sp)
-	//fmt.Printf("erreur: %s\n", err)
 
 	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 0)
 }
@@ -93,7 +92,7 @@ func TestWithOutCoursesFile(t *testing.T) {
 	require.Nil(err)
 	_, err = LoadCourses(*uri, defaultTimeout)
 	require.Error(err)
-	//fmt.Printf("url: %s erreur: %s\n", uri, err)
+
 	assert.Nil(vehiculeOccupanciesContext.courses, nil)
 }
 
@@ -109,7 +108,6 @@ func TestCoursesFileWithOutField(t *testing.T) {
 	course, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	vehiculeOccupanciesContext.InitCourse(course)
-	//fmt.Printf("erreur: %s\n", err)
 
 	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 0)
 }

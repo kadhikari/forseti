@@ -1,0 +1,62 @@
+version: "3.8"
+
+services:
+  forseti:
+    image: navitia/forseti:${FORSETI_IMAGE_VERSION:-latest}
+    deploy:
+      resources:
+        limits:
+          memory: 1024M
+      labels:
+        - traefik.frontend.rule=Host:${TRAEFIK_ENDPOINT_NAME:-forseti-dev-demo.canaltp.prod}
+        - traefik.enable=true
+        - traefik.port=8080
+        - traefik.docker.network=lb-common
+        # Traefik service that listens to HTTP
+        - traefik.redirectorservice.frontend.entryPoints=http
+    networks:
+      - lb-common
+    logging:
+      driver: "fluentd"
+      options:
+        tag: forseti.${FORSETI_PROVIDER_NAME:-demo} # Default value "demo"
+        fluentd-async-connect: "true"
+    volumes:
+      - ./data:/data 
+    environment:
+      - GIN_MODE=release
+      - TZ=Europe/Paris
+      - FORSETI_LOG_LEVEL=info
+
+      # Departures parameters
+      - FORSETI_DEPARTURES_URI=
+      - FORSETI_DEPARTURES_REFRESH=
+
+      # Parkings parameters
+      - FORSETI_PARKINGS_URI=
+      - FORSETI_PARKINGS_REFRESH=
+
+      # Equipments parameters
+      - FORSETI_EQUIPMENTS_URI=
+      - FORSETI_EQUIPMENTS_REFRESH=
+
+      # Free floatings parameters
+      - FORSETI_FREE_FLOATINGS_URI=
+      - FORSETI_FREE_FLOATINGS_TOKEN=
+      - FORSETI_FREE_FLOATINGS_REFRESH=300s
+      - FORSETI_FREE_FLOATINGS_REFRESH_ACTIVE=False
+
+      # Occupancies parameters
+      - FORSETI_OCCUPANCY_SERVICE_REFRESH_ACTIVE=False
+      - FORSETI_OCCUPANCY_FILES_URI=file:///data
+      - FORSETI_OCCUPANCY_NAVITIA_URI=
+      - FORSETI_OCCUPANCY_SERVICE_URI=
+      - FORSETI_OCCUPANCY_NAVITIA_TOKEN=
+      - FORSETI_OCCUPANCY_SERVICE_TOKEN=
+      - FORSETI_OCCUPANCY_REFRESH=300s
+      - FORSETI_ROUTESCHEDULE_REFRESH=3600s
+
+networks:
+  lb-common:
+    name: lb-common
+    external: true

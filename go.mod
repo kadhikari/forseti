@@ -28,9 +28,13 @@ require (
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.2.1
 	github.com/stretchr/testify v1.2.2
-	golang.org/x/crypto v0.0.0-20190320223903-b7391e95e576
-	golang.org/x/net v0.0.0-20190320064053-1272bf9dcd53 // indirect
-	golang.org/x/sys v0.0.0-20190321052220-f7bb7a8bee54 // indirect
-	golang.org/x/text v0.3.0
-	golang.org/x/tools v0.0.0-20190320215829-36c10c0a621f // indirect
+	github.com/yuin/goldmark v1.3.3 // indirect
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/mod v0.4.2 // indirect
+	golang.org/x/net v0.0.0-20210326060303-6b1517762897 // indirect
+	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
+	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
+	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
+	golang.org/x/text v0.3.5
+	golang.org/x/tools v0.1.0 // indirect
 )

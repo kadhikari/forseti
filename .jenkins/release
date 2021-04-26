@@ -25,7 +25,7 @@ pipeline {
                 withCredentials([string(credentialsId: 'jenkins-core-github-access-token', variable: 'GITHUB_TOKEN')]) {
                     sh '''
                         githubflow_release --release-type $release_type --base-branch master --github-repo CanalTP/forseti  --remote-name origin
-                        git push https://jenkins-kisio-core:$GITHUB_TOKEN@@github.com/CanalTP/forseti.git master release --tags
+                        git push https://jenkins-kisio-core:$GITHUB_TOKEN@github.com/CanalTP/forseti.git master release --tags
                     '''
                 }
             }

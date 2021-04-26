@@ -29,6 +29,20 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestWithOutStopPointFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+
+	// No load StopPoints from file .../mapping_stops.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
+	require.Nil(err)
+	_, err = LoadStopPoints(*uri, defaultTimeout)
+	require.Error(err)
+	assert.Nil(vehiculeOccupanciesContext.stopPoints, nil)
+}
+
 func TestNewStopPoint(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -49,6 +63,53 @@ func TestNewStoppointWithMissingField(t *testing.T) {
 	sp, err := NewStopPoint(spLine)
 	require.Error(err)
 	require.Nil(sp)
+}
+
+func TestStopPointFileWithOutField(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	spFileName = "mapping_stops0.csv"
+
+	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	sp, err := LoadStopPoints(*uri, defaultTimeout)
+	require.Nil(err)
+	vehiculeOccupanciesContext.InitStopPoint(sp)
+
+	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 0)
+}
+
+func TestWithOutCoursesFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+
+	// No load Courses from file .../extraction_courses.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
+	require.Nil(err)
+	_, err = LoadCourses(*uri, defaultTimeout)
+	require.Error(err)
+
+	assert.Nil(vehiculeOccupanciesContext.courses, nil)
+}
+
+func TestCoursesFileWithOutField(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	courseFileName = "extraction_courses0.csv"
+
+	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	course, err := LoadCourses(*uri, defaultTimeout)
+	require.Nil(err)
+	vehiculeOccupanciesContext.InitCourse(course)
+
+	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 0)
 }
 
 func TestNewCourse(t *testing.T) {
@@ -233,6 +294,8 @@ func TestLoadStopPointsFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
+	spFileName = "mapping_stops.csv"
+
 	// FileName for StopPoints should be mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
@@ -248,6 +311,9 @@ func TestLoadStopPointsFromFile(t *testing.T) {
 func TestLoadCoursesFromFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
+
+	courseFileName = "extraction_courses.csv"
+
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 

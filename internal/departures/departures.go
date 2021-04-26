@@ -20,8 +20,9 @@ func RefreshDeparturesLoop(context *DeparturesContext,
 		err := RefreshDepartures(context, departuresURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading departures data: ", err)
+		} else {
+			logrus.Debug("Departures data updated")
 		}
-		logrus.Debug("Departures data updated")
 		time.Sleep(departuresRefresh)
 	}
 }

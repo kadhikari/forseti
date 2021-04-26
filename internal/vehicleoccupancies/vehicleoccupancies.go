@@ -2,6 +2,7 @@ package vehicleoccupancies
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/url"
 	"time"
@@ -29,15 +30,21 @@ func RefreshVehicleOccupanciesLoop(context *VehicleOccupanciesContext,
 		return
 	}
 
-	// Wait 10 seconds before reloading vehicleoccupacy informations
-	time.Sleep(10 * time.Second)
-	for {
-		err := RefreshVehicleOccupancies(context, predictionURI, predictionToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+	if (context.courses == nil || context.stopPoints == nil) ||
+		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
+	} else {
+		// Wait 10 seconds before reloading vehicleoccupacy informations
+		time.Sleep(10 * time.Second)
+		for {
+			err := RefreshVehicleOccupancies(context, predictionURI, predictionToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+			} else {
+				logrus.Debug("vehicle_occupancies data updated")
+			}
+			time.Sleep(predictionRefresh)
 		}
-		logrus.Debug("vehicle_occupancies data updated")
-		time.Sleep(predictionRefresh)
 	}
 }
 
@@ -47,8 +54,14 @@ func RefreshVehicleOccupancies(context *VehicleOccupanciesContext, predict_url u
 	if !context.LoadOccupancyData() {
 		return nil
 	}
+	if context.routeSchedules == nil {
+		return errors.New("RouteSchedule contains no data")
+	}
 	begin := time.Now()
-	predictions, _ := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
+	predictions, err := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
+	if len(predictions) == 0 {
+		return fmt.Errorf("Predictions contains no data: %s", err)
+	}
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(context, predictions)
 
 	context.UpdateVehicleOccupancies(occupanciesWithCharge)
@@ -56,23 +69,27 @@ func RefreshVehicleOccupancies(context *VehicleOccupanciesContext, predict_url u
 	return nil
 }
 
-func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext,
-	navitiaURI url.URL,
-	navitiaToken string,
-	routeScheduleRefresh,
-	connectionTimeout time.Duration,
-	location *time.Location) {
+func RefreshRouteSchedulesLoop(context *VehicleOccupanciesContext, navitiaURI url.URL, navitiaToken string,
+	routeScheduleRefresh, connectionTimeout time.Duration, location *time.Location) {
+
 	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
 		logrus.Debug("RouteSchedule data refreshing is disabled")
 		return
 	}
-	for {
-		err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while reloading RouteSchedule data: ", err)
+
+	if (context.courses == nil || context.stopPoints == nil) ||
+		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
+	} else {
+		for {
+			err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading RouteSchedule data: ", err)
+			} else {
+				logrus.Debug("RouteSchedule data updated")
+			}
+			time.Sleep(routeScheduleRefresh)
 		}
-		logrus.Debug("RouteSchedule data updated")
-		time.Sleep(routeScheduleRefresh)
 	}
 }
 
@@ -156,6 +173,12 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 		"line:0:004004040:40", direction, dateTime)
 	header := "Authorization"
 	resp, err := utils.GetHttpClient(callUrl, token, header, connectionTimeout)
+	if err != nil {
+		VehicleOccupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
+	err = utils.CheckResponseStatus(resp)
 	if err != nil {
 		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
@@ -260,6 +283,12 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 		return nil, err
 	}
 
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		VehicleOccupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
 	predicts := &data.PredictionData{}
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(predicts)
@@ -269,7 +298,7 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	}
 
 	predictions := LoadPredictionsData(predicts, location)
-	fmt.Println("*** predictions size: ", len(predictions))
+	logrus.Info("*** predictions size: ", len(predictions))
 	return predictions, nil
 }
 

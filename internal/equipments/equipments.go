@@ -29,8 +29,9 @@ func RefreshEquipmentLoop(context *EquipmentsContext, equipmentsURI url.URL,
 		err := RefreshEquipments(context, equipmentsURI, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading equipment data: ", err)
+		} else {
+			logrus.Debug("Equipment data updated")
 		}
-		logrus.Debug("Equipment data updated")
 		time.Sleep(equipmentsRefresh)
 	}
 }

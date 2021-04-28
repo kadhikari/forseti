@@ -323,7 +323,8 @@ func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext,
 			stopId := context.GetStopId(predict.StopName, predict.Direction)
 			rs := context.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
 			if rs != nil {
-				vo, err := NewVehicleOccupancy(*rs, utils.CalculateOccupancy(predict.Occupancy))
+				poCalc := utils.CalculateOccupancy(predict.Occupancy)
+				vo, err := NewVehicleOccupancy(*rs, int(GetOccupancyStatusForOditi(poCalc)))
 
 				if err != nil {
 					continue

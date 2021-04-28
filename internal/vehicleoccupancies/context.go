@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/sirupsen/logrus"
 )
 
 /* -------------------------------------------------------------
@@ -42,7 +43,7 @@ func (d *VehicleOccupanciesContext) InitStopPoint(stopPoints map[string]StopPoin
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.stopPoints = &stopPoints
-	fmt.Println("*** stopPoints size: ", len(*d.stopPoints))
+	logrus.Info("*** stopPoints size: ", len(*d.stopPoints))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -59,7 +60,7 @@ func (d *VehicleOccupanciesContext) InitCourse(courses map[string][]Course) {
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.courses = &courses
-	fmt.Println("*** courses size: ", len(*d.courses))
+	logrus.Info("*** courses size: ", len(*d.courses))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -68,7 +69,7 @@ func (d *VehicleOccupanciesContext) InitRouteSchedule(routeSchedules []RouteSche
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.routeSchedules = &routeSchedules
-	fmt.Println("*** routeSchedules size: ", len(*d.routeSchedules))
+	logrus.Info("*** routeSchedules size: ", len(*d.routeSchedules))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -77,7 +78,7 @@ func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies 
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	d.vehicleOccupancies = &vehicleOccupancies
-	fmt.Println("*** vehicleOccupancies size: ", len(*d.vehicleOccupancies))
+	logrus.Info("*** vehicleOccupancies size: ", len(*d.vehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 

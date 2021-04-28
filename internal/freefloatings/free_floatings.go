@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,8 +42,9 @@ func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
 		err := RefreshFreeFloatings(context, freeFloatingsURI, freeFloatingsToken, connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while reloading freefloating data: ", err)
+		} else {
+			logrus.Debug("Free_floating data updated")
 		}
-		logrus.Debug("Free_floating data updated")
 		time.Sleep(freeFloatingsRefresh)
 	}
 }
@@ -57,7 +59,12 @@ func RefreshFreeFloatings(context *FreeFloatingsContext,
 	}
 	begin := time.Now()
 	resp, err := CallHttpClient(uri.String(), token)
+	if err != nil {
+		FreeFloatingsLoadingErrors.Inc()
+		return err
+	}
 
+	err = utils.CheckResponseStatus(resp)
 	if err != nil {
 		FreeFloatingsLoadingErrors.Inc()
 		return err

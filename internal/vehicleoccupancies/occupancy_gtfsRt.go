@@ -1,31 +1,31 @@
 package vehicleoccupancies
 
-type Vehicle_OccupancyStatus int
+type VehicleOccupancyStatus int
 
 const (
 	// The vehicle is considered empty by most measures, and has few or no
 	// passengers onboard, but is still accepting passengers.
-	VehicleOccupancy_EMPTY Vehicle_OccupancyStatus = 0
+	VehicleOccupancy_EMPTY VehicleOccupancyStatus = 0
 	// The vehicle has a relatively large percentage of seats available.
 	// What percentage of free seats out of the total seats available is to be
 	// considered large enough to fall into this category is determined at the
 	// discretion of the producer.
-	VehicleOccupancy_MANY_SEATS_AVAILABLE Vehicle_OccupancyStatus = 1
+	VehicleOccupancy_MANY_SEATS_AVAILABLE VehicleOccupancyStatus = 1
 	// The vehicle has a relatively small percentage of seats available.
 	// What percentage of free seats out of the total seats available is to be
 	// considered small enough to fall into this category is determined at the
 	// discretion of the feed producer.
-	VehicleOccupancy_FEW_SEATS_AVAILABLE Vehicle_OccupancyStatus = 2
+	VehicleOccupancy_FEW_SEATS_AVAILABLE VehicleOccupancyStatus = 2
 	// The vehicle can currently accommodate only standing passengers.
-	VehicleOccupancy_STANDING_ROOM_ONLY Vehicle_OccupancyStatus = 3
+	VehicleOccupancy_STANDING_ROOM_ONLY VehicleOccupancyStatus = 3
 	// The vehicle can currently accommodate only standing passengers
 	// and has limited space for them.
-	VehicleOccupancy_CRUSHED_STANDING_ROOM_ONLY Vehicle_OccupancyStatus = 4
+	VehicleOccupancy_CRUSHED_STANDING_ROOM_ONLY VehicleOccupancyStatus = 4
 	// The vehicle is considered full by most measures, but may still be
 	// allowing passengers to board.
-	VehicleOccupancy_FULL Vehicle_OccupancyStatus = 5
+	VehicleOccupancy_FULL VehicleOccupancyStatus = 5
 	// The vehicle is not accepting additional passengers.
-	VehicleOccupancy_NOT_ACCEPTING_PASSENGERS Vehicle_OccupancyStatus = 6
+	VehicleOccupancy_NOT_ACCEPTING_PASSENGERS VehicleOccupancyStatus = 6
 )
 
 var OditiMatchMatrixGtfsRT = [4][2]int{
@@ -37,7 +37,7 @@ var OditiMatchMatrixGtfsRT = [4][2]int{
 	// FULL for value equal or better than 100
 }
 
-func GetOccupancyStatusForOditi(Oditi_charge int) Vehicle_OccupancyStatus {
+func GetOccupancyStatusForOditi(Oditi_charge int) VehicleOccupancyStatus {
 	var s int = 1
 	if Oditi_charge == 0 {
 		return VehicleOccupancy_EMPTY
@@ -52,7 +52,7 @@ func GetOccupancyStatusForOditi(Oditi_charge int) Vehicle_OccupancyStatus {
 			break
 		}
 	}
-	return Vehicle_OccupancyStatus(s)
+	return VehicleOccupancyStatus(s)
 }
 
 func InBetween(charge, min, max int) bool {

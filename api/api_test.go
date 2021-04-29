@@ -249,7 +249,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
 	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
 	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
-	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 11)
+	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
 
 	// Verify /status
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)

@@ -16,6 +16,7 @@ services:
         - traefik.redirectorservice.frontend.entryPoints=http
     networks:
       - lb-common
+      - monitor-local
     logging:
       driver: "fluentd"
       options:
@@ -59,4 +60,7 @@ services:
 networks:
   lb-common:
     name: lb-common
+    external: true
+  monitor-local:
+    name: monitor-local
     external: true

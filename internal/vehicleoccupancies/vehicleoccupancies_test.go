@@ -247,7 +247,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 2)
 	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*vehiculeOccupanciesContext.vehicleOccupancies), 2)
+	assert.Equal(len(*vehiculeOccupanciesContext.VehicleOccupancies), 2)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
@@ -557,7 +557,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 6)
 	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*vehiculeOccupanciesContext.vehicleOccupancies), 6)
+	assert.Equal(len(*vehiculeOccupanciesContext.VehicleOccupancies), 6)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}

@@ -15,7 +15,7 @@ import (
 // Structure and Consumer to creates Vehicle occupancies objects
 ------------------------------------------------------------- */
 type VehicleOccupanciesContext struct {
-	vehicleOccupancies           *map[int]VehicleOccupancy
+	VehicleOccupancies           *map[int]VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
@@ -77,8 +77,8 @@ func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies 
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 
-	d.vehicleOccupancies = &vehicleOccupancies
-	logrus.Info("*** vehicleOccupancies size: ", len(*d.vehicleOccupancies))
+	d.VehicleOccupancies = &vehicleOccupancies
+	logrus.Info("*** vehicleOccupancies size: ", len(*d.VehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -154,7 +154,7 @@ func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 
-	return *d.vehicleOccupancies
+	return *d.VehicleOccupancies
 }
 
 func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
@@ -164,13 +164,13 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 		d.vehicleOccupanciesMutex.RLock()
 		defer d.vehicleOccupanciesMutex.RUnlock()
 
-		if d.vehicleOccupancies == nil {
+		if d.VehicleOccupancies == nil {
 			e = fmt.Errorf("no vehicle_occupancies in the data")
 			return
 		}
 
 		// Implement filter on parameters
-		for _, vo := range *d.vehicleOccupancies {
+		for _, vo := range *d.VehicleOccupancies {
 			// Filter on stop_id
 			if len(param.StopId) > 0 && param.StopId != vo.StopId {
 				continue

@@ -14,8 +14,12 @@ type IVehicleOccupancy interface {
 	RefreshVehicleOccupanciesLoop(predictionURI url.URL,
 		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 		connectionTimeout time.Duration, location *time.Location)
+
+	LoadDataExternalSource(uri url.URL, token string,
+		connectionTimeout time.Duration, location *time.Location) (*GtfsRt, error)
 }
 
+// Patern factory Vehicle occupancies
 func VehicleOccupancyFactory(type_vehicleoccupancy string) (IVehicleOccupancy, error) {
 	if type_vehicleoccupancy == "gtfs" {
 		return &VehicleOccupanciesGtfsRtContext{}, nil

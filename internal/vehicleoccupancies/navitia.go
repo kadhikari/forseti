@@ -13,7 +13,7 @@ import (
 )
 
 // TODO: move in other module with all conts
-const STOP_POINT_CODE = "gtfs_stop_code" // type code to get in vehicle journey Navitia, the same of stop_id from Gtfs-rt
+const STOP_POINT_CODE = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 
 // Structure to load the last date of modification static data
 type Status struct {

@@ -7,8 +7,11 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/CanalTP/forseti"
 	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
+	"google.golang.org/protobuf/proto"
 )
 
 /* ---------------------------------------------------------------------
@@ -51,6 +54,11 @@ func (d *VehicleOccupanciesGtfsRtContext) CheckLastLoadChanged(lastLoadAt string
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) CheckLastChangedGtfsRT(lastChanged string) bool {
+	if d.lastTimestampGtfsRt == "" || d.lastTimestampGtfsRt != lastChanged {
+		d.lastTimestampGtfsRt = lastChanged
+		return true
+	}
+
 	return false
 }
 
@@ -78,17 +86,29 @@ func (d *VehicleOccupanciesGtfsRtContext) LoadDataExternalSource(uri url.URL, to
 
 	// External source http/REST
 	if token == "nil" {
-		resp, _ := http.Get(uri.String())
+		resp, err := http.Get(uri.String())
+		if err != nil {
+			VehicleOccupanciesLoadingErrors.Inc()
+			return nil, err
+		}
 
-		_ = utils.CheckResponseStatus(resp)
+		err = utils.CheckResponseStatus(resp)
+		if err != nil {
+			VehicleOccupanciesLoadingErrors.Inc()
+			return nil, err
+		}
 
-		data, _ := ioutil.ReadAll(resp.Body)
+		gtfsRtData, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			VehicleOccupanciesLoadingErrors.Inc()
+			return nil, err
+		}
 
-		timestamp, _ := getHeaderGtfsRt(data)
+		gtfsRt, err := parseVehiclesResponse(gtfsRtData)
+		if err != nil {
+			return nil, err
+		}
 
-		occupancies, _ := parseVehiclesResponse(data)
-
-		gtfsRt, _ := NewGtfsRt(timestamp, occupancies)
 		return gtfsRt, nil
 
 	} else {
@@ -127,7 +147,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	// Get all data from Gtfs-rt flux
 	gtfsRt, err := context.LoadDataExternalSource(external_url, external_token, connectionTimeout, location)
 	if err != nil {
-		return err
+		return errors.Errorf("loading external source: %s", err)
 	}
 
 	// Get status Last load from Navitia and check if data loaded recently
@@ -142,7 +162,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	context.CleanListOldVehicleJourney()
 
 	// Check last modifiation from gtfs-rt flux
-	if !context.CheckLastChangedGtfsRT(gtfsRt.Timestamp) {
+	if context.CheckLastChangedGtfsRT(gtfsRt.Timestamp) {
 
 		mapVehicleOccupancies := *context.voContext.VehicleOccupancies
 		// if gtfs-rt vehicle exist in map of vehicle occupancies
@@ -172,13 +192,40 @@ func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 	return VehicleOccupancy{}
 }
 
-/* Methods to parse data from GTFS-RT */
-func getHeaderGtfsRt(b []byte) (uint64, error) {
-	return 0, nil
-}
+// Method to parse data from GTFS-RT
+func parseVehiclesResponse(b []byte) (*GtfsRt, error) {
+	fm := new(forseti.FeedMessage)
+	err := proto.Unmarshal(b, fm)
+	if err != nil {
+		return nil, err
+	}
 
-func parseVehiclesResponse(b []byte) ([]VehicleGtfsRt, error) {
-	return nil, nil
+	strTimestamp := strconv.FormatUint(fm.Header.GetTimestamp(), 10)
+
+	vehicles := make([]VehicleGtfsRt, 0, len(fm.GetEntity()))
+	for _, entity := range fm.GetEntity() {
+		var vehPos *forseti.VehiclePosition = entity.GetVehicle()
+		var pos *forseti.Position = vehPos.GetPosition()
+		var trip *forseti.TripDescriptor = vehPos.GetTrip()
+
+		veh := VehicleGtfsRt{
+			VehicleID: vehPos.GetVehicle().GetId(),
+			StopId:    vehPos.GetStopId(),
+			Label:     vehPos.GetVehicle().GetLabel(),
+			Time:      vehPos.GetTimestamp(),
+			Speed:     pos.GetSpeed(),
+			Bearing:   pos.GetBearing(),
+			Route:     trip.GetRouteId(),
+			Trip:      trip.GetTripId(),
+			Latitude:  pos.GetLatitude(),
+			Longitude: pos.GetLongitude(),
+			Occupancy: uint32(vehPos.GetOccupancyStatus()),
+		}
+		vehicles = append(vehicles, veh)
+	}
+
+	gtfsRt := NewGtfsRt(strTimestamp, vehicles)
+	return gtfsRt, nil
 }
 
 /* ---------------------------------------------------------
@@ -190,12 +237,22 @@ type GtfsRt struct {
 }
 
 type VehicleGtfsRt struct {
+	VehicleID string
+	StopId    string
+	Label     string
+	Time      uint64
+	Speed     float32
+	Bearing   float32
+	Route     string
+	Trip      string
+	Latitude  float32
+	Longitude float32
+	Occupancy uint32
 }
 
-func NewGtfsRt(timestamp uint64, v []VehicleGtfsRt) (*GtfsRt, error) {
-	str := strconv.FormatUint(timestamp, 10)
+func NewGtfsRt(timestamp string, v []VehicleGtfsRt) *GtfsRt {
 	return &GtfsRt{
-		Timestamp: str,
+		Timestamp: timestamp,
 		Vehicles:  v,
-	}, nil
+	}
 }

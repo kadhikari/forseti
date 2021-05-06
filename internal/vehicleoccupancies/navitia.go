@@ -136,11 +136,11 @@ func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string) *V
 	sp := make([]StopPointVj, 0)
 	var stopPointVj StopPointVj
 	for i := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes); i++ {
-		for j := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes); i++ {
+		for j := 0; j < len(navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes); j++ {
 			if navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Type == STOP_POINT_CODE {
-				stopId := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Value
-				stopName := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.ID
-				stopPointVj = NewStopPointVj(stopId, stopName)
+				stopCode := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Value
+				stopId := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.ID
+				stopPointVj = NewStopPointVj(stopId, stopCode)
 			}
 		}
 		sp = append(sp, stopPointVj)

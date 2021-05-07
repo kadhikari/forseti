@@ -6,14 +6,18 @@ package vehicleoccupancies
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"net/url"
 	"time"
 
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
-// TODO: move in other module with all conts
-const STOP_POINT_CODE = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
+const (
+	URL_GET_LAST_LOAD       = "%s/status?filter=last_load_at&"
+	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
+	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
+)
 
 // Structure to load the last date of modification static data
 type Status struct {
@@ -62,6 +66,7 @@ func NewVehicleJourney(vehicleId string, codesSource string, stopPoints []StopPo
 	}
 }
 
+// Structure and Consumer to creates Stop point from Vehicle Journey Navitia objects
 type StopPointVj struct {
 	Id           string // Stoppoint uri from navitia
 	GtfsStopCode string // StopPoint code gtfs-rt
@@ -77,17 +82,9 @@ func NewStopPointVj(id string, code string) StopPointVj {
 // GetStatusLastLoadAt get last_load_at field from the status url.
 // This field take the last date at the static data reload.
 func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Duration) (string, error) {
-	callUrl := fmt.Sprintf("%s/status?filter=last_load_at&", uri.String())
-	header := "Authorization"
-	resp, err := utils.GetHttpClient(callUrl, token, header, connectionTimeout)
+	callUrl := fmt.Sprintf(URL_GET_LAST_LOAD, uri.String())
+	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
-		VehicleOccupanciesLoadingErrors.Inc()
-		return "", err
-	}
-
-	err = utils.CheckResponseStatus(resp)
-	if err != nil {
-		VehicleOccupanciesLoadingErrors.Inc()
 		return "", err
 	}
 
@@ -106,17 +103,9 @@ func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Durat
 func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration) (
 	*VehicleJourney, error) {
 	sourceCode := fmt.Sprint("source%2C", id_gtfsRt)
-	callUrl := fmt.Sprintf("%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&", uri.String(), sourceCode)
-	header := "Authorization"
-	resp, err := utils.GetHttpClient(callUrl, token, header, connectionTimeout)
+	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode)
+	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
-		VehicleOccupanciesLoadingErrors.Inc()
-		return nil, err
-	}
-
-	err = utils.CheckResponseStatus(resp)
-	if err != nil {
-		VehicleOccupanciesLoadingErrors.Inc()
 		return nil, err
 	}
 
@@ -131,16 +120,32 @@ func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTi
 	return CreateVehicleJourney(navitiaVJ, id_gtfsRt), nil
 }
 
+// This method call Navitia api with specific url and return a request response
+func CallNavitia(callUrl string, token string, connectionTimeout time.Duration) (*http.Response, error) {
+	resp, err := utils.GetHttpClient(callUrl, token, "Authorization", connectionTimeout)
+	if err != nil {
+		VehicleOccupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+
+	err = utils.CheckResponseStatus(resp)
+	if err != nil {
+		VehicleOccupanciesLoadingErrors.Inc()
+		return nil, err
+	}
+	return resp, nil
+}
+
 // CreateVehicleJourney create a new vehicle journey with all stop point from Navitia
 func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string) *VehicleJourney {
 	sp := make([]StopPointVj, 0)
 	var stopPointVj StopPointVj
 	for i := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes); i++ {
-		for j := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes); i++ {
+		for j := 0; j < len(navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes); j++ {
 			if navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Type == STOP_POINT_CODE {
-				stopId := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Value
-				stopName := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.ID
-				stopPointVj = NewStopPointVj(stopId, stopName)
+				stopCode := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Value
+				stopId := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.ID
+				stopPointVj = NewStopPointVj(stopId, stopCode)
 			}
 		}
 		sp = append(sp, stopPointVj)

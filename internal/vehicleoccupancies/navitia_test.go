@@ -97,7 +97,7 @@ func TestCreateVehicleJourney(t *testing.T) {
 		want *VehicleJourney
 	}{
 		{
-			name: "",
+			name: "CreateVehicleJourney",
 			args: args{
 				navitiaVJ: vj,
 				id_gtfsRt: "652187",

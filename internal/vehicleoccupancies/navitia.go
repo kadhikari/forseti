@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	URL_GET_LAST_LOAD       = "%s/status?filter=last_load_at&"
+	URL_GET_LAST_LOAD       = "%s/status&"
 	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
 	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 )

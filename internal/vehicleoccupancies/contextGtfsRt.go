@@ -174,10 +174,10 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 			vj, _ := GetVehicleJourney("id_code", navitiaURI, navitiaToken, connectionTimeout)
 
 			// add in vehicle journey list
-			context.AddListVehicleJourney(vj)
+			context.AddListVehicleJourney(*vj)
 
 			// add in vehicle occupancy list
-			occupancy := createOccupanciesFromDataSource(vj, gtfsRt.Vehicles[12])
+			occupancy := createOccupanciesFromDataSource(*vj, gtfsRt.Vehicles[12])
 			context.UpdateVehicleOccupancy(occupancy)
 		}
 	}

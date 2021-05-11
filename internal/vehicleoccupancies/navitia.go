@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	URL_GET_LAST_LOAD       = "%s/status&"
+	URL_GET_LAST_LOAD       = "%s/status?"
 	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
 	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 )
@@ -22,7 +22,7 @@ const (
 // Structure to load the last date of modification static data
 type Status struct {
 	Status struct {
-		LastLoadAt string `json:"last_load_at"`
+		PublicationDate string `json:"publication_date"`
 	} `json:"status"`
 }
 
@@ -79,9 +79,9 @@ func NewStopPointVj(id string, code string) StopPointVj {
 	}
 }
 
-// GetStatusLastLoadAt get last_load_at field from the status url.
+// GetStatusPublicationDate get last_load_at field from the status url.
 // This field take the last date at the static data reload.
-func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Duration) (string, error) {
+func GetStatusPublicationDate(uri url.URL, token string, connectionTimeout time.Duration) (string, error) {
 	callUrl := fmt.Sprintf(URL_GET_LAST_LOAD, uri.String())
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
@@ -96,7 +96,7 @@ func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Durat
 		return "", err
 	}
 
-	return navitiaStatus.Status.LastLoadAt, nil
+	return navitiaStatus.Status.PublicationDate, nil
 }
 
 // GetVehicleJourney get object vehicle journey from Navitia compared to GTFS-RT vehicle id.

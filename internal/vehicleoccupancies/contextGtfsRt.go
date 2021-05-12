@@ -1,10 +1,12 @@
 package vehicleoccupancies
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti"
@@ -18,57 +20,86 @@ import (
 // Structure and Consumer to creates Vehicle occupancies GTFS-RT objects
 --------------------------------------------------------------------- */
 type VehicleOccupanciesGtfsRtContext struct {
-	voContext           *VehicleOccupanciesContext
-	vehiclesJourney     *[]VehicleJourney
-	vehiclesGtfsRt      *[]VehicleGtfsRt
-	lastLoadNavitia     string
-	lastTimestampGtfsRt string
+	voContext       *VehicleOccupanciesContext
+	vehiclesJourney map[string]*VehicleJourney
+	vehiclesGtfsRt  *[]VehicleGtfsRt
+	lastLoadNavitia string
+	mutex           sync.RWMutex
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) GetVehicleJourneys() (vehicleJourneys []VehicleJourney) {
-	return *d.vehiclesJourney
+var start = time.Now() // TODO: Just for test, delete to release
+
+func (d *VehicleOccupanciesGtfsRtContext) GetVehicleJourneys() (vehicleJourneys map[string]*VehicleJourney) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.vehiclesJourney
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) GetVehiclesGtfsRts() (vehiclesGtfsRts []VehicleGtfsRt) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 	return *d.vehiclesGtfsRt
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) GetLastLoadNavitia() (lastLoadNavitia string) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
 	return d.lastLoadNavitia
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) GetLastTimestampGtfsRt() (lastTimestampGtfsRt string) {
-	return d.lastTimestampGtfsRt
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) UpdateVehicleOccupancies(
-	vehicleOccupancies map[int]VehicleOccupancy) {
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) UpdateVehicleOccupancy(
-	vehicleOccupancy VehicleOccupancy) {
-}
-
 func (d *VehicleOccupanciesGtfsRtContext) CheckLastLoadChanged(lastLoadAt string) bool {
-	return false
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) CheckLastChangedGtfsRT(lastChanged string) bool {
-	if d.lastTimestampGtfsRt == "" || d.lastTimestampGtfsRt != lastChanged {
-		d.lastTimestampGtfsRt = lastChanged
+	if d.lastLoadNavitia == "" || d.lastLoadNavitia != lastLoadAt {
+		d.lastLoadNavitia = lastLoadAt
 		return true
 	}
 
 	return false
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) CleanListOldVehicleOccupancies() {
+func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleOccupancies() {
+	d.voContext.CleanListVehicleOccupancies()
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) CleanListOldVehicleJourney() {
+func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleJourney() {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	d.vehiclesJourney = nil
+	logrus.Info("*** Clean list VehicleJourney")
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) AddListVehicleJourney(VehicleJourney) {
+func (d *VehicleOccupanciesGtfsRtContext) CleanListOldVehicleJourney(delay time.Duration) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	nbVj := len(d.vehiclesJourney) // TODO: Just for test, delete to release
+	del := false                   // TODO: Just for test, delete to release
+
+	for idx, v := range d.vehiclesJourney {
+		if v.CreateDate.Add(delay * time.Hour).Before(time.Now()) {
+			delete(d.vehiclesJourney, idx)
+			del = true
+		}
+	}
+	if del {
+		logrus.Debugf("*** Clean old VehicleJourney until %d hour - %d/%d", delay, nbVj, len(d.vehiclesJourney))
+	}
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) AddVehicleJourney(vehicleJourney *VehicleJourney) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	if d.vehiclesJourney == nil {
+		d.vehiclesJourney = map[string]*VehicleJourney{}
+	}
+
+	d.vehiclesJourney[vehicleJourney.CodesSource] = vehicleJourney
+	logrus.Debug("*** Vehicle Journey size: ", len(d.vehiclesJourney))
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
+	d.voContext.AddVehicleOccupancy(vehicleoccupancy)
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
@@ -77,12 +108,39 @@ func (d *VehicleOccupanciesGtfsRtContext) RefreshVehicleOccupanciesLoop(external
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location) {
 
+	d.voContext = &VehicleOccupanciesContext{}
+
 	refreshVehicleOccupanciesLoop(d, externalURI, externalToken, navitiaURI, navitiaToken,
-		loadExternalRefresh, connectionTimeout, location)
+		loadExternalRefresh, connectionTimeout)
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) LoadDataExternalSource(uri url.URL, token string,
-	connectionTimeout time.Duration, location *time.Location) (*GtfsRt, error) {
+func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
+	vehicleOccupancies []VehicleOccupancy, e error) {
+	return d.voContext.GetVehicleOccupancies(param)
+}
+
+/********* PRIVATE FUNCTIONS *********/
+
+// main loop to refresh vehicle_occupancies from Gtfs-rt flux
+func refreshVehicleOccupanciesLoop(context *VehicleOccupanciesGtfsRtContext, predictionURI url.URL,
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
+	connectionTimeout time.Duration) {
+
+	// Wait 10 seconds before reloading vehicleoccupacy informations
+	time.Sleep(10 * time.Second)
+	for {
+		err := refreshVehicleOccupancies(context, predictionURI, externalToken, navitiaURI, navitiaToken,
+			connectionTimeout)
+		if err != nil {
+			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
+		} else {
+			logrus.Debug("vehicle_occupancies GTFS-RT data updated")
+		}
+		time.Sleep(loadExternalRefresh)
+	}
+}
+
+func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
 
 	// External source http/REST
 	if token == "nil" {
@@ -109,6 +167,7 @@ func (d *VehicleOccupanciesGtfsRtContext) LoadDataExternalSource(uri url.URL, to
 			return nil, err
 		}
 
+		logrus.Debug("*** Gtfs-rt size: ", len(gtfsRt.Vehicles))
 		return gtfsRt, nil
 
 	} else {
@@ -117,68 +176,85 @@ func (d *VehicleOccupanciesGtfsRtContext) LoadDataExternalSource(uri url.URL, to
 	}
 }
 
-/********* PRIVATE FUNCTIONS *********/
-
-// main loop to refresh vehicle_occupancies from Gtfs-rt flux
-func refreshVehicleOccupanciesLoop(context *VehicleOccupanciesGtfsRtContext, predictionURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration, location *time.Location) {
-
-	// Wait 10 seconds before reloading vehicleoccupacy informations
-	time.Sleep(10 * time.Second)
-	for {
-		err := refreshVehicleOccupancies(context, predictionURI, externalToken, navitiaURI, navitiaToken,
-			connectionTimeout, location)
-		if err != nil {
-			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
-		} else {
-			logrus.Debug("vehicle_occupancies GTFS-RT data updated")
-		}
-		time.Sleep(loadExternalRefresh)
-	}
-}
-
 func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, external_url url.URL,
-	external_token string, navitiaURI url.URL, navitiaToken string, connectionTimeout time.Duration,
-	location *time.Location) error {
+	external_token string, navitiaURI url.URL, navitiaToken string, connectionTimeout time.Duration) error {
 
 	begin := time.Now()
+	newT := start.Add(time.Minute * 10) // TODO: Just for test, delete to release
 
 	// Get all data from Gtfs-rt flux
-	gtfsRt, err := context.LoadDataExternalSource(external_url, external_token, connectionTimeout, location)
+	gtfsRt, err := loadDataExternalSource(external_url, external_token)
 	if err != nil {
 		return errors.Errorf("loading external source: %s", err)
 	}
+	if len(gtfsRt.Vehicles) == 0 {
+		return fmt.Errorf("no data to load from GTFS-RT")
+	}
 
 	// Get status Last load from Navitia and check if data loaded recently
-	lastLoadAt, _ := GetStatusLastLoadAt(navitiaURI, navitiaToken, connectionTimeout)
+	publicationDate, err := GetStatusPublicationDate(navitiaURI, navitiaToken, connectionTimeout)
+	if err != nil {
+		logrus.Warning("Error while loading publication date from Navitia: ", err)
+	}
 
-	if context.CheckLastLoadChanged(lastLoadAt) {
-		context.CleanListOldVehicleOccupancies()
+	if context.CheckLastLoadChanged(publicationDate) {
+		logrus.Info("New date of Navitia data loaded ")
+		context.CleanListVehicleOccupancies()
+		context.CleanListVehicleJourney()
+	}
+
+	// TODO: change to take param of config
+	if newT.Before(time.Now()) {
+		context.CleanListVehicleOccupancies()
+		start = time.Now()
 	}
 
 	// Clean list VehicleJourney for vehicle older than delay parameter
 	// TODO: add parameter in config
-	context.CleanListOldVehicleJourney()
+	context.CleanListOldVehicleJourney(1)
 
-	// Check last modifiation from gtfs-rt flux
-	if context.CheckLastChangedGtfsRT(gtfsRt.Timestamp) {
+	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
-		mapVehicleOccupancies := *context.voContext.VehicleOccupancies
-		// if gtfs-rt vehicle exist in map of vehicle occupancies
-		if veh, ok := mapVehicleOccupancies[12]; ok { // change "12" by id from gtfs-rt data
-			veh.Occupancy = 1 // change "1" by occupancy from gtfs-rt data
-			context.UpdateVehicleOccupancy(veh)
-		} else {
-			// Get status Last load from Navitia and check if data loaded recently
-			vj, _ := GetVehicleJourney("id_code", navitiaURI, navitiaToken, connectionTimeout)
+		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
+		var vj *VehicleJourney
 
-			// add in vehicle journey list
-			context.AddListVehicleJourney(*vj)
+		// if gtfs-rt vehicle not exist in map of vehicle occupancies
+		if _, ok := context.voContext.VehicleOccupanciesGtfsRt[idGtfsrt]; !ok {
+			if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
+				vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+				if err != nil {
+					continue
+				}
+
+				// add in vehicle journey list
+				context.AddVehicleJourney(vj)
+			} else {
+				vj = context.vehiclesJourney[vehGtfsRT.Trip]
+			}
 
 			// add in vehicle occupancy list
-			occupancy := createOccupanciesFromDataSource(*vj, gtfsRt.Vehicles[12])
-			context.UpdateVehicleOccupancy(occupancy)
+			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
+			if newVehicleOccupancy != nil {
+				context.AddVehicleOccupancy(newVehicleOccupancy)
+			}
+		} else {
+			vj = context.vehiclesJourney[vehGtfsRT.Trip]
+
+			var spfound = false
+			for _, sp := range *vj.StopPoints {
+				if sp.GtfsStopCode == vehGtfsRT.StopId {
+					spfound = true
+					break
+				}
+			}
+
+			// add in vehicle occupancy list
+			if !spfound {
+				newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
+				if newVehicleOccupancy != nil {
+					context.AddVehicleOccupancy(newVehicleOccupancy)
+				}
+			}
 		}
 	}
 
@@ -186,10 +262,21 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	return nil
 }
 
+// Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
 func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
-	vehicles VehicleGtfsRt) VehicleOccupancy {
+	vehicleGtfsRt VehicleGtfsRt) *VehicleOccupancy {
 
-	return VehicleOccupancy{}
+	for _, stopPoint := range *vehicleJourney.StopPoints {
+		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
+			vo, err := NewVehicleOccupancyGtfsRt(vehicleJourney.VehicleID, stopPoint.Id, vehicleGtfsRt)
+			if err != nil {
+				continue
+			}
+			return vo
+		}
+	}
+	logrus.Debugf("StopPoint: %s not found in Navitia for %s", vehicleGtfsRt.StopId, vehicleJourney.VehicleID)
+	return nil
 }
 
 // Method to parse data from GTFS-RT

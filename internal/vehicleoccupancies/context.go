@@ -16,6 +16,7 @@ import (
 ------------------------------------------------------------- */
 type VehicleOccupanciesContext struct {
 	VehicleOccupancies           *map[int]VehicleOccupancy
+	VehicleOccupanciesGtfsRt     map[int]*VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
@@ -80,6 +81,29 @@ func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies 
 	d.VehicleOccupancies = &vehicleOccupancies
 	logrus.Info("*** vehicleOccupancies size: ", len(*d.VehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *VehicleOccupanciesContext) CleanListVehicleOccupancies() {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	if d.VehicleOccupanciesGtfsRt != nil {
+		for k := range d.VehicleOccupanciesGtfsRt {
+			delete(d.VehicleOccupanciesGtfsRt, k)
+		}
+	}
+	logrus.Info("*** Clean list VehicleOccupancies")
+}
+func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	if d.VehicleOccupanciesGtfsRt == nil {
+		d.VehicleOccupanciesGtfsRt = map[int]*VehicleOccupancy{}
+	}
+
+	d.VehicleOccupanciesGtfsRt[vehicleoccupancy.Id] = vehicleoccupancy
+	logrus.Debug("*** Vehicle Occupancies size: ", len(d.VehicleOccupanciesGtfsRt))
 }
 
 func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
@@ -198,6 +222,19 @@ func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, er
 		Direction:        rs.Direction,
 		DateTime:         rs.DateTime,
 		Occupancy:        occupancy,
+	}, nil
+}
+
+func NewVehicleOccupancyGtfsRt(vj_id, stopPoint_id string, vg VehicleGtfsRt) (*VehicleOccupancy, error) {
+	idGtfsrt, _ := strconv.Atoi(vg.Trip)
+	return &VehicleOccupancy{
+		Id:               idGtfsrt,
+		LineCode:         "",
+		VehicleJourneyId: vj_id,
+		StopId:           stopPoint_id,
+		Direction:        -1,
+		DateTime:         time.Unix(int64(vg.Time), 0),
+		Occupancy:        int(vg.Occupancy),
 	}, nil
 }
 

@@ -213,28 +213,16 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 	}
 }
 
-func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, error) {
+func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int, date time.Time,
+	occupancy int) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
-		Id:               rs.Id,
-		LineCode:         rs.LineCode,
-		VehicleJourneyId: rs.VehicleJourneyId,
-		StopId:           rs.StopId,
-		Direction:        rs.Direction,
-		DateTime:         rs.DateTime,
+		Id:               voId,
+		LineCode:         lineCode,
+		VehicleJourneyId: vjId,
+		StopId:           stopId,
+		Direction:        direction,
+		DateTime:         date,
 		Occupancy:        occupancy,
-	}, nil
-}
-
-func NewVehicleOccupancyGtfsRt(vj_id, stopPoint_id string, vg VehicleGtfsRt) (*VehicleOccupancy, error) {
-	idGtfsrt, _ := strconv.Atoi(vg.Trip)
-	return &VehicleOccupancy{
-		Id:               idGtfsrt,
-		LineCode:         "",
-		VehicleJourneyId: vj_id,
-		StopId:           stopPoint_id,
-		Direction:        -1,
-		DateTime:         time.Unix(int64(vg.Time), 0),
-		Occupancy:        int(vg.Occupancy),
 	}, nil
 }
 

@@ -270,10 +270,12 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
 func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 	vehicleGtfsRt VehicleGtfsRt) *VehicleOccupancy {
-
+	idGtfsrt, _ := strconv.Atoi(vehicleGtfsRt.Trip)
+	date := time.Unix(int64(vehicleGtfsRt.Time), 0)
 	for _, stopPoint := range *vehicleJourney.StopPoints {
 		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
-			vo, err := NewVehicleOccupancyGtfsRt(vehicleJourney.VehicleID, stopPoint.Id, vehicleGtfsRt)
+			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, date,
+				int(vehicleGtfsRt.Occupancy))
 			if err != nil {
 				continue
 			}

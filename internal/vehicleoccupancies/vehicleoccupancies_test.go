@@ -33,14 +33,14 @@ func TestWithOutStopPointFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 
 	// No load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
 	require.Nil(err)
 	_, err = LoadStopPoints(*uri, defaultTimeout)
 	require.Error(err)
-	assert.Nil(vehiculeOccupanciesContext.stopPoints, nil)
+	assert.Nil(vehicleOccupanciesOditiContext.stopPoints, nil)
 }
 
 func TestNewStopPoint(t *testing.T) {
@@ -70,22 +70,22 @@ func TestStopPointFileWithOutField(t *testing.T) {
 	assert := assert.New(t)
 	spFileName = "mapping_stops0.csv"
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	sp, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitStopPoint(sp)
+	vehicleOccupanciesOditiContext.InitStopPoint(sp)
 
-	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 0)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 0)
 }
 
 func TestWithOutCoursesFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 
 	// No load Courses from file .../extraction_courses.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
@@ -93,7 +93,7 @@ func TestWithOutCoursesFile(t *testing.T) {
 	_, err = LoadCourses(*uri, defaultTimeout)
 	require.Error(err)
 
-	assert.Nil(vehiculeOccupanciesContext.courses, nil)
+	assert.Nil(vehicleOccupanciesOditiContext.courses, nil)
 }
 
 func TestCoursesFileWithOutField(t *testing.T) {
@@ -101,15 +101,15 @@ func TestCoursesFileWithOutField(t *testing.T) {
 	assert := assert.New(t)
 	courseFileName = "extraction_courses0.csv"
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	course, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitCourse(course)
+	vehicleOccupanciesOditiContext.InitCourse(course)
 
-	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 0)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 0)
 }
 
 func TestNewCourse(t *testing.T) {
@@ -170,6 +170,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
 
 	// Load StopPoints
@@ -188,8 +189,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141", "2"})
 	assert.NotNil(err)
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(*vehiculeOccupanciesContext.stopPoints), 4)
+	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.stopPoints), 4)
 
 	// Load Courses
 	courses := make(map[string][]Course)
@@ -203,8 +204,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	course, err = NewCourse(courseLine, location)
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(*vehiculeOccupanciesContext.courses), 1)
+	vehicleOccupanciesOditiContext.InitCourse(courses)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.courses), 1)
 
 	// Load RouteSchedules
 	routeSchedules := make([]RouteSchedule, 0)
@@ -214,8 +215,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*vehiculeOccupanciesContext.routeSchedules), 2)
+	vehicleOccupanciesOditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.routeSchedules), 2)
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
@@ -244,7 +245,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(predictions), 2)
 
 	// Create VehicleOccupancies from existing data
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 2)
 	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
 	assert.Equal(len(vehiculeOccupanciesContext.VehicleOccupancies), 2)
@@ -272,7 +273,6 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	//assert.Equal(vehicleOccupancies[0].Occupancy, 55)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
 
 	// Call Api with another StopId in the paraameter
@@ -288,7 +288,6 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	//assert.Equal(vehicleOccupancies[0].Occupancy, 75)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
 }
 
@@ -400,6 +399,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
+	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
 	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
 
 	// Load StopPoints
@@ -416,8 +416,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
 	sp, _ = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142", "0"})
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(*vehiculeOccupanciesContext.stopPoints), 6)
+	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.stopPoints), 6)
 
 	// Load Courses
 	courses := make(map[string][]Course)
@@ -457,8 +457,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
 
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(*vehiculeOccupanciesContext.courses), 1)
+	vehicleOccupanciesOditiContext.InitCourse(courses)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.courses), 1)
 
 	// Load RouteSchedules
 	routeSchedules := make([]RouteSchedule, 0)
@@ -480,8 +480,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T061000", 0, 6, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*vehiculeOccupanciesContext.routeSchedules), 6)
+	vehicleOccupanciesOditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*vehicleOccupanciesOditiContext.routeSchedules), 6)
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
@@ -554,7 +554,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(predictions), 6)
 
 	// Create VehicleOccupancies from existing data
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 6)
 	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
 	assert.Equal(len(vehiculeOccupanciesContext.VehicleOccupancies), 6)

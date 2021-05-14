@@ -135,23 +135,24 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 
 	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
+	vehicleOccupanciesOditiContext := &vehicleoccupancies.VehicleOccupanciesOditiContext{}
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	stopPoints, err := vehicleoccupancies.LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 25)
+	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 25)
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	courses, err := vehicleoccupancies.LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 1)
-	coursesFor40 := (vehiculeOccupanciesContext.GetCourses())["40"]
+	vehicleOccupanciesOditiContext.InitCourse(courses)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 1)
+	coursesFor40 := (vehicleOccupanciesOditiContext.GetCourses())["40"]
 	assert.Equal(len(coursesFor40), 310)
 
 	// Load RouteSchedules from file
@@ -169,8 +170,8 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	sens := 0
 	startIndex := 1
 	routeSchedules := vehicleoccupancies.LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(vehiculeOccupanciesContext.GetRouteSchedules()), 141)
+	vehicleOccupanciesOditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetRouteSchedules()), 141)
 
 	// Load prediction from a file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
@@ -187,7 +188,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 65)
 
-	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext, predictions)
 	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
 	assert.Equal(len(vehiculeOccupanciesContext.GetVehiclesOccupancies()), 35)
 

@@ -227,7 +227,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 		var vj *VehicleJourney
 
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
-		if _, ok := context.voContext.VehicleOccupanciesGtfsRt[idGtfsrt]; !ok {
+		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
 			if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
 				vj, err := GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
 				if err != nil {

@@ -125,11 +125,23 @@ func (d *VehicleOccupanciesOditiContext) GetRouteSchedules() (routeSchedules []R
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
+func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.URL,
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
+	connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
+
+	d.voContext = &VehicleOccupanciesContext{}
+	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
+
+	err := LoadAllForVehicleOccupancies(d, filesURI, navitiaURI, externalURI, navitiaToken,
+		externalToken, connectionTimeout, location)
+	if err != nil {
+		logrus.Errorf("Impossible to load data at startup: %s", err)
+	}
+}
+
 func (d *VehicleOccupanciesOditiContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location) {
-
-	d.voContext = &VehicleOccupanciesContext{}
 
 	refreshVehicleOccupanciesLoopO(d, externalURI, externalToken, loadExternalRefresh, connectionTimeout,
 		location)

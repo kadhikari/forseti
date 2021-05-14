@@ -213,6 +213,14 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	// TODO: add parameter in config
 	context.CleanListOldVehicleJourney(1)
 
+	manageListVehicleOccupancies(context, gtfsRt, navitiaURI, navitiaToken, connectionTimeout)
+
+	VehicleOccupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
+	return nil
+}
+
+func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfsRt *GtfsRt, navitiaURI url.URL,
+	navitiaToken string, connectionTimeout time.Duration) {
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
@@ -221,7 +229,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupanciesGtfsRt[idGtfsrt]; !ok {
 			if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-				vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+				vj, err := GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
 				if err != nil {
 					continue
 				}
@@ -257,9 +265,6 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 			}
 		}
 	}
-
-	VehicleOccupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data

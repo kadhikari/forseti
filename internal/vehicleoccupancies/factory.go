@@ -11,8 +11,12 @@ import (
 )
 
 type IVehicleOccupancy interface {
-	RefreshVehicleOccupanciesLoop(predictionURI url.URL,
+	InitContext(filesURI, externalURI url.URL,
 		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
+		connectionTimeout time.Duration, location *time.Location, occupancyActive bool)
+
+	RefreshVehicleOccupanciesLoop(predictionURI url.URL, externalToken string,
+		navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 		connectionTimeout time.Duration, location *time.Location)
 
 	GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
@@ -24,8 +28,7 @@ func VehicleOccupancyFactory(type_vehicleoccupancy string) (IVehicleOccupancy, e
 	if type_vehicleoccupancy == "gtfs" {
 		return &VehicleOccupanciesGtfsRtContext{}, nil
 	} else if type_vehicleoccupancy == "oditi" {
-		// TODO: add type of Oditi
-		return nil, nil
+		return &VehicleOccupanciesOditiContext{}, nil
 	} else {
 		return nil, fmt.Errorf("Wrong vehicleoccupancy type passed")
 	}

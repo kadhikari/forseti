@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"reflect"
 	"testing"
+	"time"
 
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,9 @@ func TestNewVehicleJourney(t *testing.T) {
 		vehicleId   string
 		codesSource string
 		stopPoints  []StopPointVj
+		createDate  time.Time
 	}
+	date, _ := time.Parse("2006-01-02", "2021-05-01")
 	tests := []struct {
 		name string
 		args args
@@ -30,18 +33,20 @@ func TestNewVehicleJourney(t *testing.T) {
 				codesSource: "7002",
 				stopPoints: []StopPointVj{{"stop_point:STS:SP:7002", "7002"},
 					{"stop_point:STS:SP:169", "169"}},
+				createDate: date,
 			},
 			want: &VehicleJourney{
 				VehicleID:   "stop_point:STS:SP:7002",
 				CodesSource: "7002",
 				StopPoints: &[]StopPointVj{{"stop_point:STS:SP:7002", "7002"},
 					{"stop_point:STS:SP:169", "169"}},
+				CreateDate: date,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewVehicleJourney(tt.args.vehicleId, tt.args.codesSource, tt.args.stopPoints); !reflect.
+			if got := NewVehicleJourney(tt.args.vehicleId, tt.args.codesSource, tt.args.stopPoints, date); !reflect.
 				DeepEqual(got, tt.want) {
 				t.Errorf("NewVehicleJourney() = %v, want %v", got, tt.want)
 			}
@@ -91,6 +96,8 @@ func TestCreateVehicleJourney(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonData), vj)
 	require.Nil(err)
 
+	date, _ := time.Parse("2006-01-02", "2021-05-01")
+
 	tests := []struct {
 		name string
 		args args
@@ -105,14 +112,14 @@ func TestCreateVehicleJourney(t *testing.T) {
 			want: &VehicleJourney{
 				VehicleID:   "vehicle_journey:STS:652187-1",
 				CodesSource: "652187",
-				StopPoints: &[]StopPointVj{{"stop_point:STS:SP:7002", "7002"},
-					{"stop_point:STS:SP:169", "169"}},
+				StopPoints:  &[]StopPointVj{{"stop_point:STS:SP:7002", "7002"}, {"stop_point:STS:SP:169", "169"}},
+				CreateDate:  date,
 			},
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateVehicleJourney(tt.args.navitiaVJ, tt.args.id_gtfsRt); !reflect.DeepEqual(got, tt.want) {
+			if got := CreateVehicleJourney(tt.args.navitiaVJ, tt.args.id_gtfsRt, date); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("CreateVehicleJourney() = %v, want %v", got.StopPoints, tt.want.StopPoints)
 			}
 		})

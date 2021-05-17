@@ -303,9 +303,9 @@ func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 }
 
 func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext,
-	predictions []Prediction) map[int]VehicleOccupancy {
+	predictions []Prediction) map[int]*VehicleOccupancy {
 	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
-	occupanciesWithCharge := make(map[int]VehicleOccupancy)
+	occupanciesWithCharge := make(map[int]*VehicleOccupancy)
 	var vehicleJourneyId = ""
 	for _, predict := range predictions {
 		if predict.Order == 0 {
@@ -324,12 +324,13 @@ func CreateOccupanciesFromPredictions(context *VehicleOccupanciesContext,
 			rs := context.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
 			if rs != nil {
 				poCalc := utils.CalculateOccupancy(predict.Occupancy)
-				vo, err := NewVehicleOccupancy(*rs, int(GetOccupancyStatusForOditi(poCalc)))
+				vo, err := NewVehicleOccupancy(rs.Id, rs.LineCode, rs.VehicleJourneyId, rs.StopId,
+					rs.Direction, rs.DateTime, int(GetOccupancyStatusForOditi(poCalc)))
 
 				if err != nil {
 					continue
 				}
-				occupanciesWithCharge[vo.Id] = *vo
+				occupanciesWithCharge[vo.Id] = vo
 			}
 		}
 	}

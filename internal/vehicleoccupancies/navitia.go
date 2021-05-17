@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	URL_GET_LAST_LOAD       = "%s/status&"
+	URL_GET_LAST_LOAD       = "%s/status?"
 	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
 	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 )
@@ -22,7 +22,7 @@ const (
 // Structure to load the last date of modification static data
 type Status struct {
 	Status struct {
-		LastLoadAt string `json:"last_load_at"`
+		PublicationDate string `json:"publication_date"`
 	} `json:"status"`
 }
 
@@ -56,13 +56,16 @@ type VehicleJourney struct {
 	VehicleID   string // vehicle journey id Navitia
 	CodesSource string // vehicle id from gtfs-rt
 	StopPoints  *[]StopPointVj
+	CreateDate  time.Time
 }
 
-func NewVehicleJourney(vehicleId string, codesSource string, stopPoints []StopPointVj) *VehicleJourney {
+func NewVehicleJourney(vehicleId string, codesSource string, stopPoints []StopPointVj,
+	date time.Time) *VehicleJourney {
 	return &VehicleJourney{
 		VehicleID:   vehicleId,
 		CodesSource: codesSource,
 		StopPoints:  &stopPoints,
+		CreateDate:  date,
 	}
 }
 
@@ -81,7 +84,7 @@ func NewStopPointVj(id string, code string) StopPointVj {
 
 // GetStatusLastLoadAt get last_load_at field from the status url.
 // This field take the last date at the static data reload.
-func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Duration) (string, error) {
+func GetStatusPublicationDate(uri url.URL, token string, connectionTimeout time.Duration) (string, error) {
 	callUrl := fmt.Sprintf(URL_GET_LAST_LOAD, uri.String())
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
@@ -96,7 +99,7 @@ func GetStatusLastLoadAt(uri url.URL, token string, connectionTimeout time.Durat
 		return "", err
 	}
 
-	return navitiaStatus.Status.LastLoadAt, nil
+	return navitiaStatus.Status.PublicationDate, nil
 }
 
 // GetVehicleJourney get object vehicle journey from Navitia compared to GTFS-RT vehicle id.
@@ -117,7 +120,7 @@ func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTi
 		return nil, err
 	}
 
-	return CreateVehicleJourney(navitiaVJ, id_gtfsRt), nil
+	return CreateVehicleJourney(navitiaVJ, id_gtfsRt, time.Now()), nil
 }
 
 // This method call Navitia api with specific url and return a request response
@@ -137,7 +140,7 @@ func CallNavitia(callUrl string, token string, connectionTimeout time.Duration) 
 }
 
 // CreateVehicleJourney create a new vehicle journey with all stop point from Navitia
-func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string) *VehicleJourney {
+func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string, createDate time.Time) *VehicleJourney {
 	sp := make([]StopPointVj, 0)
 	var stopPointVj StopPointVj
 	for i := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes); i++ {
@@ -150,6 +153,6 @@ func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string) *V
 		}
 		sp = append(sp, stopPointVj)
 	}
-	vj := NewVehicleJourney(navitiaVJ.VehicleJourneys[0].ID, id_gtfsRt, sp)
+	vj := NewVehicleJourney(navitiaVJ.VehicleJourneys[0].ID, id_gtfsRt, sp, createDate)
 	return vj
 }

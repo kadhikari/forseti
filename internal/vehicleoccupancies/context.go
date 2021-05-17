@@ -15,7 +15,7 @@ import (
 // Structure and Consumer to creates Vehicle occupancies objects
 ------------------------------------------------------------- */
 type VehicleOccupanciesContext struct {
-	VehicleOccupancies           *map[int]VehicleOccupancy
+	VehicleOccupancies           map[int]*VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
@@ -73,13 +73,36 @@ func (d *VehicleOccupanciesContext) InitRouteSchedule(routeSchedules []RouteSche
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[int]VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[int]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 
-	d.VehicleOccupancies = &vehicleOccupancies
-	logrus.Info("*** vehicleOccupancies size: ", len(*d.VehicleOccupancies))
+	d.VehicleOccupancies = vehicleOccupancies
+	logrus.Info("*** vehicleOccupancies size: ", len(d.VehicleOccupancies))
 	d.lastVehicleOccupanciesUpdate = time.Now()
+}
+
+func (d *VehicleOccupanciesContext) CleanListVehicleOccupancies() {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	if d.VehicleOccupancies != nil {
+		for k := range d.VehicleOccupancies {
+			delete(d.VehicleOccupancies, k)
+		}
+	}
+	logrus.Info("*** Clean list VehicleOccupancies")
+}
+func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+
+	if d.VehicleOccupancies == nil {
+		d.VehicleOccupancies = map[int]*VehicleOccupancy{}
+	}
+
+	d.VehicleOccupancies[vehicleoccupancy.Id] = vehicleoccupancy
+	logrus.Debug("*** Vehicle Occupancies size: ", len(d.VehicleOccupancies))
 }
 
 func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
@@ -150,11 +173,11 @@ func (d *VehicleOccupanciesContext) GetRouteSchedules() (routeSchedules []RouteS
 	return *d.routeSchedules
 }
 
-func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[int]VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[int]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 
-	return *d.VehicleOccupancies
+	return d.VehicleOccupancies
 }
 
 func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
@@ -170,7 +193,7 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 		}
 
 		// Implement filter on parameters
-		for _, vo := range *d.VehicleOccupancies {
+		for _, vo := range d.VehicleOccupancies {
 			// Filter on stop_id
 			if len(param.StopId) > 0 && param.StopId != vo.StopId {
 				continue
@@ -183,20 +206,21 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 			if vo.DateTime.Before(param.Date) {
 				continue
 			}
-			occupancies = append(occupancies, vo)
+			occupancies = append(occupancies, *vo)
 		}
 		return occupancies, nil
 	}
 }
 
-func NewVehicleOccupancy(rs RouteSchedule, occupancy int) (*VehicleOccupancy, error) {
+func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int, date time.Time,
+	occupancy int) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
-		Id:               rs.Id,
-		LineCode:         rs.LineCode,
-		VehicleJourneyId: rs.VehicleJourneyId,
-		StopId:           rs.StopId,
-		Direction:        rs.Direction,
-		DateTime:         rs.DateTime,
+		Id:               voId,
+		LineCode:         lineCode,
+		VehicleJourneyId: vjId,
+		StopId:           stopId,
+		Direction:        direction,
+		DateTime:         date,
 		Occupancy:        occupancy,
 	}, nil
 }

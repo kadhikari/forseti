@@ -15,8 +15,8 @@ type IVehicleOccupancy interface {
 		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 		connectionTimeout time.Duration, location *time.Location)
 
-	LoadDataExternalSource(uri url.URL, token string,
-		connectionTimeout time.Duration, location *time.Location) (*GtfsRt, error)
+	GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
+		vehicleOccupancies []VehicleOccupancy, e error)
 }
 
 // Patern factory Vehicle occupancies

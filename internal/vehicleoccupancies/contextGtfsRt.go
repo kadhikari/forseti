@@ -30,20 +30,20 @@ type VehicleOccupanciesGtfsRtContext struct {
 var start = time.Now() // TODO: Just for test, delete to release
 
 func (d *VehicleOccupanciesGtfsRtContext) GetVehicleJourneys() (vehicleJourneys map[string]*VehicleJourney) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 	return d.vehiclesJourney
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) GetVehiclesGtfsRts() (vehiclesGtfsRts []VehicleGtfsRt) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 	return *d.vehiclesGtfsRt
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) GetLastLoadNavitia() (lastLoadNavitia string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
 	return d.lastLoadNavitia
 }
 

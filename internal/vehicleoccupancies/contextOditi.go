@@ -28,6 +28,15 @@ type VehicleOccupanciesOditiContext struct {
 	mutex          sync.RWMutex
 }
 
+func (d *VehicleOccupanciesOditiContext) GetVehicleOccupanciesContext() *VehicleOccupanciesContext {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if d.voContext == nil {
+		d.voContext = &VehicleOccupanciesContext{}
+	}
+	return d.voContext
+}
+
 func (d *VehicleOccupanciesOditiContext) InitStopPoint(stopPoints map[string]StopPoint) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -125,6 +134,7 @@ func (d *VehicleOccupanciesOditiContext) GetRouteSchedules() (routeSchedules []R
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
+
 func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
@@ -139,12 +149,59 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 	}
 }
 
+// main loop to refresh vehicle_occupancies from ODITI
 func (d *VehicleOccupanciesOditiContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location) {
+	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
+		logrus.Debug("VehicleOccupancy data refreshing is disabled")
+		return
+	}
 
-	refreshVehicleOccupanciesLoopO(d, externalURI, externalToken, loadExternalRefresh, connectionTimeout,
-		location)
+	if (d.courses == nil || d.stopPoints == nil) ||
+		(len(*d.courses) == 0 || len(*d.stopPoints) == 0) {
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
+	} else {
+		// Wait 10 seconds before reloading vehicleoccupacy informations
+		time.Sleep(10 * time.Second)
+		for {
+			err := RefreshVehicleOccupancies(d, externalURI, externalToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading VehicleOccupancy data: ", err)
+			} else {
+				logrus.Debug("vehicle_occupancies data updated")
+			}
+			time.Sleep(loadExternalRefresh)
+		}
+	}
+}
+
+func (d *VehicleOccupanciesOditiContext) RefreshDataFromNavitia(navitiaURI url.URL, navitiaToken string,
+	routeScheduleRefresh, connectionTimeout time.Duration, location *time.Location) {
+
+	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
+		logrus.Debug("RouteSchedule data refreshing is disabled")
+		return
+	}
+
+	if (d.courses == nil || d.stopPoints == nil) ||
+		(len(*d.courses) == 0 || len(*d.stopPoints) == 0) {
+		logrus.Error("VEHICLE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
+	} else {
+		for {
+			err := LoadRoutesForAllLines(d, navitiaURI, navitiaToken, connectionTimeout, location)
+			if err != nil {
+				logrus.Error("Error while reloading RouteSchedule data: ", err)
+			} else {
+				logrus.Debug("RouteSchedule data updated")
+			}
+			time.Sleep(routeScheduleRefresh)
+		}
+	}
+}
+
+func (d *VehicleOccupanciesOditiContext) ManageVehicleOccupancyStatus(vehicleOccupanciesActive bool) {
+	d.voContext.ManageVehicleOccupancyStatus(vehicleOccupanciesActive)
 }
 
 func (d *VehicleOccupanciesOditiContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
@@ -152,38 +209,17 @@ func (d *VehicleOccupanciesOditiContext) GetVehicleOccupancies(param *VehicleOcc
 	return d.voContext.GetVehicleOccupancies(param)
 }
 
-/********* PRIVATE FUNCTIONS *********/
-
-func refreshVehicleOccupanciesLoopO(context *VehicleOccupanciesOditiContext,
-	predictionURI url.URL,
-	predictionToken string,
-	predictionRefresh,
-	connectionTimeout time.Duration,
-	location *time.Location) {
-	if len(predictionURI.String()) == 0 || predictionRefresh.Seconds() <= 0 {
-		logrus.Debug("VehicleOccupancy data refreshing is disabled")
-		return
-	}
-
-	if (context.courses == nil || context.stopPoints == nil) ||
-		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
-		logrus.Error("VEHICLE_OCCUPANCIES: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
-	} else {
-		// Wait 10 seconds before reloading vehicleoccupacy informations
-		time.Sleep(10 * time.Second)
-		for {
-			err := RefreshVehicleOccupanciesO(context, predictionURI, predictionToken, connectionTimeout, location)
-			if err != nil {
-				logrus.Error("Error while reloading VehicleOccupancy data: ", err)
-			} else {
-				logrus.Debug("vehicle_occupancies data updated")
-			}
-			time.Sleep(predictionRefresh)
-		}
-	}
+func (d *VehicleOccupanciesOditiContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
+	return d.voContext.GetLastVehicleOccupanciesDataUpdate()
 }
 
-func RefreshVehicleOccupanciesO(context *VehicleOccupanciesOditiContext, predict_url url.URL, predict_token string,
+func (d *VehicleOccupanciesOditiContext) LoadOccupancyData() bool {
+	return d.voContext.LoadOccupancyData()
+}
+
+/********* PRIVATE FUNCTIONS *********/
+
+func RefreshVehicleOccupancies(context *VehicleOccupanciesOditiContext, predict_url url.URL, predict_token string,
 	connectionTimeout time.Duration, location *time.Location) error {
 	// Continue using last loaded data if loading is deactivated
 	if !context.voContext.LoadOccupancyData() {
@@ -202,30 +238,6 @@ func RefreshVehicleOccupanciesO(context *VehicleOccupanciesOditiContext, predict
 	context.voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
 	VehicleOccupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
-}
-
-func RefreshRouteSchedulesLoop(context *VehicleOccupanciesOditiContext, navitiaURI url.URL, navitiaToken string,
-	routeScheduleRefresh, connectionTimeout time.Duration, location *time.Location) {
-
-	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
-		logrus.Debug("RouteSchedule data refreshing is disabled")
-		return
-	}
-
-	if (context.courses == nil || context.stopPoints == nil) ||
-		(len(*context.courses) == 0 || len(*context.stopPoints) == 0) {
-		logrus.Error("VEHICLE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
-	} else {
-		for {
-			err := LoadRoutesForAllLines(context, navitiaURI, navitiaToken, connectionTimeout, location)
-			if err != nil {
-				logrus.Error("Error while reloading RouteSchedule data: ", err)
-			} else {
-				logrus.Debug("RouteSchedule data updated")
-			}
-			time.Sleep(routeScheduleRefresh)
-		}
-	}
 }
 
 func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]StopPoint, error) {
@@ -368,7 +380,7 @@ func LoadAllForVehicleOccupancies(context *VehicleOccupanciesOditiContext, files
 	}
 
 	// Load predictions for external service and update VehicleOccupancies with charge
-	err = RefreshVehicleOccupanciesO(context, predict_url, predict_token, connectionTimeout, location)
+	err = RefreshVehicleOccupancies(context, predict_url, predict_token, connectionTimeout, location)
 	if err != nil {
 		return err
 	}

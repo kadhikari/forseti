@@ -9,11 +9,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CanalTP/forseti"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/protobuf/proto"
 )
 
 /* ---------------------------------------------------------------------
@@ -22,29 +20,19 @@ import (
 type VehicleOccupanciesGtfsRtContext struct {
 	voContext       *VehicleOccupanciesContext
 	vehiclesJourney map[string]*VehicleJourney
-	vehiclesGtfsRt  *[]VehicleGtfsRt
 	lastLoadNavitia string
 	mutex           sync.RWMutex
 }
 
 var start = time.Now() // TODO: Just for test, delete to release
 
-func (d *VehicleOccupanciesGtfsRtContext) GetVehicleJourneys() (vehicleJourneys map[string]*VehicleJourney) {
+func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupanciesContext() *VehicleOccupanciesContext {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	return d.vehiclesJourney
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) GetVehiclesGtfsRts() (vehiclesGtfsRts []VehicleGtfsRt) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	return *d.vehiclesGtfsRt
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) GetLastLoadNavitia() (lastLoadNavitia string) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-	return d.lastLoadNavitia
+	if d.voContext == nil {
+		d.voContext = &VehicleOccupanciesContext{}
+	}
+	return d.voContext
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) CheckLastLoadChanged(lastLoadAt string) bool {
@@ -103,6 +91,7 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
+
 func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
@@ -111,30 +100,15 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 }
 
+// main loop to refresh vehicle_occupancies from Gtfs-rt flux
 func (d *VehicleOccupanciesGtfsRtContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
 	connectionTimeout time.Duration, location *time.Location) {
 
-	refreshVehicleOccupanciesLoop(d, externalURI, externalToken, navitiaURI, navitiaToken,
-		loadExternalRefresh, connectionTimeout)
-}
-
-func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
-	vehicleOccupancies []VehicleOccupancy, e error) {
-	return d.voContext.GetVehicleOccupancies(param)
-}
-
-/********* PRIVATE FUNCTIONS *********/
-
-// main loop to refresh vehicle_occupancies from Gtfs-rt flux
-func refreshVehicleOccupanciesLoop(context *VehicleOccupanciesGtfsRtContext, predictionURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration) {
-
 	// Wait 10 seconds before reloading vehicleoccupacy informations
 	time.Sleep(10 * time.Second)
 	for {
-		err := refreshVehicleOccupancies(context, predictionURI, externalToken, navitiaURI, navitiaToken,
+		err := refreshVehicleOccupancies(d, externalURI, externalToken, navitiaURI, navitiaToken,
 			connectionTimeout)
 		if err != nil {
 			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
@@ -144,6 +118,25 @@ func refreshVehicleOccupanciesLoop(context *VehicleOccupanciesGtfsRtContext, pre
 		time.Sleep(loadExternalRefresh)
 	}
 }
+
+func (d *VehicleOccupanciesGtfsRtContext) ManageVehicleOccupancyStatus(vehicleOccupanciesActive bool) {
+	d.voContext.ManageVehicleOccupancyStatus(vehicleOccupanciesActive)
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
+	vehicleOccupancies []VehicleOccupancy, e error) {
+	return d.voContext.GetVehicleOccupancies(param)
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
+	return d.voContext.GetLastVehicleOccupanciesDataUpdate()
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) LoadOccupancyData() bool {
+	return d.voContext.LoadOccupancyData()
+}
+
+/********* PRIVATE FUNCTIONS *********/
 
 func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
 
@@ -289,69 +282,4 @@ func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 	}
 	logrus.Debugf("StopPoint: %s not found in Navitia for %s", vehicleGtfsRt.StopId, vehicleJourney.VehicleID)
 	return nil
-}
-
-// Method to parse data from GTFS-RT
-func parseVehiclesResponse(b []byte) (*GtfsRt, error) {
-	fm := new(forseti.FeedMessage)
-	err := proto.Unmarshal(b, fm)
-	if err != nil {
-		return nil, err
-	}
-
-	strTimestamp := strconv.FormatUint(fm.Header.GetTimestamp(), 10)
-
-	vehicles := make([]VehicleGtfsRt, 0, len(fm.GetEntity()))
-	for _, entity := range fm.GetEntity() {
-		var vehPos *forseti.VehiclePosition = entity.GetVehicle()
-		var pos *forseti.Position = vehPos.GetPosition()
-		var trip *forseti.TripDescriptor = vehPos.GetTrip()
-
-		veh := VehicleGtfsRt{
-			VehicleID: vehPos.GetVehicle().GetId(),
-			StopId:    vehPos.GetStopId(),
-			Label:     vehPos.GetVehicle().GetLabel(),
-			Time:      vehPos.GetTimestamp(),
-			Speed:     pos.GetSpeed(),
-			Bearing:   pos.GetBearing(),
-			Route:     trip.GetRouteId(),
-			Trip:      trip.GetTripId(),
-			Latitude:  pos.GetLatitude(),
-			Longitude: pos.GetLongitude(),
-			Occupancy: uint32(vehPos.GetOccupancyStatus()),
-		}
-		vehicles = append(vehicles, veh)
-	}
-
-	gtfsRt := NewGtfsRt(strTimestamp, vehicles)
-	return gtfsRt, nil
-}
-
-/* ---------------------------------------------------------
-// Structure and Consumer to creates Vehicle GTFS-RT objects
---------------------------------------------------------- */
-type GtfsRt struct {
-	Timestamp string
-	Vehicles  []VehicleGtfsRt
-}
-
-type VehicleGtfsRt struct {
-	VehicleID string
-	StopId    string
-	Label     string
-	Time      uint64
-	Speed     float32
-	Bearing   float32
-	Route     string
-	Trip      string
-	Latitude  float32
-	Longitude float32
-	Occupancy uint32
-}
-
-func NewGtfsRt(timestamp string, v []VehicleGtfsRt) *GtfsRt {
-	return &GtfsRt{
-		Timestamp: timestamp,
-		Vehicles:  v,
-	}
 }

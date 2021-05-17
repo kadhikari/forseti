@@ -71,6 +71,7 @@ func TestStopPointFileWithOutField(t *testing.T) {
 	spFileName = "mapping_stops0.csv"
 
 	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
+	vehicleOccupanciesOditiContext.voContext = &VehicleOccupanciesContext{}
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
@@ -102,6 +103,7 @@ func TestCoursesFileWithOutField(t *testing.T) {
 	courseFileName = "extraction_courses0.csv"
 
 	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
+	vehicleOccupanciesOditiContext.voContext = &VehicleOccupanciesContext{}
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
@@ -171,6 +173,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	require.Nil(err)
 
 	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
+	vehicleOccupanciesOditiContext.voContext = &VehicleOccupanciesContext{}
 	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
 
 	// Load StopPoints
@@ -400,6 +403,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	require.Nil(err)
 
 	vehicleOccupanciesOditiContext := &VehicleOccupanciesOditiContext{}
+	vehicleOccupanciesOditiContext.voContext = &VehicleOccupanciesContext{}
 	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
 
 	// Load StopPoints

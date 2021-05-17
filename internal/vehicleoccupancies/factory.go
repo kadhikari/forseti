@@ -21,6 +21,12 @@ type IVehicleOccupancy interface {
 
 	GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
 		vehicleOccupancies []VehicleOccupancy, e error)
+
+	ManageVehicleOccupancyStatus(vehicleOccupanciesActive bool)
+
+	GetLastVehicleOccupanciesDataUpdate() time.Time
+
+	LoadOccupancyData() bool
 }
 
 // Patern factory Vehicle occupancies

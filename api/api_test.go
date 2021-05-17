@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
-	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -134,8 +134,12 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
-	vehicleOccupanciesOditiContext := &vehicleoccupancies.VehicleOccupanciesOditiContext{}
+	vOditiContext, err := vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext)
+	require.True(ok)
+
+	vehicleOccupanciesContext := vehicleOccupanciesOditiContext.GetVehicleOccupanciesContext()
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
@@ -188,12 +192,13 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 65)
 
-	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext, predictions)
-	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(vehiculeOccupanciesContext.GetVehiclesOccupancies()), 35)
+	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
+		predictions)
+	vehicleOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(vehicleOccupanciesContext.GetVehiclesOccupancies()), 35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehiculeOccupanciesContext)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
 	engine = SetupRouter(&manager, engine)
 
 	// Request without any parameter (Date with default value = Now().Format("20060102"))
@@ -253,7 +258,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
 
 	// Verify /status
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+	manager.SetVehiculeOccupanciesContext(vehicleOccupanciesOditiContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)

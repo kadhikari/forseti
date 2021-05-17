@@ -223,11 +223,12 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
 		var vj *VehicleJourney
+		var err error
 
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
 			if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-				vj, err := GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+				vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
 				if err != nil {
 					continue
 				}

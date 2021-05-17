@@ -225,29 +225,28 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
 		var vj *VehicleJourney
+		var err error
+
+		if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
+			vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+			if err != nil {
+				continue
+			}
+
+			// add in vehicle journey list
+			context.AddVehicleJourney(vj)
+		} else {
+			vj = context.vehiclesJourney[vehGtfsRT.Trip]
+		}
 
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
-			if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-				vj, err := GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
-				if err != nil {
-					continue
-				}
-
-				// add in vehicle journey list
-				context.AddVehicleJourney(vj)
-			} else {
-				vj = context.vehiclesJourney[vehGtfsRT.Trip]
-			}
-
 			// add in vehicle occupancy list
 			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)
 			}
 		} else {
-			vj = context.vehiclesJourney[vehGtfsRT.Trip]
-
 			var spfound = false
 			for _, sp := range *vj.StopPoints {
 				if sp.GtfsStopCode == vehGtfsRT.StopId {

@@ -6,9 +6,162 @@ import (
 	"os"
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_GetVehicleJourneys(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	vjs := gtfsRtContext.GetVehicleJourneys()
+	require.Nil(vjs)
+	assert.Nil(gtfsRtContext.vehiclesJourney, nil)
+
+}
+
+func Test_GetLastLoadNavitia(t *testing.T) {
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	date := gtfsRtContext.GetLastLoadNavitia()
+	assert.Equal(date, "")
+
+	gtfsRtContext.lastLoadNavitia = "20210511T090912.579677"
+	date = gtfsRtContext.GetLastLoadNavitia()
+	assert.Equal(date, "20210511T090912.579677")
+}
+
+func Test_CheckLastLoadChanged(t *testing.T) {
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	gtfsRtContext.lastLoadNavitia = "20210511T090912.579677"
+	changed := gtfsRtContext.CheckLastLoadChanged("20210511T090912.579677")
+	assert.Equal(changed, false)
+
+	changed = gtfsRtContext.CheckLastLoadChanged("20210515T000000.000000")
+	assert.Equal(changed, true)
+}
+
+func Test_CleanListVehicleOccupancies(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+
+	gtfsRtContext.voContext.VehicleOccupancies = vehicleOccupancies
+	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
+
+	gtfsRtContext.CleanListVehicleOccupancies()
+	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 0)
+}
+
+func Test_AddVehicleOccupancy(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+
+	gtfsRtContext.AddVehicleOccupancy(&VehicleOccupancy{
+		Id:               200,
+		LineCode:         "40",
+		VehicleJourneyId: "vehicle_journey:0:124695149-1",
+		StopId:           "stop_point:0:SP:80:4029",
+		Direction:        0,
+		DateTime:         time.Now(),
+		Occupancy:        1})
+	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
+	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 1)
+}
+
+func Test_CleanListVehicleJourney(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+
+	gtfsRtContext.vehiclesJourney = mapVJ
+	require.NotNil(gtfsRtContext.vehiclesJourney)
+
+	gtfsRtContext.CleanListVehicleJourney()
+	require.Nil(gtfsRtContext.vehiclesJourney)
+	assert.Equal(len(gtfsRtContext.vehiclesJourney), 0)
+}
+
+func Test_CleanListOldVehicleJourney(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+
+	gtfsRtContext.vehiclesJourney = mapVJ
+	require.NotNil(gtfsRtContext.vehiclesJourney)
+
+	gtfsRtContext.CleanListOldVehicleJourney(1)
+	require.NotNil(gtfsRtContext.vehiclesJourney)
+	assert.Equal(len(gtfsRtContext.vehiclesJourney), 1)
+}
+
+func Test_AddVehicleJourney(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+
+	gtfsRtContext.AddVehicleJourney(&VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
+		CodesSource: "651969",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+		CreateDate: time.Now()})
+	require.NotNil(gtfsRtContext.vehiclesJourney)
+	assert.Equal(len(gtfsRtContext.vehiclesJourney), 1)
+}
+
+func Test_GetVehicleOccupancies(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	dateVj, _ := time.Parse("2006-01-02", "2021-05-12")
+	require.Nil(err)
+
+	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+
+	vj := VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
+		CodesSource: "652517",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:263", "263"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+		CreateDate: dateVj}
+
+	vGtfsRt := VehicleGtfsRt{"52103", "263", "52103", 1620777600, 11, 274, "1", "652517", 45.398613, -71.90111, 0}
+
+	// Create VehicleOccupancies from existing data
+	vo := createOccupanciesFromDataSource(vj, vGtfsRt)
+	gtfsRtContext.AddVehicleOccupancy(vo)
+	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
+	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 1)
+	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
+	require.Nil(err)
+	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
+	vehicleOccupancies, err := gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 1)
+
+	// Call Api with StopId in the paraameter
+	param = VehicleOccupancyRequestParameter{
+		StopId:           "stop_point:STS:SP:263",
+		VehicleJourneyId: "",
+		Date:             date}
+	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 1)
+}
 
 func Test_parseVehiclesResponse(t *testing.T) {
 	type args struct {
@@ -60,6 +213,43 @@ func Test_parseVehiclesResponse(t *testing.T) {
 			}
 		})
 	}
+}
+
+var mapVJ = map[string]*VehicleJourney{
+	"651969": {VehicleID: "vehicle_journey:STS:651969-1",
+		CodesSource: "651969",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+		CreateDate: time.Now().Add(-2 * time.Hour)},
+	"652005": {VehicleID: "vehicle_journey:STS:652005-1",
+		CodesSource: "652005",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:299", "299"),
+			NewStopPointVj("stop_point:STS:SP:600", "600")},
+		CreateDate: time.Now().Add(-2 * time.Hour)},
+	"652373": {VehicleID: "vehicle_journey:STS:652373-1",
+		CodesSource: "652373",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:814", "814"),
+			NewStopPointVj("stop_point:STS:SP:900", "900")},
+		CreateDate: time.Now()},
+}
+
+var vehicleOccupancies = map[int]*VehicleOccupancy{
+	156: {
+		Id:               156,
+		LineCode:         "40",
+		VehicleJourneyId: "vehicle_journey:0:124695149-1",
+		StopId:           "stop_point:0:SP:80:4029",
+		Direction:        0,
+		DateTime:         time.Now(),
+		Occupancy:        1},
+	700: {
+		Id:               700,
+		LineCode:         "45",
+		VehicleJourneyId: "vehicle_journey:0:124695000-1",
+		StopId:           "stop_point:0:SP:80:4043",
+		Direction:        0,
+		DateTime:         time.Now(),
+		Occupancy:        2},
 }
 
 var dataGtfsRt = []VehicleGtfsRt{

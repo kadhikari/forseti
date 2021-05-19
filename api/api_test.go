@@ -195,66 +195,10 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehiculeOccupanciesContext)
 	engine = SetupRouter(&manager, engine)
 
-	// Request without any parameter (Date with default value = Now().Format("20060102"))
-	response := vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies", nil)
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.Nil(response.VehicleOccupancies)
-	assert.Len(response.VehicleOccupancies, 0)
-	assert.Empty(response.Error)
-
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies?date=20210118", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.VehicleOccupancies)
-	assert.Len(response.VehicleOccupancies, 35)
-	assert.Empty(response.Error)
-
-	resp := vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest(
-		"GET",
-		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
-		nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
-	require.Nil(err)
-	require.NotNil(resp.VehicleOccupancies)
-	assert.Len(resp.VehicleOccupancies, 7)
-	assert.Empty(resp.Error)
-
-	resp = vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET",
-		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121",
-		nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
-	require.Nil(err)
-	require.NotNil(resp.VehicleOccupancies)
-	assert.Len(resp.VehicleOccupancies, 1)
-	assert.Empty(resp.Error)
-
-	require.Nil(err)
-	assert.Equal(resp.VehicleOccupancies[0].VehicleJourneyId, "vehicle_journey:0:123713792-1")
-	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
-	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
-	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
-	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
-
 	// Verify /status
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
-	w = httptest.NewRecorder()
+	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 

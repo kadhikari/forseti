@@ -230,7 +230,6 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			if err != nil {
 				continue
 			}
-
 			// add in vehicle journey list
 			context.AddVehicleJourney(vj)
 		} else {

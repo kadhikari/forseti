@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -237,53 +238,33 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			vj = context.vehiclesJourney[vehGtfsRT.Trip]
 		}
 
-		var spfound = false
-		for _, sp := range *vj.StopPoints {
-			if sp.GtfsStopCode == vehGtfsRT.StopId {
-				spfound = true
-				break
-			}
-		}
-
-		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok && !spfound {
+		// if gtfs-rt vehicle not exist in map of vehicle occupancies
+		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
+			// add in vehicle occupancy list
 			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)
 			}
-		}
-
-		/*
-			// if gtfs-rt vehicle not exist in map of vehicle occupancies
-			if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
+		} else {
+			tabString := strings.Split(context.voContext.VehicleOccupancies[idGtfsrt].StopId, ":")
+			spId := tabString[len(tabString)-1]
+			if spId != vehGtfsRT.StopId {
 				// add in vehicle occupancy list
 				newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
 				if newVehicleOccupancy != nil {
 					context.AddVehicleOccupancy(newVehicleOccupancy)
 				}
-			} else {
-				var spfound = false
-				for _, sp := range *vj.StopPoints {
-					if sp.GtfsStopCode == vehGtfsRT.StopId {
-						spfound = true
-						break
-					}
-				}
+			}
 
-				// add in vehicle occupancy list
-				if !spfound {
-					newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
-					if newVehicleOccupancy != nil {
-						context.AddVehicleOccupancy(newVehicleOccupancy)
-					}
-				}
-			}*/
+		}
 	}
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
 func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 	vehicleGtfsRt VehicleGtfsRt) *VehicleOccupancy {
-	idGtfsrt, _ := strconv.Atoi(vehicleGtfsRt.Trip)
+	id := fmt.Sprintf("%s%s", vehicleGtfsRt.Trip, vehicleGtfsRt.StopId)
+	idGtfsrt, _ := strconv.Atoi(id)
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0)
 	for _, stopPoint := range *vehicleJourney.StopPoints {
 		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {

@@ -12,29 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_GetVehicleJourneys(t *testing.T) {
-	require := require.New(t)
-	assert := assert.New(t)
-
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
-	vjs := gtfsRtContext.GetVehicleJourneys()
-	require.Nil(vjs)
-	assert.Nil(gtfsRtContext.vehiclesJourney, nil)
-
-}
-
-func Test_GetLastLoadNavitia(t *testing.T) {
-	assert := assert.New(t)
-
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
-	date := gtfsRtContext.GetLastLoadNavitia()
-	assert.Equal(date, "")
-
-	gtfsRtContext.lastLoadNavitia = "20210511T090912.579677"
-	date = gtfsRtContext.GetLastLoadNavitia()
-	assert.Equal(date, "20210511T090912.579677")
-}
-
 func Test_CheckLastLoadChanged(t *testing.T) {
 	assert := assert.New(t)
 

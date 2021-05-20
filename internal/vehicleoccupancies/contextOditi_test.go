@@ -634,24 +634,30 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	//vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	var vehicleContext, errr = VehicleOccupancyFactory("oditi")
+	require.Nil(errr)
+	vehicleOccupanciesContext := vehicleContext.(*VehicleOccupanciesOditiContext)
+	require.NotNil(vehicleOccupanciesContext)
+	vehicleOccupanciesContext.voContext = &VehicleOccupanciesContext{}
+	require.NotNil(vehicleOccupanciesContext.voContext)
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 25)
+	vehicleOccupanciesContext.InitStopPoint(stopPoints)
+	assert.Equal(len(vehicleOccupanciesContext.GetStopPoints()), 25)
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	courses, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 1)
-	coursesFor40 := (vehiculeOccupanciesContext.GetCourses())["40"]
+	vehicleOccupanciesContext.InitCourse(courses)
+	assert.Equal(len(vehicleOccupanciesContext.GetCourses()), 1)
+	coursesFor40 := (vehicleOccupanciesContext.GetCourses())["40"]
 	assert.Equal(len(coursesFor40), 310)
 
 	// Load RouteSchedules from file
@@ -669,8 +675,8 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	sens := 0
 	startIndex := 1
 	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(vehiculeOccupanciesContext.GetRouteSchedules()), 141)
+	vehicleOccupanciesContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(vehicleOccupanciesContext.GetRouteSchedules()), 141)
 
 	// Load prediction from a file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
@@ -687,12 +693,12 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predictions := LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 65)
 
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
-	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(vehiculeOccupanciesContext.GetVehiclesOccupancies()), 35)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehicleOccupanciesContext, predictions)
+	vehicleOccupanciesContext.voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(vehicleOccupanciesContext.voContext.GetVehiclesOccupancies()), 35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	AddVehicleOccupanciesEntryPoint(engine, vehiculeOccupanciesContext)
+	AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesContext)
 	//engine = SetupRouter(&manager, engine)
 
 	// Request without any parameter (Date with default value = Now().Format("20060102"))

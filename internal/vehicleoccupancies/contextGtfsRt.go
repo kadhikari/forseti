@@ -255,6 +255,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 					context.AddVehicleOccupancy(newVehicleOccupancy)
 				}
 			}
+
 		}
 	}
 }

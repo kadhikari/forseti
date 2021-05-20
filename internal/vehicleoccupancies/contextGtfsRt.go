@@ -238,7 +238,9 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			vj = context.vehiclesJourney[vehGtfsRT.Trip]
 		}
 
+		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
+			// add in vehicle occupancy list
 			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)

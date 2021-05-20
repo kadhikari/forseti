@@ -238,6 +238,7 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
+	// TODO: used new param config.type
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 
 	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,

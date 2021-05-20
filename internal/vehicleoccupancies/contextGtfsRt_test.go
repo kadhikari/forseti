@@ -28,22 +28,29 @@ func Test_CleanListVehicleOccupancies(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
-	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
-	gtfsRtContext.voContext.VehicleOccupancies = vehicleOccupancies
-	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
-
+	voContext.VehicleOccupancies = vehicleOccupanciesMap
+	require.NotNil(voContext.VehicleOccupancies)
 	gtfsRtContext.CleanListVehicleOccupancies()
-	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 0)
+	assert.Equal(len(voContext.VehicleOccupancies), 0)
 }
 
 func Test_AddVehicleOccupancy(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
 	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+	require.NotNil(gtfsRtContext.voContext)
 
 	gtfsRtContext.AddVehicleOccupancy(&VehicleOccupancy{
 		Id:               200,
@@ -61,7 +68,12 @@ func Test_CleanListVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	gtfsRtContext.vehiclesJourney = mapVJ
 	require.NotNil(gtfsRtContext.vehiclesJourney)
@@ -75,7 +87,12 @@ func Test_CleanListOldVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	gtfsRtContext.vehiclesJourney = mapVJ
 	require.NotNil(gtfsRtContext.vehiclesJourney)
@@ -89,7 +106,12 @@ func Test_AddVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	gtfsRtContext.AddVehicleJourney(&VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
 		CodesSource: "651969",
@@ -107,8 +129,12 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	dateVj, _ := time.Parse("2006-01-02", "2021-05-12")
 	require.Nil(err)
 
-	gtfsRtContext := &VehicleOccupanciesGtfsRtContext{}
-	gtfsRtContext.voContext = &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	vj := VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
 		CodesSource: "652517",
@@ -121,8 +147,8 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	// Create VehicleOccupancies from existing data
 	vo := createOccupanciesFromDataSource(vj, vGtfsRt)
 	gtfsRtContext.AddVehicleOccupancy(vo)
-	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
-	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 1)
+	require.NotNil(voContext.VehicleOccupancies)
+	assert.Equal(len(voContext.VehicleOccupancies), 1)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
@@ -138,6 +164,15 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
+
+	// Call Api when vehicleOcupancies list is nil
+	param = VehicleOccupancyRequestParameter{
+		StopId:           "stop_point:STS:SP:263",
+		VehicleJourneyId: "",
+		Date:             date}
+	voContext.VehicleOccupancies = nil
+	_, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	assert.Error(err, "no vehicle_occupancies in the data")
 }
 
 func Test_parseVehiclesResponse(t *testing.T) {
@@ -210,7 +245,7 @@ var mapVJ = map[string]*VehicleJourney{
 		CreateDate: time.Now()},
 }
 
-var vehicleOccupancies = map[int]*VehicleOccupancy{
+var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 	156: {
 		Id:               156,
 		LineCode:         "40",

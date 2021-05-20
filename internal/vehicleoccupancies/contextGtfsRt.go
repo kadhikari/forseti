@@ -238,16 +238,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			vj = context.vehiclesJourney[vehGtfsRT.Trip]
 		}
 
-		var spfound = false
-		for _, sp := range *vj.StopPoints {
-			if sp.GtfsStopCode == vehGtfsRT.StopId {
-				spfound = true
-				break
-
-			}
-		}
-
-		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok && !spfound {
+		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
 			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)

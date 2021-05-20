@@ -11,7 +11,7 @@ import (
 // Data manager for all apis
 type DataManager struct {
 	freeFloatingsContext       *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext
+	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	equipmentsContext          *equipments.EquipmentsContext
 	departuresContext          *departures.DeparturesContext
 	parkingsContext            *parkings.ParkingsContext
@@ -50,10 +50,10 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 }
 
 func (d *DataManager) SetVehiculeOccupanciesContext(
-	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext) {
+	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehiculeOccupanciesContext() *vehicleoccupancies.VehicleOccupanciesContext {
+func (d *DataManager) GetVehiculeOccupanciesContext() vehicleoccupancies.IVehicleOccupancy {
 	return d.vehiculeOccupanciesContext
 }

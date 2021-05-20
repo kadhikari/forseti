@@ -232,13 +232,13 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
+	// TODO: used new param config.type
 	var vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	// TODO: used new param config.type
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 
 	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,

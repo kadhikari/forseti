@@ -232,30 +232,28 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
-	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
-
-	// Manage activation of the periodic refresh of vehicle occupancy data
-	vehicleoccupancies.ManageVehicleOccupancyStatus(vehiculeOccupanciesContext, config.OccupancyActive)
-
-	err := vehicleoccupancies.LoadAllForVehicleOccupancies(
-		vehiculeOccupanciesContext,
-		config.OccupancyFilesURI,
-		config.OccupancyNavitiaURI,
-		config.OccupancyServiceURI,
-		config.OccupancyNavitiaToken,
-		config.OccupancyServiceToken,
-		config.ConnectionTimeout, location)
+	var vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
 	if err != nil {
-		logrus.Errorf("Impossible to load data at startup: %s", err)
+		logrus.Error(err)
+		return
 	}
 
-	go vehicleoccupancies.RefreshVehicleOccupanciesLoop(vehiculeOccupanciesContext, config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyRefresh, config.ConnectionTimeout, location)
+	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+
+	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.ConnectionTimeout, location, config.OccupancyActive)
+
+	go vehiculeOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.ConnectionTimeout, location)
 	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
 
-	go vehicleoccupancies.RefreshRouteSchedulesLoop(vehiculeOccupanciesContext, config.OccupancyNavitiaURI,
-		config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	if vehicleOccupanciesOditiContext, ok :=
+		vehiculeOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
+		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
+			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	}
 }
 
 func initLog(jsonLog bool, logLevel string) {

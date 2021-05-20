@@ -50,7 +50,7 @@ func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupanc
 	return &p
 }
 
-func VehicleOccupanciesHandler(context *VehicleOccupanciesContext) gin.HandlerFunc {
+func VehicleOccupanciesHandler(context IVehicleOccupancy) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := VehicleOccupanciesResponse{}
 		parameter := InitVehicleOccupanyrequestParameter(c)
@@ -66,7 +66,7 @@ func VehicleOccupanciesHandler(context *VehicleOccupanciesContext) gin.HandlerFu
 	}
 }
 
-func AddVehicleOccupanciesEntryPoint(r *gin.Engine, context *VehicleOccupanciesContext) {
+func AddVehicleOccupanciesEntryPoint(r *gin.Engine, context IVehicleOccupancy) {
 	if r == nil {
 		r = gin.New()
 	}

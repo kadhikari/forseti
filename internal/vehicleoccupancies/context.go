@@ -121,7 +121,3 @@ func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int,
 		Occupancy:        occupancy,
 	}, nil
 }
-
-func ManageVehicleOccupancyStatus(context *VehicleOccupanciesContext, vehicleOccupanciesActive bool) {
-	context.ManageVehicleOccupancyStatus(vehicleOccupanciesActive)
-}

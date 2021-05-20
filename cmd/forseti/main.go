@@ -232,13 +232,13 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
-	var vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	var vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
 	if err != nil {
 		logrus.Error(err)
 		return
 	}
 
-	manager.SetVehiculeOccupanciesContext(&vehiculeOccupanciesContext)
+	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 
 	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
@@ -249,8 +249,11 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		config.OccupancyRefresh, config.ConnectionTimeout, location)
 	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
 
-	go vehicleoccupancies.RefreshRouteSchedulesLoop(vehiculeOccupanciesContext, config.OccupancyNavitiaURI,
-		config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	if vehicleOccupanciesOditiContext, ok :=
+		vehiculeOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
+		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
+			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	}
 }
 
 func initLog(jsonLog bool, logLevel string) {

@@ -30,7 +30,6 @@ func Test_VehicleOccupancyFactory(t *testing.T) {
 	_, ok = vehicleoccupancies.(*VehicleOccupanciesGtfsRtContext)
 	require.False(ok)
 
-	//
 	// Create vehicle occupancies type of GTFS-RT
 	vehicleoccupancies, err = VehicleOccupancyFactory("oditi")
 	require.Nil(err)
@@ -40,13 +39,6 @@ func Test_VehicleOccupancyFactory(t *testing.T) {
 	// Create vehicle occupancies type of ODITI
 	vehicleoccupancies, err = VehicleOccupancyFactory("gtfs")
 	require.Nil(err)
-	_, ok = vehicleoccupancies.(*VehicleOccupanciesOditiContext)
-	require.False(ok)
-
-	// Create vehicle occupancies type of unknown
-	vehicleoccupancies, err = VehicleOccupancyFactory("unknown")
-	require.NotNil(err)
-	assert.EqualError(err, "Wrong vehicleoccupancy type passed")
 	_, ok = vehicleoccupancies.(*VehicleOccupanciesOditiContext)
 	require.False(ok)
 }

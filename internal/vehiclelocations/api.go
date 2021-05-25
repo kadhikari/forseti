@@ -42,7 +42,7 @@ func AddVehicleLocationsEntryPoint(r *gin.Engine, context IVehicleLocation) {
 func VehicleLocationsHandler(context IVehicleLocation) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := VehicleLocationsResponse{}
-		parameter := InitVehicleOccupanyrequestParameter(c)
+		parameter := InitVehicleLocationrequestParameter(c)
 		vehicleLocations, err := context.GetVehicleLocations(parameter)
 
 		if err != nil {
@@ -55,7 +55,7 @@ func VehicleLocationsHandler(context IVehicleLocation) gin.HandlerFunc {
 	}
 }
 
-func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleLocationRequestParameter) {
+func InitVehicleLocationrequestParameter(c *gin.Context) (param *VehicleLocationRequestParameter) {
 	p := VehicleLocationRequestParameter{}
 	p.VehicleJourneyId = c.Query("vehiclejourney_id")
 	loc, _ := time.LoadLocation(location)

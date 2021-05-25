@@ -11,16 +11,10 @@ import (
 type IVehicleLocation interface {
 	InitContext()
 
-	//RefreshVehicleLocationsLoop()
+	RefreshVehicleLocationsLoop()
 
 	GetVehicleLocations(param *VehicleLocationRequestParameter) (
 		vehicleLocations []VehicleLocation, e error)
-
-	/*ManageVehicleLocationStatus()
-
-	GetLastVehicleLocationsDataUpdate()
-
-	LoadLocationData()*/
 }
 
 // Patern factory Vehicle occupancies

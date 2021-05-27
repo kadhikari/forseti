@@ -29,25 +29,25 @@ services:
       - TZ=${TZ:-Europe/Paris}
       - FORSETI_LOG_LEVEL=${FORSETI_LOG_LEVEL:-info}
 
-      # Departures ${Departures:-parameters}
+      # Departures parameters
       - FORSETI_DEPARTURES_URI=${FORSETI_DEPARTURES_URI:-}
       - FORSETI_DEPARTURES_REFRESH=${FORSETI_DEPARTURES_REFRESH:-}
 
-      # Parkings ${Parkings:-parameters}
+      # Parkings parameters
       - FORSETI_PARKINGS_URI=${FORSETI_PARKINGS_URI:-}
       - FORSETI_PARKINGS_REFRESH=${FORSETI_PARKINGS_REFRESH:-}
 
-      # Equipments ${Equipments:-parameters}
+      # Equipments parameters
       - FORSETI_EQUIPMENTS_URI=${FORSETI_EQUIPMENTS_URI:-}
       - FORSETI_EQUIPMENTS_REFRESH=${FORSETI_EQUIPMENTS_REFRESH:-}
 
-      # Free ${Free:-floatings parameters}
+      # Free floatings parameters
       - FORSETI_FREE_FLOATINGS_URI=${FORSETI_FREE_FLOATINGS_URI:-}
       - FORSETI_FREE_FLOATINGS_TOKEN=${FORSETI_FREE_FLOATINGS_TOKEN:-}
       - FORSETI_FREE_FLOATINGS_REFRESH=${FORSETI_FREE_FLOATINGS_REFRESH:-300s}
       - FORSETI_FREE_FLOATINGS_REFRESH_ACTIVE=${FORSETI_FREE_FLOATINGS_REFRESH_ACTIVE:-False}
 
-      # Occupancies ${Occupancies:-parameters}
+      # Occupancies parameters
       - FORSETI_OCCUPANCY_SERVICE_REFRESH_ACTIVE=${FORSETI_OCCUPANCY_SERVICE_REFRESH_ACTIVE:-False}
       - FORSETI_OCCUPANCY_FILES_URI=${FORSETI_OCCUPANCY_FILES_URI:-file:///data}
       - FORSETI_OCCUPANCY_NAVITIA_URI=${FORSETI_OCCUPANCY_NAVITIA_URI:-}

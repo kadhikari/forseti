@@ -13,7 +13,6 @@ var location = "Europe/Paris"
 type VehicleLocation struct {
 	Id               int       `json:"_"`
 	VehicleJourneyId string    `json:"vehiclejourney_id,omitempty"`
-	StopId           string    `json:"stop_id,omitempty"`
 	DateTime         time.Time `json:"date_time,omitempty"`
 	Latitude         float32   `json:"latitude"`
 	Longitude        float32   `json:"longitude"`
@@ -32,14 +31,14 @@ type VehicleLocationRequestParameter struct {
 	Date             time.Time
 }
 
-func AddVehicleLocationsEntryPoint(r *gin.Engine, context IVehicleLocation) {
+func AddVehicleLocationsEntryPoint(r *gin.Engine, context IConnectors) {
 	if r == nil {
 		r = gin.New()
 	}
 	r.GET("/vehicle_locations", VehicleLocationsHandler(context))
 }
 
-func VehicleLocationsHandler(context IVehicleLocation) gin.HandlerFunc {
+func VehicleLocationsHandler(context IConnectors) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := VehicleLocationsResponse{}
 		parameter := InitVehicleLocationrequestParameter(c)

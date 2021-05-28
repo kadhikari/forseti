@@ -16,6 +16,7 @@ type VehicleOccupanciesContext struct {
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
+	refreshTime                  time.Duration
 }
 
 func (d *VehicleOccupanciesContext) ManageVehicleOccupancyStatus(activate bool) {
@@ -107,6 +108,18 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 		}
 		return occupancies, nil
 	}
+}
+
+func (d *VehicleOccupanciesContext) GetRereshTime() string {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+	return d.refreshTime.String()
+}
+
+func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+	d.refreshTime = newRefreshTime
 }
 
 func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int, date time.Time,

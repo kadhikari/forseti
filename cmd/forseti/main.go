@@ -56,6 +56,7 @@ type Config struct {
 	JSONLog             bool          `mapstructure:"json-log"`
 	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
+	Connector           string        `mapstructure:"connector-type"`
 }
 
 func noneOf(args ...string) bool {
@@ -92,6 +93,7 @@ func GetConfig() (Config, error) {
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
+	pflag.String("connector-type", "oditi", "connector type to load data source")
 
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
@@ -197,7 +199,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	go freefloatings.RefreshFreeFloatingLoop(freeFloatingsContext,
 		config.FreeFloatingsURI,
 		config.FreeFloatingsToken,
-		config.EquipmentsRefresh,
+		config.FreeFloatingsRefresh,
 		config.ConnectionTimeout)
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
@@ -232,11 +234,22 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
+	var vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	var err error
+
 	// TODO: used new param config.type
-	var vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
-	if err != nil {
-		logrus.Error(err)
-		return
+	if config.Connector == "oditi" {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("oditi")
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
 	}
 
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)

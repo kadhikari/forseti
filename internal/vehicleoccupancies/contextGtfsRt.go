@@ -276,6 +276,5 @@ func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 			return vo
 		}
 	}
-	logrus.Debugf("StopPoint: %s not found in Navitia for %s", vehicleGtfsRt.StopId, vehicleJourney.VehicleID)
 	return nil
 }

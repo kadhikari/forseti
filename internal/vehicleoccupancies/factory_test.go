@@ -30,5 +30,15 @@ func Test_VehicleOccupancyFactory(t *testing.T) {
 	_, ok = vehicleoccupancies.(*VehicleOccupanciesGtfsRtContext)
 	require.False(ok)
 
-	// TODO: add same test for Oditi after reshape
+	// Create vehicle occupancies type of GTFS-RT
+	vehicleoccupancies, err = VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	_, ok = vehicleoccupancies.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+
+	// Create vehicle occupancies type of ODITI
+	vehicleoccupancies, err = VehicleOccupancyFactory("gtfs")
+	require.Nil(err)
+	_, ok = vehicleoccupancies.(*VehicleOccupanciesOditiContext)
+	require.False(ok)
 }

@@ -58,7 +58,7 @@ func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
 	}
 
 	if len(gtfsRt.Vehicles) == 0 {
-		return gtfsRt, fmt.Errorf("no data to load from GTFS-RT")
+		return gtfsRt, fmt.Errorf("no data loaded from GTFS-RT")
 	}
 
 	return gtfsRt, nil

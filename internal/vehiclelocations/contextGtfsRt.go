@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/connectors"
-	nav "github.com/CanalTP/forseti/navitia"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -17,9 +16,9 @@ import (
 --------------------------------------------------------------------- */
 type GtfsRtContext struct {
 	vehicleLocations *VehicleLocations
-	vehiclesJourney  map[string]*nav.VehicleJourney
+	vehiclesJourney  map[string]*VehicleJourney
 	connector        *connectors.Connector
-	navitia          *nav.Navitia
+	navitia          *Navitia
 	cleanVj          time.Duration
 	cleanVl          time.Time
 	location         *time.Location
@@ -70,12 +69,12 @@ func (d *GtfsRtContext) CleanListOldVehicleJourney(delay time.Duration) {
 	}
 }
 
-func (d *GtfsRtContext) AddVehicleJourney(vehicleJourney *nav.VehicleJourney) {
+func (d *GtfsRtContext) AddVehicleJourney(vehicleJourney *VehicleJourney) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
 	if d.vehiclesJourney == nil {
-		d.vehiclesJourney = map[string]*nav.VehicleJourney{}
+		d.vehiclesJourney = map[string]*VehicleJourney{}
 	}
 
 	d.vehiclesJourney[vehicleJourney.CodesSource] = vehicleJourney
@@ -88,7 +87,7 @@ func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken
 	navitiaToken string, loadExternalRefresh, connectionTimeout time.Duration, location *time.Location, reloadActive bool) {
 
 	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
-	d.navitia = nav.NewNavitia(navitiaURI, navitiaToken, connectionTimeout)
+	d.navitia = NewNavitia(navitiaURI, navitiaToken, connectionTimeout)
 	d.vehicleLocations = &VehicleLocations{}
 	d.location = location
 	d.vehicleLocations.ManageVehicleLocationsStatus(reloadActive)
@@ -112,7 +111,7 @@ func (d *GtfsRtContext) RefreshVehicleLocationsLoop() {
 /********* PRIVATE FUNCTIONS *********/
 
 func refreshVehicleLocations(context *GtfsRtContext, connector *connectors.Connector,
-	navitia *nav.Navitia) error {
+	navitia *Navitia) error {
 	begin := time.Now()
 
 	// Get all data from Gtfs-rt flux
@@ -123,7 +122,7 @@ func refreshVehicleLocations(context *GtfsRtContext, connector *connectors.Conne
 	}
 
 	// Get status Last load from Navitia and check if data loaded recently
-	publicationDate, err := nav.GetStatusPublicationDate(navitia)
+	publicationDate, err := GetStatusPublicationDate(navitia)
 	if err != nil {
 		VehicleLocationsLoadingErrors.Inc()
 		logrus.Warning("Error while loading publication date from Navitia: ", err)
@@ -158,15 +157,15 @@ func loadDatafromConnector(connector *connectors.Connector) (*GtfsRt, error) {
 	return gtfsRtData, nil
 }
 
-func manageListVehicleLocations(context *GtfsRtContext, gtfsRt *GtfsRt, navitia *nav.Navitia) {
+func manageListVehicleLocations(context *GtfsRtContext, gtfsRt *GtfsRt, navitia *Navitia) {
 
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
-		var vj *nav.VehicleJourney
+		var vj *VehicleJourney
 		var err error
 
 		if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-			vj, err = nav.GetVehicleJourney(vehGtfsRT.Trip, navitia)
+			vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitia)
 			if err != nil {
 				VehicleLocationsLoadingErrors.Inc()
 				continue
@@ -192,17 +191,17 @@ func manageListVehicleLocations(context *GtfsRtContext, gtfsRt *GtfsRt, navitia 
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-func createVehicleLocationFromDataSource(vehicleJourney nav.VehicleJourney,
+func createVehicleLocationFromDataSource(vehicleJourney VehicleJourney,
 	vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleLocation {
 
 	idGtfsrt, _ := strconv.Atoi(vehicleGtfsRt.Trip)
 	timestamp := time.Unix(int64(vehicleGtfsRt.Time), 0)
-	/*date, err := time.ParseInLocation("2006-01-02T15:04:05", timestamp.String(), location)
+	date, err := time.ParseInLocation("2006-01-02T15:04:05Z", timestamp.Format(time.RFC3339), location)
 	if err != nil {
 		return &VehicleLocation{}
-	}*/
+	}
 
-	vl, err := NewVehicleLocation(idGtfsrt, vehicleJourney.VehicleID, timestamp, vehicleGtfsRt.Latitude,
+	vl, err := NewVehicleLocation(idGtfsrt, vehicleJourney.VehicleID, date, vehicleGtfsRt.Latitude,
 		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed)
 	if err != nil {
 		return nil

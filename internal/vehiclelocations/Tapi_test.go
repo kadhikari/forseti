@@ -51,7 +51,7 @@ func Test_VehicleLocationsAPI(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	require.NotNil(response.VehicleLocations)
-	assert.Len(response.VehicleLocations, 2)
+	assert.Len(response.VehicleLocations, 1)
 	assert.Empty(response.Error)
 
 	c.Request = httptest.NewRequest("GET", "/vehicle_locations?date=20210127", nil)

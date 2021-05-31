@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/connectors"
-	nav "github.com/CanalTP/forseti/navitia"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,10 +38,10 @@ func Test_GetVehicleLocations(t *testing.T) {
 	pVehicleLocations := gtfsRtContext.GetAllVehicleLocations()
 	require.NotNil(pVehicleLocations)
 
-	vj := nav.VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
+	vj := VehicleJourney{VehicleID: "vehicle_journey:STS:651969-1",
 		CodesSource: "651969",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			nav.NewStopPointVj("stop_point:STS:SP:1560", "1561")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1561")},
 		CreateDate: date}
 
 	vGtfsRt := VehicleGtfsRt{VehicleID: "52103", StopId: "1280", Label: "52103", Time: 1621900800,
@@ -159,19 +158,19 @@ func Test_AddVehicleJourney(t *testing.T) {
 
 	// Add vehiclejourney with first entry
 	assert.Nil(gtfsRtContext.vehiclesJourney)
-	gtfsRtContext.AddVehicleJourney(&nav.VehicleJourney{VehicleID: "vehicle_journey:STS:651999-1",
+	gtfsRtContext.AddVehicleJourney(&VehicleJourney{VehicleID: "vehicle_journey:STS:651999-1",
 		CodesSource: "651999",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			nav.NewStopPointVj("stop_point:STS:SP:1560", "1561")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1561")},
 		CreateDate: time.Now()})
 	require.NotNil(gtfsRtContext.vehiclesJourney)
 	assert.Equal(len(gtfsRtContext.vehiclesJourney), 1)
 
 	// Add vehiclejourney with existing data
-	gtfsRtContext.AddVehicleJourney(&nav.VehicleJourney{VehicleID: "vehicle_journey:STS:651999-1",
+	gtfsRtContext.AddVehicleJourney(&VehicleJourney{VehicleID: "vehicle_journey:STS:651999-1",
 		CodesSource: "651999",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			nav.NewStopPointVj("stop_point:STS:SP:1560", "1561")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1561")},
 		CreateDate: time.Now()})
 	require.NotNil(gtfsRtContext.vehiclesJourney)
 	assert.Equal(len(gtfsRtContext.vehiclesJourney), 1)
@@ -226,20 +225,20 @@ var vehicleLocationsMap = map[int]*VehicleLocation{
 		Speed:            23},
 }
 
-var mapVJ = map[string]*nav.VehicleJourney{
+var mapVJ = map[string]*VehicleJourney{
 	"651969": {VehicleID: "vehicle_journey:STS:651969-1",
 		CodesSource: "651969",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			nav.NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
 		CreateDate: time.Now().Add(-2 * time.Hour)},
 	"652005": {VehicleID: "vehicle_journey:STS:652005-1",
 		CodesSource: "652005",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:299", "299"),
-			nav.NewStopPointVj("stop_point:STS:SP:600", "600")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:299", "299"),
+			NewStopPointVj("stop_point:STS:SP:600", "600")},
 		CreateDate: time.Now().Add(-1 * time.Hour)},
 	"652373": {VehicleID: "vehicle_journey:STS:652373-1",
 		CodesSource: "652373",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:814", "814"),
-			nav.NewStopPointVj("stop_point:STS:SP:900", "900")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:814", "814"),
+			NewStopPointVj("stop_point:STS:SP:900", "900")},
 		CreateDate: time.Now()},
 }

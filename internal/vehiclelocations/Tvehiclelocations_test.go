@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	nav "github.com/CanalTP/forseti/navitia"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,10 +32,10 @@ func Test_UpdateVehicleLocation(t *testing.T) {
 
 	vehicleLocations := VehicleLocations{}
 
-	vj := nav.VehicleJourney{VehicleID: "vehicle_journey:STS:651970-1",
+	vj := VehicleJourney{VehicleID: "vehicle_journey:STS:651970-1",
 		CodesSource: "651970",
-		StopPoints: &[]nav.StopPointVj{nav.NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			nav.NewStopPointVj("stop_point:STS:SP:1560", "1561")},
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1561")},
 		CreateDate: date}
 	vGtfsRt := VehicleGtfsRt{VehicleID: "52103", StopId: "1280", Label: "52103", Time: 1621900800,
 		Speed: 0, Bearing: 0, Route: "1", Trip: "651970", Latitude: 45.9999, Longitude: -71.90111, Occupancy: 0}

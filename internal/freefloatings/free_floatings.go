@@ -36,6 +36,8 @@ func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
 		return
 	}
 
+	context.refreshTime = freeFloatingsRefresh
+
 	// Wait 10 seconds before reloading external freefloating informations
 	time.Sleep(10 * time.Second)
 	for {

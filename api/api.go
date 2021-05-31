@@ -23,6 +23,7 @@ import (
 
 type LoadingStatus struct {
 	RefreshActive bool      `json:"refresh_active"`
+	RefreshTime   string    `json:"refresh_data"`
 	LastUpdate    time.Time `json:"last_update"`
 }
 
@@ -61,6 +62,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var lastFreeFloatingsDataUpdate time.Time
 		var loadFreeFloatingData bool = false
+		var refreshFreeFloatingData string
 		if manager.GetFreeFloatingsContext() != nil {
 			// manage freefloating activation /status?free_floatings=true or false
 			freeFloatingStatus := c.Query("free_floatings")
@@ -70,10 +72,12 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			}
 			lastFreeFloatingsDataUpdate = manager.GetFreeFloatingsContext().GetLastFreeFloatingsDataUpdate()
 			loadFreeFloatingData = manager.GetFreeFloatingsContext().LoadFreeFloatingsData()
+			refreshFreeFloatingData = manager.GetFreeFloatingsContext().GetRereshTime()
 		}
 
 		var lastVehicleOccupanciesDataUpdate time.Time
 		var loadVehicleOccupanciesData bool = false
+		var refreshVehicleOccupanciesData string
 		if manager.GetVehiculeOccupanciesContext() != nil {
 			// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
 			vehicleOccupancyStatus := c.Query("vehicle_occupancies")
@@ -83,6 +87,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			}
 			lastVehicleOccupanciesDataUpdate = manager.GetVehiculeOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
 			loadVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().LoadOccupancyData()
+			refreshVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().GetRereshTime()
 		}
 
 		var lastEquipmentDataUpdate time.Time
@@ -106,8 +111,8 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastDeparturesDataUpdate,
 			lastParkingsDataUpdate,
 			lastEquipmentDataUpdate,
-			LoadingStatus{loadFreeFloatingData, lastFreeFloatingsDataUpdate},
-			LoadingStatus{loadVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
+			LoadingStatus{loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
+			LoadingStatus{loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
 		})
 	}
 }

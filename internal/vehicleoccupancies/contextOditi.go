@@ -141,6 +141,7 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
+	d.voContext.SetRereshTime(loadExternalRefresh)
 
 	err := LoadAllForVehicleOccupancies(d, filesURI, navitiaURI, externalURI, navitiaToken,
 		externalToken, connectionTimeout, location)
@@ -215,6 +216,10 @@ func (d *VehicleOccupanciesOditiContext) GetLastVehicleOccupanciesDataUpdate() t
 
 func (d *VehicleOccupanciesOditiContext) LoadOccupancyData() bool {
 	return d.voContext.LoadOccupancyData()
+}
+
+func (d *VehicleOccupanciesOditiContext) GetRereshTime() string {
+	return d.voContext.GetRereshTime()
 }
 
 /********* PRIVATE FUNCTIONS *********/

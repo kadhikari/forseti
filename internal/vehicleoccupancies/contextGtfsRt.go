@@ -111,7 +111,7 @@ func (d *VehicleOccupanciesGtfsRtContext) RefreshVehicleOccupanciesLoop(external
 	time.Sleep(10 * time.Second)
 	for {
 		err := refreshVehicleOccupancies(d, externalURI, externalToken, navitiaURI, navitiaToken,
-			connectionTimeout)
+			connectionTimeout, location)
 		if err != nil {
 			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
 		} else {
@@ -181,7 +181,8 @@ func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
 }
 
 func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, external_url url.URL,
-	external_token string, navitiaURI url.URL, navitiaToken string, connectionTimeout time.Duration) error {
+	external_token string, navitiaURI url.URL, navitiaToken string, connectionTimeout time.Duration,
+	location *time.Location) error {
 
 	begin := time.Now()
 	newT := start.Add(time.Minute * 10) // TODO: Just for test, delete to release
@@ -217,14 +218,14 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	// TODO: add parameter in config
 	context.CleanListOldVehicleJourney(1)
 
-	manageListVehicleOccupancies(context, gtfsRt, navitiaURI, navitiaToken, connectionTimeout)
+	manageListVehicleOccupancies(context, gtfsRt, navitiaURI, navitiaToken, connectionTimeout, location)
 
 	VehicleOccupanciesLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }
 
 func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfsRt *GtfsRt, navitiaURI url.URL,
-	navitiaToken string, connectionTimeout time.Duration) {
+	navitiaToken string, connectionTimeout time.Duration, location *time.Location) {
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
@@ -246,7 +247,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
 			// add in vehicle occupancy list
-			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
+			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT, location)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)
 			}
@@ -255,7 +256,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			spId := tabString[len(tabString)-1]
 			if spId != vehGtfsRT.StopId {
 				// add in vehicle occupancy list
-				newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT)
+				newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT, location)
 				if newVehicleOccupancy != nil {
 					context.AddVehicleOccupancy(newVehicleOccupancy)
 				}
@@ -267,13 +268,19 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
 func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
-	vehicleGtfsRt VehicleGtfsRt) *VehicleOccupancy {
+	vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleOccupancy {
 	id := fmt.Sprintf("%s%s", vehicleGtfsRt.Trip, vehicleGtfsRt.StopId)
 	idGtfsrt, _ := strconv.Atoi(id)
-	date := time.Unix(int64(vehicleGtfsRt.Time), 0)
+	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
+	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
+	if err != nil {
+		logrus.Info(err)
+		return &VehicleOccupancy{}
+	}
+
 	for _, stopPoint := range *vehicleJourney.StopPoints {
 		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
-			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, date,
+			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, dateLoc,
 				int(vehicleGtfsRt.Occupancy))
 			if err != nil {
 				continue

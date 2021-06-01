@@ -195,13 +195,13 @@ func createVehicleLocationFromDataSource(vehicleJourney VehicleJourney,
 	vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleLocation {
 
 	idGtfsrt, _ := strconv.Atoi(vehicleGtfsRt.Trip)
-	timestamp := time.Unix(int64(vehicleGtfsRt.Time), 0)
-	date, err := time.ParseInLocation("2006-01-02T15:04:05Z", timestamp.Format(time.RFC3339), location)
+	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
+	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
 	if err != nil {
 		return &VehicleLocation{}
 	}
 
-	vl, err := NewVehicleLocation(idGtfsrt, vehicleJourney.VehicleID, date, vehicleGtfsRt.Latitude,
+	vl, err := NewVehicleLocation(idGtfsrt, vehicleJourney.VehicleID, dateLoc, vehicleGtfsRt.Latitude,
 		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed)
 	if err != nil {
 		return nil

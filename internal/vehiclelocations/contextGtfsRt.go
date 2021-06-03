@@ -84,7 +84,8 @@ func (d *GtfsRtContext) AddVehicleJourney(vehicleJourney *VehicleJourney) {
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
 func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken string, navitiaURI url.URL,
-	navitiaToken string, loadExternalRefresh, connectionTimeout time.Duration, location *time.Location, reloadActive bool) {
+	navitiaToken string, loadExternalRefresh, connectionTimeout time.Duration, location *time.Location,
+	reloadActive bool) {
 
 	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
 	d.navitia = NewNavitia(navitiaURI, navitiaToken, connectionTimeout)

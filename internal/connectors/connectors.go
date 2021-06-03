@@ -41,6 +41,12 @@ func (d *Connector) GetToken() string {
 	return d.token
 }
 
+func (d *Connector) GetHeader() string {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.header
+}
+
 func (d *Connector) GetConnectionTimeout() time.Duration {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()

@@ -193,7 +193,8 @@ func Test_InitContext(t *testing.T) {
 	require.Nil(err)
 	urlNavitia, err := url.Parse("https://api.navitia.io/v1/coverage/test-fr")
 	require.Nil(err)
-	gtfsRtContext.InitContext(*uriFile, *urlExternal, "tokenExternal_123456789", *urlNavitia, "tokenNavitia_987654321", 300, 200, location, false)
+	gtfsRtContext.InitContext(*uriFile, *urlExternal, "tokenExternal_123456789", *urlNavitia,
+		"tokenNavitia_987654321", 300, 200, location, false)
 	assert.Equal(gtfsRtContext.connector.GetFilesUri(), *uriFile)
 	assert.Equal(gtfsRtContext.connector.GetUrl(), *urlExternal)
 	assert.Equal(gtfsRtContext.connector.GetToken(), "tokenExternal_123456789")

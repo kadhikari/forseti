@@ -85,12 +85,11 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 			if keep {
 				resp = append(resp, ff)
 			}
-
-			if len(resp) == param.Count {
-				break
-			}
 		}
 		sort.Sort(ByDistance(resp))
+		if len(resp) > param.Count {
+			resp = resp[:param.Count]
+		}
 	}
 	return resp, nil
 }

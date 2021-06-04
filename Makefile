@@ -1,6 +1,7 @@
 VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
 PROJECT='forseti'
 DOCKER_HUB='navitia/'$(PROJECT)
+GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
 .PHONY: linter-install
 linter-install: ## Install linter
@@ -48,6 +49,11 @@ install: ## install project and it's dependancies, useful for autocompletion fea
 .PHONY: version
 version: ## display version of forseti
 	@echo $(VERSION)
+
+.PHONY: protobuf
+protobuf: 	## update the submodule google_transit and generate gtfs-rt protobuf file .go
+	git submodule update --init
+	protoc --go_out=. --go_opt=M$(GTFS_PROTO)=/google_transit/ ./$(GTFS_PROTO)
 
 .PHONY: docker
 docker: build ## build docker image

@@ -36,7 +36,6 @@ ci: lint test ## Run all the tests and code checks
 
 .PHONY: build
 build: ## Build a version
-	git submodule update --init
 	protoc --go_out=. --go_opt=M$(GTFS_PROTO)=/google_transit/ ./$(GTFS_PROTO)
 	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/CanalTP/forseti.ForsetiVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
 

@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -84,7 +85,6 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleJourney(vehicleJourney *Vehi
 	}
 
 	d.vehiclesJourney[vehicleJourney.CodesSource] = vehicleJourney
-	logrus.Debug("*** Vehicle Journey size: ", len(d.vehiclesJourney))
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
@@ -281,7 +281,7 @@ func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 	for _, stopPoint := range *vehicleJourney.StopPoints {
 		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
 			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, dateLoc,
-				int(vehicleGtfsRt.Occupancy))
+				google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)])
 			if err != nil {
 				continue
 			}

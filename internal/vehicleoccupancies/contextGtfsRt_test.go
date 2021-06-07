@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -59,7 +60,7 @@ func Test_AddVehicleOccupancy(t *testing.T) {
 		StopId:           "stop_point:0:SP:80:4029",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        1})
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[1]})
 	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
 	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 1)
 }
@@ -253,7 +254,7 @@ var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 		StopId:           "stop_point:0:SP:80:4029",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        1},
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[1]},
 	700: {
 		Id:               700,
 		LineCode:         "45",
@@ -261,7 +262,7 @@ var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 		StopId:           "stop_point:0:SP:80:4043",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        2},
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[2]},
 }
 
 var dataGtfsRt = []VehicleGtfsRt{

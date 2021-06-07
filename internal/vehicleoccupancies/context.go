@@ -61,7 +61,6 @@ func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *Vehicl
 	}
 
 	d.VehicleOccupancies[vehicleoccupancy.Id] = vehicleoccupancy
-	logrus.Debug("*** Vehicle Occupancies size: ", len(d.VehicleOccupancies))
 }
 
 func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
@@ -123,7 +122,7 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 }
 
 func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int, date time.Time,
-	occupancy int) (*VehicleOccupancy, error) {
+	occupancy string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
 		Id:               voId,
 		LineCode:         lineCode,

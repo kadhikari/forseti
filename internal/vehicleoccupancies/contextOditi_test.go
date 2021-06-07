@@ -11,7 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/data"
+
 	//"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/gin-gonic/gin"
@@ -298,7 +300,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[3])
 
 	// Call Api with another StopId in the paraameter
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
@@ -313,7 +315,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[3])
 }
 
 func TestLoadStopPointsFromFile(t *testing.T) {
@@ -601,7 +603,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
-	assert.Equal(vehicleOccupancies[0].Occupancy, 0)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[0])
 
 	// Call Api with occupancy MANY_SEATS_AVAILABLE
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4056", VehicleJourneyId: "", Date: date}
@@ -610,7 +612,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4056") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Occupancy, 1)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
 
 	// Call Api with occupancy FEW_SEATS_AVAILABLE
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4079", VehicleJourneyId: "", Date: date}
@@ -619,7 +621,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4079") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Occupancy, 2)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[2])
 
 	// Call Api with occupancy STANDING_ROOM_ONLY
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4100", VehicleJourneyId: "", Date: date}
@@ -628,7 +630,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4100") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[3])
 
 	// Call Api with occupancy CRUSHED_STANDING_ROOM_ONLY
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4109", VehicleJourneyId: "", Date: date}
@@ -637,7 +639,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4109") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Occupancy, 4)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[4])
 
 	// Call Api with occupancy FULL
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
@@ -646,7 +648,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
-	assert.Equal(vehicleOccupancies[0].Occupancy, 5)
+	assert.Equal(vehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[5])
 }
 
 func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
@@ -777,5 +779,5 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
 	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
 	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
-	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
+	assert.Equal(resp.VehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
 }

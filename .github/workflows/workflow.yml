@@ -25,6 +25,9 @@ jobs:
 
       - name: Install linter
         run: make linter-install
+      
+      - name: Build a version
+        run: make build
 
       - name: Run all the tests and code checks
         run: make ci

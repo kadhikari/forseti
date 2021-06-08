@@ -11,8 +11,8 @@ linter-install: ## Install linter
 setup: ## Install all the build and lint dependencies
 	go get -u golang.org/x/tools/cmd/cover
 	go get -u google.golang.org/grpc
-    go get -u google.golang.org/protobuf/cmd/protoc-gen-go
-    go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
+	go get -u google.golang.org/protobuf/cmd/protoc-gen-go
+	go get -u google.golang.org/grpc/cmd/protoc-gen-go-grpc
 
 .PHONY: test
 test: ## Run all the tests

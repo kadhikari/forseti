@@ -23,6 +23,9 @@ jobs:
       - name: Install all the build and lint dependencies
         run: make setup
 
+      - name: Install dependencies
+        run: apt update && apt install -y protobuf-compiler 
+
       - name: Install linter
         run: make linter-install
       

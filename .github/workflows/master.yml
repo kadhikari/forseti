@@ -23,6 +23,7 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt install -y httpie
+          sudo apt install -y protobuf-compiler 
 
       - name: Run all the tests
         run: make test

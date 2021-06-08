@@ -1,6 +1,7 @@
 VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
 PROJECT='forseti'
 DOCKER_HUB='navitia/'$(PROJECT)
+GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
 .PHONY: linter-install
 linter-install: ## Install linter
@@ -35,6 +36,7 @@ ci: lint test ## Run all the tests and code checks
 
 .PHONY: build
 build: ## Build a version
+	protoc --go_out=. --go_opt=M$(GTFS_PROTO)=/google_transit/ ./$(GTFS_PROTO)
 	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/CanalTP/forseti.ForsetiVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
 
 .PHONY: clean

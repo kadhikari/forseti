@@ -24,7 +24,7 @@ jobs:
         run: make setup
 
       - name: Install dependencies
-        run: apt update && apt install -y protobuf-compiler 
+        run: sudo apt update && apt install -y protobuf-compiler 
 
       - name: Install linter
         run: make linter-install

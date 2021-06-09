@@ -13,9 +13,10 @@ import (
 // Structure and Consumer to creates Vehicle locations objects
 ------------------------------------------------------------- */
 type VehicleLocations struct {
-	vehicleLocations  map[int]*VehicleLocation
-	loadOccupancyData bool
-	mutex             sync.RWMutex
+	vehicleLocations             map[int]*VehicleLocation
+	lastVehicleOccupanciesUpdate time.Time
+	loadOccupancyData            bool
+	mutex                        sync.RWMutex
 }
 
 func (d *VehicleLocations) ManageVehicleLocationsStatus(activate bool) {
@@ -47,6 +48,7 @@ func (d *VehicleLocations) AddVehicleLocation(vehiclelocation *VehicleLocation) 
 
 	d.vehicleLocations[vehiclelocation.Id] = vehiclelocation
 	logrus.Debug("*** Vehicle Locations size: ", len(d.vehicleLocations))
+	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
 func (d *VehicleLocations) UpdateVehicleLocation(vehicleGtfsRt VehicleGtfsRt, location *time.Location) {
@@ -62,6 +64,7 @@ func (d *VehicleLocations) UpdateVehicleLocation(vehicleGtfsRt VehicleGtfsRt, lo
 	d.vehicleLocations[idGtfsrt].Bearing = vehicleGtfsRt.Bearing
 	d.vehicleLocations[idGtfsrt].Speed = vehicleGtfsRt.Speed
 	logrus.Debug("*** Vehicle Location updated: ", vehicleGtfsRt.Trip)
+	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
 func (d *VehicleLocations) GetVehicleLocations(param *VehicleLocationRequestParameter) (
@@ -90,6 +93,19 @@ func (d *VehicleLocations) GetVehicleLocations(param *VehicleLocationRequestPara
 		}
 		return locations, nil
 	}
+}
+
+func (d *VehicleLocations) GetLastVehicleLocationsDataUpdate() time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.lastVehicleOccupanciesUpdate
+}
+
+func (d *VehicleLocations) LoadLocationsData() bool {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.loadOccupancyData
 }
 
 func NewVehicleLocation(vlId int, vjId string, date time.Time, lat float32, lon float32,

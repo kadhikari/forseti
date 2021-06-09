@@ -15,7 +15,7 @@ func Test_VehicleLocationsAPI(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)

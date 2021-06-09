@@ -20,10 +20,16 @@ type IConnectors interface {
 
 	GetVehicleLocations(param *VehicleLocationRequestParameter) (
 		vehicleLocations []VehicleLocation, e error)
+
+	GetLastVehicleLocationsDataUpdate() time.Time
+
+	LoadLocationsData() bool
+
+	GetRereshTime() string
 }
 
 // Patern factory
-func connectorFactory(type_connector string) (IConnectors, error) {
+func ConnectorFactory(type_connector string) (IConnectors, error) {
 	if type_connector == string(connectors.Connector_GRFS_RT) {
 		return &GtfsRtContext{}, nil
 	} else {

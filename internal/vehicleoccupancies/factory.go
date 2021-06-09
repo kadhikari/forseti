@@ -12,11 +12,11 @@ import (
 
 type IVehicleOccupancy interface {
 	InitContext(filesURI, externalURI url.URL,
-		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-		connectionTimeout time.Duration, location *time.Location, occupancyActive bool)
+		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+		occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool)
 
 	RefreshVehicleOccupanciesLoop(predictionURI url.URL, externalToken string,
-		navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
+		navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ, occupancyCleanVO,
 		connectionTimeout time.Duration, location *time.Location)
 
 	GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (

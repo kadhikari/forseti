@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/api"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
@@ -48,6 +49,8 @@ type Config struct {
 	OccupancyNavitiaToken  string        `mapstructure:"occupancy-navitia-token"`
 	OccupancyServiceToken  string        `mapstructure:"occupancy-service-token"`
 	OccupancyRefresh       time.Duration `mapstructure:"occupancy-refresh"`
+	OccupancyCleanVJ       time.Duration `mapstructure:"occupancy-clean-vj"`
+	OccupancyCleanVO       time.Duration `mapstructure:"occupancy-clean-vo"`
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
@@ -92,6 +95,8 @@ func GetConfig() (Config, error) {
 	pflag.Bool("occupancy-service-refresh-active", false, "activate the periodic refresh of vehicle occupancy data")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
+	pflag.Duration("occupancy-clean-vj", 24*time.Hour, "time between clean list of VehicleJourneys")
+	pflag.Duration("occupancy-clean-vo", 2*time.Hour, "time between clean list of VehicleOccupancies")
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 	pflag.String("connector-type", "oditi", "connector type to load data source")
 
@@ -237,30 +242,34 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 	var vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	var err error
 
-	// TODO: used new param config.type
-	if config.Connector == "oditi" {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	if config.Connector == string(connectors.Connector_ODITI) {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
 	} else {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
-		if err != nil {
-			logrus.Error(err)
-			return
-		}
+		logrus.Error("Wrong vehicleoccupancy type passed")
+		return
 	}
 
 	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
 
 	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.ConnectionTimeout, location, config.OccupancyActive)
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location, config.OccupancyActive)
 
 	go vehiculeOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.ConnectionTimeout, location)
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location)
 	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
 
 	if vehicleOccupanciesOditiContext, ok :=

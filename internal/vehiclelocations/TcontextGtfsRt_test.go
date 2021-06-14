@@ -31,7 +31,7 @@ func Test_GetVehicleLocations(t *testing.T) {
 	date, err := time.ParseInLocation("2006-01-02", "2021-05-25", location)
 	require.Nil(err)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)
@@ -94,7 +94,7 @@ func Test_CleanListVehicleLocations(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)
@@ -111,7 +111,7 @@ func Test_CleanListVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)
@@ -130,7 +130,7 @@ func Test_CleanListOldVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)
@@ -149,7 +149,7 @@ func Test_AddVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)
@@ -182,7 +182,7 @@ func Test_InitContext(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	connector, err := connectorFactory(string(connectors.Connector_GRFS_RT))
+	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := connector.(*GtfsRtContext)
 	require.True(ok)

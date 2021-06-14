@@ -11,6 +11,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-contrib/pprof"
@@ -36,6 +37,7 @@ type StatusResponse struct {
 	LastEquipmentUpdate time.Time     `json:"last_equipment_update"`
 	FreeFloatings       LoadingStatus `json:"free_floatings,omitempty"`
 	VehicleOccupancies  LoadingStatus `json:"vehicle_occupancies,omitempty"`
+	VehicleLocations    LoadingStatus `json:"vehicle_locations,omitempty"`
 }
 
 var (
@@ -90,6 +92,21 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			refreshVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().GetRereshTime()
 		}
 
+		var lastVehicleLocationsDataUpdate time.Time
+		var loadVehicleLocationsData bool = false
+		var refreshVehicleLocationData string
+		if manager.GetVehiculeLocationsContext() != nil {
+			// manage vehiclelocations activation /status?vehicle_locations=true or false
+			vehicleLocationsStatus := c.Query("vehicle_locations")
+			if len(vehicleLocationsStatus) > 0 {
+				toActive, _ := strconv.ParseBool(vehicleLocationsStatus)
+				manager.GetVehiculeOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+			}
+			lastVehicleLocationsDataUpdate = manager.GetVehiculeLocationsContext().GetLastVehicleLocationsDataUpdate()
+			loadVehicleLocationsData = manager.GetVehiculeLocationsContext().LoadLocationsData()
+			refreshVehicleLocationData = manager.GetVehiculeLocationsContext().GetRereshTime()
+		}
+
 		var lastEquipmentDataUpdate time.Time
 		if manager.GetEquipmentsContext() != nil {
 			lastEquipmentDataUpdate = manager.GetEquipmentsContext().GetLastEquipmentsDataUpdate()
@@ -113,6 +130,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastEquipmentDataUpdate,
 			LoadingStatus{loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
 			LoadingStatus{loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
+			LoadingStatus{loadVehicleLocationsData, refreshVehicleLocationData, lastVehicleLocationsDataUpdate},
 		})
 	}
 }
@@ -155,4 +173,6 @@ func init() {
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
 	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingDuration)
 	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingErrors)
+	prometheus.MustRegister(vehiclelocations.VehicleLocationsLoadingDuration)
+	prometheus.MustRegister(vehiclelocations.VehicleLocationsLoadingErrors)
 }

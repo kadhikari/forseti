@@ -12,13 +12,13 @@ func Test_VehicleLocationFactory(t *testing.T) {
 	assert := assert.New(t)
 
 	// Create vehicle locations type of GTFS-RT
-	vehiclelocations, err := connectorFactory("gtfsrt")
+	vehiclelocations, err := ConnectorFactory("gtfsrt")
 	require.Nil(err)
 	_, ok := vehiclelocations.(*GtfsRtContext)
 	require.True(ok)
 
 	// Create vehicle locations type of unknown
-	vehiclelocations, err = connectorFactory("unknown")
+	vehiclelocations, err = ConnectorFactory("unknown")
 	require.NotNil(err)
 	assert.EqualError(err, "Wrong connector type passed")
 	_, ok = vehiclelocations.(*GtfsRtContext)

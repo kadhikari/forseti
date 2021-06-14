@@ -79,6 +79,7 @@ func (d *GtfsRtContext) AddVehicleJourney(vehicleJourney *VehicleJourney) {
 
 	d.vehiclesJourney[vehicleJourney.CodesSource] = vehicleJourney
 	logrus.Debug("*** Vehicle Journey size: ", len(d.vehiclesJourney))
+	d.vehicleLocations.lastVehicleOccupanciesUpdate = time.Now()
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
@@ -107,6 +108,18 @@ func (d *GtfsRtContext) RefreshVehicleLocationsLoop() {
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
+}
+
+func (d *GtfsRtContext) GetLastVehicleLocationsDataUpdate() time.Time {
+	return d.vehicleLocations.GetLastVehicleLocationsDataUpdate()
+}
+
+func (d *GtfsRtContext) LoadLocationsData() bool {
+	return d.vehicleLocations.LoadLocationsData()
+}
+
+func (d *GtfsRtContext) GetRereshTime() string {
+	return d.connector.GetRefreshTime().String()
 }
 
 /********* PRIVATE FUNCTIONS *********/

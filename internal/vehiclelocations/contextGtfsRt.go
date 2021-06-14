@@ -1,6 +1,7 @@
 package vehiclelocations
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"sync"
@@ -131,6 +132,9 @@ func refreshVehicleLocations(context *GtfsRtContext, connector *connectors.Conne
 	if err != nil {
 		VehicleLocationsLoadingErrors.Inc()
 		return errors.Errorf("loading external source: %s", err)
+	}
+	if gtfsRtData == nil || len(gtfsRtData.Vehicles) == 0 {
+		return fmt.Errorf("no data to load from GTFS-RT")
 	}
 
 	// Get status Last load from Navitia and check if data loaded recently

@@ -63,7 +63,7 @@ func (d *VehicleLocations) UpdateVehicleLocation(vehicleGtfsRt VehicleGtfsRt, lo
 	d.vehicleLocations[idGtfsrt].Longitude = vehicleGtfsRt.Longitude
 	d.vehicleLocations[idGtfsrt].Bearing = vehicleGtfsRt.Bearing
 	d.vehicleLocations[idGtfsrt].Speed = vehicleGtfsRt.Speed
-	logrus.Debug("*** Vehicle Location updated: ", vehicleGtfsRt.Trip)
+	//logrus.Debug("*** Vehicle Location updated: ", vehicleGtfsRt.Trip)
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 

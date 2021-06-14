@@ -43,7 +43,7 @@ func NewGtfsRt(timestamp string, v []VehicleGtfsRt) *GtfsRt {
 }
 
 func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
-	resp, err := utils.GetHttpClient_(connector.GetUrl().Path, connector.GetToken(), "Authorization",
+	resp, err := utils.GetHttpClient_(connector.GetUrl(), connector.GetToken(), "Authorization",
 		connector.GetConnectionTimeout())
 	if err != nil {
 		return nil, err

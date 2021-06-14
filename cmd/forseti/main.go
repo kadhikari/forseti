@@ -13,6 +13,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-gonic/gin"
@@ -54,11 +55,24 @@ type Config struct {
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
+	LocationsFilesURIStr   string `mapstructure:"locations-files-uri"`
+	LocationsFilesURI      url.URL
+	LocationsNavitiaURIStr string `mapstructure:"locations-navitia-uri"`
+	LocationsNavitiaURI    url.URL
+	LocationsServiceURIStr string `mapstructure:"locations-service-uri"`
+	LocationsServiceURI    url.URL
+	LocationsNavitiaToken  string        `mapstructure:"locations-navitia-token"`
+	LocationsServiceToken  string        `mapstructure:"locations-service-token"`
+	LocationsRefresh       time.Duration `mapstructure:"locations-refresh"`
+	LocationsCleanVJ       time.Duration `mapstructure:"locations-clean-vj"`
+	LocationsCleanVL       time.Duration `mapstructure:"locations-clean-vl"`
+
 	LogLevel            string        `mapstructure:"log-level"`
 	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
 	JSONLog             bool          `mapstructure:"json-log"`
 	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
+	LocationsActive     bool          `mapstructure:"locations-service-refresh-active"`
 	Connector           string        `mapstructure:"connector-type"`
 }
 
@@ -97,6 +111,19 @@ func GetConfig() (Config, error) {
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
 	pflag.Duration("occupancy-clean-vj", 24*time.Hour, "time between clean list of VehicleJourneys")
 	pflag.Duration("occupancy-clean-vo", 2*time.Hour, "time between clean list of VehicleOccupancies")
+
+	//Passing configurations for vehicle_locations
+	pflag.String("locations-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-navitia-token", "", "token for navitia")
+	pflag.String("locations-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-service-token", "", "token for locations source")
+	pflag.Bool("locations-service-refresh-active", false, "activate the periodic refresh of vehicle locations data")
+	pflag.Duration("locations-refresh", 5*time.Minute, "time between refresh of locations")
+	pflag.Duration("locations-clean-vj", 24*time.Hour, "time between clean list of vehicleJourneys")
+	pflag.Duration("locations-clean-vl", 2*time.Hour, "time between clean list of vehicleLocations")
+
+	//Passing configurations for vehicle_occupancies and vehicle_locations
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 	pflag.String("connector-type", "oditi", "connector type to load data source")
 
@@ -118,7 +145,8 @@ func GetConfig() (Config, error) {
 	}
 
 	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
-		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr) {
+		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr,
+		config.LocationsServiceURIStr, config.LocationsNavitiaURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -130,6 +158,8 @@ func GetConfig() (Config, error) {
 		config.OccupancyFilesURIStr:   &config.OccupancyFilesURI,
 		config.OccupancyNavitiaURIStr: &config.OccupancyNavitiaURI,
 		config.OccupancyServiceURIStr: &config.OccupancyServiceURI,
+		config.LocationsServiceURIStr: &config.LocationsServiceURI,
+		config.LocationsNavitiaURIStr: &config.LocationsNavitiaURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -169,6 +199,9 @@ func main() {
 
 	// With vehicle occupancies
 	VehiculeOccupancies(manager, &config, router, location)
+
+	// With vehicle locations
+	VehiculeLocations(manager, &config, router, location)
 
 	// start router
 	err = router.Run()
@@ -277,6 +310,37 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
 			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 	}
+}
+
+func VehiculeLocations(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+	if len(config.LocationsNavitiaURI.String()) == 0 || len(config.LocationsServiceURI.String()) == 0 {
+		logrus.Debug("Vehicle locations is disabled")
+		return
+	}
+
+	var vehiculeLocationsContext vehiclelocations.IConnectors
+	var err error
+
+	if config.Connector == string(connectors.Connector_GRFS_RT) {
+		vehiculeLocationsContext, err = vehiclelocations.ConnectorFactory(string(connectors.Connector_GRFS_RT))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else {
+		logrus.Error("Wrong connector type passed")
+		return
+	}
+
+	manager.SetVehiculeLocationsContext(vehiculeLocationsContext)
+
+	vehiculeLocationsContext.InitContext(config.LocationsFilesURI, config.LocationsServiceURI,
+		config.LocationsServiceToken, config.LocationsNavitiaURI, config.LocationsNavitiaToken,
+		config.LocationsRefresh, config.LocationsCleanVJ, config.LocationsCleanVL, config.ConnectionTimeout,
+		location, config.LocationsActive)
+	go vehiculeLocationsContext.RefreshVehicleLocationsLoop()
+
+	vehiclelocations.AddVehicleLocationsEntryPoint(router, vehiculeLocationsContext)
 }
 
 func initLog(jsonLog bool, logLevel string) {

@@ -55,7 +55,12 @@ services:
       - FORSETI_OCCUPANCY_NAVITIA_TOKEN=
       - FORSETI_OCCUPANCY_SERVICE_TOKEN=
       - FORSETI_OCCUPANCY_REFRESH=300s
+      - FORSETI_OCCUPANCY_CLEAN_VJ=
+      - FORSETI_OCCUPANCY_CLEAN_VO=
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
+
+      # Occupancies and Locations parameters
+      - FORSETI_CONNECTOR_TYPE=      
 
 networks:
   lb-common:

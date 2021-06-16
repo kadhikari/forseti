@@ -219,7 +219,7 @@ var vehicleLocationsMap = map[int]*VehicleLocation{
 	653746: {
 		Id:               653746,
 		VehicleJourneyId: "vehicle_journey:STS:653746-1",
-		DateTime:         time.Now().Truncate(96 * time.Hour),
+		DateTime:         time.Now().AddDate(0, 0, -4),
 		Latitude:         46.993333892822266,
 		Longitude:        -73.87944793701172,
 		Bearing:          120,

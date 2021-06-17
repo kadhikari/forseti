@@ -136,11 +136,12 @@ func (d *VehicleOccupanciesOditiContext) GetRouteSchedules() (routeSchedules []R
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
 func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
 
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
+	d.voContext.SetRereshTime(loadExternalRefresh)
 
 	err := LoadAllForVehicleOccupancies(d, filesURI, navitiaURI, externalURI, navitiaToken,
 		externalToken, connectionTimeout, location)
@@ -151,8 +152,8 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 
 // main loop to refresh vehicle_occupancies from ODITI
 func (d *VehicleOccupanciesOditiContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration, location *time.Location) {
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location) {
 	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
 		logrus.Debug("VehicleOccupancy data refreshing is disabled")
 		return
@@ -215,6 +216,10 @@ func (d *VehicleOccupanciesOditiContext) GetLastVehicleOccupanciesDataUpdate() t
 
 func (d *VehicleOccupanciesOditiContext) LoadOccupancyData() bool {
 	return d.voContext.LoadOccupancyData()
+}
+
+func (d *VehicleOccupanciesOditiContext) GetRereshTime() string {
+	return d.voContext.GetRereshTime()
 }
 
 /********* PRIVATE FUNCTIONS *********/

@@ -3,9 +3,9 @@ package api
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 
-	"io/ioutil"
 	"net/http/httptest"
 	"net/url"
 	"testing"
@@ -134,24 +134,29 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
+	vOditiContext, err := vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext)
+	require.True(ok)
+
+	vehicleOccupanciesContext := vehicleOccupanciesOditiContext.GetVehicleOccupanciesContext()
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	stopPoints, err := vehicleoccupancies.LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 25)
+	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 25)
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	courses, err := vehicleoccupancies.LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 1)
-	coursesFor40 := (vehiculeOccupanciesContext.GetCourses())["40"]
+	vehicleOccupanciesOditiContext.InitCourse(courses)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 1)
+	coursesFor40 := (vehicleOccupanciesOditiContext.GetCourses())["40"]
 	assert.Equal(len(coursesFor40), 310)
 
 	// Load RouteSchedules from file
@@ -169,8 +174,8 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	sens := 0
 	startIndex := 1
 	routeSchedules := vehicleoccupancies.LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(vehiculeOccupanciesContext.GetRouteSchedules()), 141)
+	vehicleOccupanciesOditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetRouteSchedules()), 141)
 
 	// Load prediction from a file
 	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
@@ -187,74 +192,19 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 65)
 
-	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
-	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(vehiculeOccupanciesContext.GetVehiclesOccupancies()), 35)
+	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
+		predictions)
+	vehicleOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(vehicleOccupanciesContext.GetVehiclesOccupancies()), 35)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehiculeOccupanciesContext)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
 	engine = SetupRouter(&manager, engine)
 
-	// Request without any parameter (Date with default value = Now().Format("20060102"))
-	response := vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies", nil)
-	w := httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.Nil(response.VehicleOccupancies)
-	assert.Len(response.VehicleOccupancies, 0)
-	assert.Empty(response.Error)
-
-	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies?date=20210118", nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.Nil(err)
-	require.NotNil(response.VehicleOccupancies)
-	assert.Len(response.VehicleOccupancies, 35)
-	assert.Empty(response.Error)
-
-	resp := vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest(
-		"GET",
-		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
-		nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
-	require.Nil(err)
-	require.NotNil(resp.VehicleOccupancies)
-	assert.Len(resp.VehicleOccupancies, 7)
-	assert.Empty(resp.Error)
-
-	resp = vehicleoccupancies.VehicleOccupanciesResponse{}
-	c.Request = httptest.NewRequest("GET",
-		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121",
-		nil)
-	w = httptest.NewRecorder()
-	engine.ServeHTTP(w, c.Request)
-	require.Equal(200, w.Code)
-	err = json.Unmarshal(w.Body.Bytes(), &resp)
-	require.Nil(err)
-	require.NotNil(resp.VehicleOccupancies)
-	assert.Len(resp.VehicleOccupancies, 1)
-	assert.Empty(resp.Error)
-
-	require.Nil(err)
-	assert.Equal(resp.VehicleOccupancies[0].VehicleJourneyId, "vehicle_journey:0:123713792-1")
-	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
-	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
-	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
-	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
-
 	// Verify /status
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+	manager.SetVehiculeOccupanciesContext(vehicleOccupanciesOditiContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
-	w = httptest.NewRecorder()
+	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 

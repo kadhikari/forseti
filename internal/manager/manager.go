@@ -5,16 +5,18 @@ import (
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 )
 
 // Data manager for all apis
 type DataManager struct {
 	freeFloatingsContext       *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext
+	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	equipmentsContext          *equipments.EquipmentsContext
 	departuresContext          *departures.DeparturesContext
 	parkingsContext            *parkings.ParkingsContext
+	vehicleLocationsContext    vehiclelocations.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {
@@ -50,10 +52,19 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 }
 
 func (d *DataManager) SetVehiculeOccupanciesContext(
-	vehiculeOccupanciesContext *vehicleoccupancies.VehicleOccupanciesContext) {
+	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehiculeOccupanciesContext() *vehicleoccupancies.VehicleOccupanciesContext {
+func (d *DataManager) GetVehiculeOccupanciesContext() vehicleoccupancies.IVehicleOccupancy {
 	return d.vehiculeOccupanciesContext
+}
+
+func (d *DataManager) SetVehiculeLocationsContext(
+	vehicleLocationsContext vehiclelocations.IConnectors) {
+	d.vehicleLocationsContext = vehicleLocationsContext
+}
+
+func (d *DataManager) GetVehiculeLocationsContext() vehiclelocations.IConnectors {
+	return d.vehicleLocationsContext
 }

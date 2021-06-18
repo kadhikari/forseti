@@ -16,6 +16,7 @@ type FreeFloatingsContext struct {
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
 	loadFreeFloatingData   bool
+	refreshTime            time.Duration
 }
 
 func (d *FreeFloatingsContext) ManageFreeFloatingsStatus(activate bool) {
@@ -44,6 +45,12 @@ func (d *FreeFloatingsContext) GetLastFreeFloatingsDataUpdate() time.Time {
 	defer d.freeFloatingsMutex.RUnlock()
 
 	return d.lastFreeFloatingUpdate
+}
+
+func (d *FreeFloatingsContext) GetRereshTime() string {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+	return d.refreshTime.String()
 }
 
 //nolint
@@ -78,12 +85,11 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 			if keep {
 				resp = append(resp, ff)
 			}
-
-			if len(resp) == param.Count {
-				break
-			}
 		}
 		sort.Sort(ByDistance(resp))
+		if len(resp) > param.Count {
+			resp = resp[:param.Count]
+		}
 	}
 	return resp, nil
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"net/http/httptest"
 	"net/url"
 	"os"
 	"strconv"
@@ -11,7 +12,9 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
+	//"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,14 +36,19 @@ func TestWithOutStopPointFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+	voContext := oditiContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	// No load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
 	require.Nil(err)
 	_, err = LoadStopPoints(*uri, defaultTimeout)
 	require.Error(err)
-	assert.Nil(vehiculeOccupanciesContext.stopPoints, nil)
+	assert.Nil(oditiContext.stopPoints, nil)
 }
 
 func TestNewStopPoint(t *testing.T) {
@@ -70,22 +78,30 @@ func TestStopPointFileWithOutField(t *testing.T) {
 	assert := assert.New(t)
 	spFileName = "mapping_stops0.csv"
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+	voContext := oditiContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	sp, err := LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitStopPoint(sp)
+	oditiContext.InitStopPoint(sp)
 
-	assert.Equal(len(vehiculeOccupanciesContext.GetStopPoints()), 0)
+	assert.Equal(len(oditiContext.GetStopPoints()), 0)
 }
 
 func TestWithOutCoursesFile(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
 
 	// No load Courses from file .../extraction_courses.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s_/", fixtureDir))
@@ -93,7 +109,7 @@ func TestWithOutCoursesFile(t *testing.T) {
 	_, err = LoadCourses(*uri, defaultTimeout)
 	require.Error(err)
 
-	assert.Nil(vehiculeOccupanciesContext.courses, nil)
+	assert.Nil(oditiContext.courses, nil)
 }
 
 func TestCoursesFileWithOutField(t *testing.T) {
@@ -101,15 +117,20 @@ func TestCoursesFileWithOutField(t *testing.T) {
 	assert := assert.New(t)
 	courseFileName = "extraction_courses0.csv"
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+	voContext := oditiContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
 	course, err := LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
-	vehiculeOccupanciesContext.InitCourse(course)
+	oditiContext.InitCourse(course)
 
-	assert.Equal(len(vehiculeOccupanciesContext.GetCourses()), 0)
+	assert.Equal(len(oditiContext.GetCourses()), 0)
 }
 
 func TestNewCourse(t *testing.T) {
@@ -170,7 +191,12 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+	voContext := oditiContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	// Load StopPoints
 	stopPoints := make(map[string]StopPoint)
@@ -188,8 +214,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	_, err = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4141", "2"})
 	assert.NotNil(err)
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(*vehiculeOccupanciesContext.stopPoints), 4)
+	oditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(*oditiContext.stopPoints), 4)
 
 	// Load Courses
 	courses := make(map[string][]Course)
@@ -203,8 +229,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	course, err = NewCourse(courseLine, location)
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(*vehiculeOccupanciesContext.courses), 1)
+	oditiContext.InitCourse(courses)
+	assert.Equal(len(*oditiContext.courses), 1)
 
 	// Load RouteSchedules
 	routeSchedules := make([]RouteSchedule, 0)
@@ -214,8 +240,8 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T055000", 0, 2, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*vehiculeOccupanciesContext.routeSchedules), 2)
+	oditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*oditiContext.routeSchedules), 2)
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
@@ -244,14 +270,14 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(predictions), 2)
 
 	// Create VehicleOccupancies from existing data
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(oditiContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 2)
-	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*vehiculeOccupanciesContext.vehicleOccupancies), 2)
+	voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(voContext.VehicleOccupancies), 2)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err := vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err := voContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 2)
 
@@ -260,7 +286,7 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 		StopId:           "stop_point:0:SP:80:4029",
 		VehicleJourneyId: "",
 		Date:             date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
@@ -272,12 +298,11 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4029") //Copernic : departure StopPoint
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	//assert.Equal(vehicleOccupancies[0].Occupancy, 55)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
 
 	// Call Api with another StopId in the paraameter
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
@@ -288,7 +313,6 @@ func TestDataManagerForVehicleOccupancies(t *testing.T) {
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
 	assert.Equal(vehicleOccupancies[0].Direction, 0)
 	assert.Equal(vehicleOccupancies[0].DateTime, dateTime)
-	//assert.Equal(vehicleOccupancies[0].Occupancy, 75)
 	assert.Equal(vehicleOccupancies[0].Occupancy, 3)
 }
 
@@ -400,7 +424,12 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory("oditi")
+	require.Nil(err)
+	oditiContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesOditiContext)
+	require.True(ok)
+	voContext := oditiContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
 
 	// Load StopPoints
 	stopPoints := make(map[string]StopPoint)
@@ -416,8 +445,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
 	sp, _ = NewStopPoint([]string{"PTR", "Pasteur", "0:SP:80:4142", "0"})
 	stopPoints[sp.Name+strconv.Itoa(sp.Direction)] = *sp
-	vehiculeOccupanciesContext.InitStopPoint(stopPoints)
-	assert.Equal(len(*vehiculeOccupanciesContext.stopPoints), 6)
+	oditiContext.InitStopPoint(stopPoints)
+	assert.Equal(len(*oditiContext.stopPoints), 6)
 
 	// Load Courses
 	courses := make(map[string][]Course)
@@ -457,8 +486,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	require.Nil(err)
 	courses[course.LineCode] = append(courses[course.LineCode], *course)
 
-	vehiculeOccupanciesContext.InitCourse(courses)
-	assert.Equal(len(*vehiculeOccupanciesContext.courses), 1)
+	oditiContext.InitCourse(courses)
+	assert.Equal(len(*oditiContext.courses), 1)
 
 	// Load RouteSchedules
 	routeSchedules := make([]RouteSchedule, 0)
@@ -480,8 +509,8 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	rs, err = NewRouteSchedule("40", "stop_point:0:SP:80:4142", "vj_id_one", "20210222T061000", 0, 6, false, location)
 	require.Nil(err)
 	routeSchedules = append(routeSchedules, *rs)
-	vehiculeOccupanciesContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(*vehiculeOccupanciesContext.routeSchedules), 6)
+	oditiContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(*oditiContext.routeSchedules), 6)
 
 	// Load Predictions
 	predictions := make([]Prediction, 0)
@@ -554,20 +583,20 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 	assert.Equal(len(predictions), 6)
 
 	// Create VehicleOccupancies from existing data
-	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehiculeOccupanciesContext, predictions)
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(oditiContext, predictions)
 	assert.Equal(len(occupanciesWithCharge), 6)
-	vehiculeOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(*vehiculeOccupanciesContext.vehicleOccupancies), 6)
+	voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(voContext.VehicleOccupancies), 6)
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 	param := VehicleOccupancyRequestParameter{StopId: "", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err := vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err := oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 6)
 
 	// Call Api with occupancy EMPTY
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4029", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
@@ -576,7 +605,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with occupancy MANY_SEATS_AVAILABLE
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4056", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
@@ -585,7 +614,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with occupancy FEW_SEATS_AVAILABLE
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4079", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
@@ -594,7 +623,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with occupancy STANDING_ROOM_ONLY
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4100", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
@@ -603,7 +632,7 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with occupancy CRUSHED_STANDING_ROOM_ONLY
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4109", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
@@ -612,10 +641,141 @@ func TestStatusForVehicleOccupancies(t *testing.T) {
 
 	// Call Api with occupancy FULL
 	param = VehicleOccupancyRequestParameter{StopId: "stop_point:0:SP:80:4142", VehicleJourneyId: "", Date: date}
-	vehicleOccupancies, err = vehiculeOccupanciesContext.GetVehicleOccupancies(&param)
+	vehicleOccupancies, err = oditiContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 	// Verify occupancy status
 	assert.Equal(vehicleOccupancies[0].StopId, "stop_point:0:SP:80:4142") //Pasteur
 	assert.Equal(vehicleOccupancies[0].Occupancy, 5)
+}
+
+func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	//var manager manager.DataManager
+	loc, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	//vehiculeOccupanciesContext := &VehicleOccupanciesContext{}
+	var vehicleContext, errr = VehicleOccupancyFactory("oditi")
+	require.Nil(errr)
+	vehicleOccupanciesContext := vehicleContext.(*VehicleOccupanciesOditiContext)
+	require.NotNil(vehicleOccupanciesContext)
+	vehicleOccupanciesContext.voContext = &VehicleOccupanciesContext{}
+	require.NotNil(vehicleOccupanciesContext.voContext)
+
+	// Load StopPoints from file .../mapping_stops.csv
+	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	stopPoints, err := LoadStopPoints(*uri, defaultTimeout)
+	require.Nil(err)
+	vehicleOccupanciesContext.InitStopPoint(stopPoints)
+	assert.Equal(len(vehicleOccupanciesContext.GetStopPoints()), 25)
+
+	// Load courses from file .../extraction_courses.csv
+	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
+	require.Nil(err)
+	courses, err := LoadCourses(*uri, defaultTimeout)
+	require.Nil(err)
+	vehicleOccupanciesContext.InitCourse(courses)
+	assert.Equal(len(vehicleOccupanciesContext.GetCourses()), 1)
+	coursesFor40 := (vehicleOccupanciesContext.GetCourses())["40"]
+	assert.Equal(len(coursesFor40), 310)
+
+	// Load RouteSchedules from file
+	uri, err = url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
+	require.Nil(err)
+	reader, err := utils.GetFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err := ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	navitiaRoutes := &data.NavitiaRoutes{}
+	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
+	require.Nil(err)
+	sens := 0
+	startIndex := 1
+	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
+	vehicleOccupanciesContext.InitRouteSchedule(routeSchedules)
+	assert.Equal(len(vehicleOccupanciesContext.GetRouteSchedules()), 141)
+
+	// Load prediction from a file
+	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
+	require.Nil(err)
+	reader, err = utils.GetFileWithFS(*uri)
+	require.Nil(err)
+
+	jsonData, err = ioutil.ReadAll(reader)
+	require.Nil(err)
+
+	predicts := &data.PredictionData{}
+	err = json.Unmarshal([]byte(jsonData), predicts)
+	require.Nil(err)
+	predictions := LoadPredictionsData(predicts, loc)
+	assert.Equal(len(predictions), 65)
+
+	occupanciesWithCharge := CreateOccupanciesFromPredictions(vehicleOccupanciesContext, predictions)
+	vehicleOccupanciesContext.voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
+	assert.Equal(len(vehicleOccupanciesContext.voContext.GetVehiclesOccupancies()), 35)
+
+	c, engine := gin.CreateTestContext(httptest.NewRecorder())
+	AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesContext)
+	//engine = SetupRouter(&manager, engine)
+
+	// Request without any parameter (Date with default value = Now().Format("20060102"))
+	response := VehicleOccupanciesResponse{}
+	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies", nil)
+	w := httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.Nil(response.VehicleOccupancies)
+	assert.Len(response.VehicleOccupancies, 0)
+	assert.Empty(response.Error)
+
+	c.Request = httptest.NewRequest("GET", "/vehicle_occupancies?date=20210118", nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.Nil(err)
+	require.NotNil(response.VehicleOccupancies)
+	assert.Len(response.VehicleOccupancies, 35)
+	assert.Empty(response.Error)
+
+	resp := VehicleOccupanciesResponse{}
+	c.Request = httptest.NewRequest(
+		"GET",
+		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1",
+		nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.Nil(err)
+	require.NotNil(resp.VehicleOccupancies)
+	assert.Len(resp.VehicleOccupancies, 7)
+	assert.Empty(resp.Error)
+
+	resp = VehicleOccupanciesResponse{}
+	c.Request = httptest.NewRequest("GET",
+		"/vehicle_occupancies?date=20210118&vehiclejourney_id=vehicle_journey:0:123713792-1&stop_id=stop_point:0:SP:80:4121",
+		nil)
+	w = httptest.NewRecorder()
+	engine.ServeHTTP(w, c.Request)
+	require.Equal(200, w.Code)
+	err = json.Unmarshal(w.Body.Bytes(), &resp)
+	require.Nil(err)
+	require.NotNil(resp.VehicleOccupancies)
+	assert.Len(resp.VehicleOccupancies, 1)
+	assert.Empty(resp.Error)
+
+	require.Nil(err)
+	assert.Equal(resp.VehicleOccupancies[0].VehicleJourneyId, "vehicle_journey:0:123713792-1")
+	assert.Equal(resp.VehicleOccupancies[0].StopId, "stop_point:0:SP:80:4121")
+	assert.Equal(resp.VehicleOccupancies[0].Direction, 0)
+	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210118T072200")
+	assert.Equal(resp.VehicleOccupancies[0].Occupancy, 1)
 }

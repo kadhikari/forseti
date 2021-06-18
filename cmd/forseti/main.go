@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/api"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
@@ -48,6 +49,8 @@ type Config struct {
 	OccupancyNavitiaToken  string        `mapstructure:"occupancy-navitia-token"`
 	OccupancyServiceToken  string        `mapstructure:"occupancy-service-token"`
 	OccupancyRefresh       time.Duration `mapstructure:"occupancy-refresh"`
+	OccupancyCleanVJ       time.Duration `mapstructure:"occupancy-clean-vj"`
+	OccupancyCleanVO       time.Duration `mapstructure:"occupancy-clean-vo"`
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
@@ -56,6 +59,7 @@ type Config struct {
 	JSONLog             bool          `mapstructure:"json-log"`
 	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
+	Connector           string        `mapstructure:"connector-type"`
 }
 
 func noneOf(args ...string) bool {
@@ -91,7 +95,10 @@ func GetConfig() (Config, error) {
 	pflag.Bool("occupancy-service-refresh-active", false, "activate the periodic refresh of vehicle occupancy data")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
+	pflag.Duration("occupancy-clean-vj", 24*time.Hour, "time between clean list of VehicleJourneys")
+	pflag.Duration("occupancy-clean-vo", 2*time.Hour, "time between clean list of VehicleOccupancies")
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
+	pflag.String("connector-type", "oditi", "connector type to load data source")
 
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
@@ -197,7 +204,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	go freefloatings.RefreshFreeFloatingLoop(freeFloatingsContext,
 		config.FreeFloatingsURI,
 		config.FreeFloatingsToken,
-		config.EquipmentsRefresh,
+		config.FreeFloatingsRefresh,
 		config.ConnectionTimeout)
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 }
@@ -232,30 +239,44 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
-	vehiculeOccupanciesContext := &vehicleoccupancies.VehicleOccupanciesContext{}
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+	var vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	var err error
 
-	// Manage activation of the periodic refresh of vehicle occupancy data
-	vehicleoccupancies.ManageVehicleOccupancyStatus(vehiculeOccupanciesContext, config.OccupancyActive)
-
-	err := vehicleoccupancies.LoadAllForVehicleOccupancies(
-		vehiculeOccupanciesContext,
-		config.OccupancyFilesURI,
-		config.OccupancyNavitiaURI,
-		config.OccupancyServiceURI,
-		config.OccupancyNavitiaToken,
-		config.OccupancyServiceToken,
-		config.ConnectionTimeout, location)
-	if err != nil {
-		logrus.Errorf("Impossible to load data at startup: %s", err)
+	if config.Connector == string(connectors.Connector_ODITI) {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
+		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else {
+		logrus.Error("Wrong vehicleoccupancy type passed")
+		return
 	}
 
-	go vehicleoccupancies.RefreshVehicleOccupanciesLoop(vehiculeOccupanciesContext, config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyRefresh, config.ConnectionTimeout, location)
+	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+
+	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location, config.OccupancyActive)
+
+	go vehiculeOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location)
 	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
 
-	go vehicleoccupancies.RefreshRouteSchedulesLoop(vehiculeOccupanciesContext, config.OccupancyNavitiaURI,
-		config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	if vehicleOccupanciesOditiContext, ok :=
+		vehiculeOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
+		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
+			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	}
 }
 
 func initLog(jsonLog bool, logLevel string) {

@@ -202,7 +202,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	engine = SetupRouter(&manager, engine)
 
 	// Verify /status
-	manager.SetVehiculeOccupanciesContext(vehicleOccupanciesOditiContext)
+	manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)

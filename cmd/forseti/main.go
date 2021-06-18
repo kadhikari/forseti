@@ -198,10 +198,10 @@ func main() {
 	Parkings(manager, &config, router)
 
 	// With vehicle occupancies
-	VehiculeOccupancies(manager, &config, router, location)
+	VehicleOccupancies(manager, &config, router, location)
 
 	// With vehicle locations
-	VehiculeLocations(manager, &config, router, location)
+	VehicleLocations(manager, &config, router, location)
 
 	// start router
 	err = router.Run()
@@ -266,23 +266,23 @@ func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) 
 	parkings.AddParkingsEntryPoint(router, parkingsContext)
 }
 
-func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
 	if len(config.OccupancyNavitiaURI.String()) == 0 || len(config.OccupancyServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle occupancies is disabled")
 		return
 	}
 
-	var vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	var vehicleOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	var err error
 
 	if config.Connector == string(connectors.Connector_ODITI) {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
 	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -292,37 +292,37 @@ func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *g
 		return
 	}
 
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+	manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
 
-	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+	vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 		location, config.OccupancyActive)
 
-	go vehiculeOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+	go vehicleOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 		location)
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
 
 	if vehicleOccupanciesOditiContext, ok :=
-		vehiculeOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
+		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
 		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
 			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 	}
 }
 
-func VehiculeLocations(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+func VehicleLocations(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
 	if len(config.LocationsNavitiaURI.String()) == 0 || len(config.LocationsServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle locations is disabled")
 		return
 	}
 
-	var vehiculeLocationsContext vehiclelocations.IConnectors
+	var vehicleLocationsContext vehiclelocations.IConnectors
 	var err error
 
 	if config.Connector == string(connectors.Connector_GRFS_RT) {
-		vehiculeLocationsContext, err = vehiclelocations.ConnectorFactory(string(connectors.Connector_GRFS_RT))
+		vehicleLocationsContext, err = vehiclelocations.ConnectorFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -332,15 +332,15 @@ func VehiculeLocations(manager *manager.DataManager, config *Config, router *gin
 		return
 	}
 
-	manager.SetVehiculeLocationsContext(vehiculeLocationsContext)
+	manager.SetVehicleLocationsContext(vehicleLocationsContext)
 
-	vehiculeLocationsContext.InitContext(config.LocationsFilesURI, config.LocationsServiceURI,
+	vehicleLocationsContext.InitContext(config.LocationsFilesURI, config.LocationsServiceURI,
 		config.LocationsServiceToken, config.LocationsNavitiaURI, config.LocationsNavitiaToken,
 		config.LocationsRefresh, config.LocationsCleanVJ, config.LocationsCleanVL, config.ConnectionTimeout,
 		location, config.LocationsActive)
-	go vehiculeLocationsContext.RefreshVehicleLocationsLoop()
+	go vehicleLocationsContext.RefreshVehicleLocationsLoop()
 
-	vehiclelocations.AddVehicleLocationsEntryPoint(router, vehiculeLocationsContext)
+	vehiclelocations.AddVehicleLocationsEntryPoint(router, vehicleLocationsContext)
 }
 
 func initLog(jsonLog bool, logLevel string) {

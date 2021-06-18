@@ -51,20 +51,20 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 	return d.parkingsContext
 }
 
-func (d *DataManager) SetVehiculeOccupanciesContext(
+func (d *DataManager) SetVehicleOccupanciesContext(
 	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehiculeOccupanciesContext() vehicleoccupancies.IVehicleOccupancy {
+func (d *DataManager) GetVehicleOccupanciesContext() vehicleoccupancies.IVehicleOccupancy {
 	return d.vehiculeOccupanciesContext
 }
 
-func (d *DataManager) SetVehiculeLocationsContext(
+func (d *DataManager) SetVehicleLocationsContext(
 	vehicleLocationsContext vehiclelocations.IConnectors) {
 	d.vehicleLocationsContext = vehicleLocationsContext
 }
 
-func (d *DataManager) GetVehiculeLocationsContext() vehiclelocations.IConnectors {
+func (d *DataManager) GetVehicleLocationsContext() vehiclelocations.IConnectors {
 	return d.vehicleLocationsContext
 }

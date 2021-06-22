@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/google_transit"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +30,7 @@ func Test_CleanListVehicleOccupancies(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -46,7 +47,7 @@ func Test_AddVehicleOccupancy(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -69,7 +70,7 @@ func Test_CleanListVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -88,7 +89,7 @@ func Test_CleanListOldVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -107,7 +108,7 @@ func Test_AddVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -130,7 +131,7 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	dateVj, _ := time.Parse("2006-01-02", "2021-05-12")
 	require.Nil(err)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)

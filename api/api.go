@@ -11,6 +11,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-contrib/pprof"
@@ -36,6 +37,7 @@ type StatusResponse struct {
 	LastEquipmentUpdate time.Time     `json:"last_equipment_update"`
 	FreeFloatings       LoadingStatus `json:"free_floatings,omitempty"`
 	VehicleOccupancies  LoadingStatus `json:"vehicle_occupancies,omitempty"`
+	VehicleLocations    LoadingStatus `json:"vehicle_locations,omitempty"`
 }
 
 var (
@@ -78,16 +80,31 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var lastVehicleOccupanciesDataUpdate time.Time
 		var loadVehicleOccupanciesData bool = false
 		var refreshVehicleOccupanciesData string
-		if manager.GetVehiculeOccupanciesContext() != nil {
+		if manager.GetVehicleOccupanciesContext() != nil {
 			// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
 			vehicleOccupancyStatus := c.Query("vehicle_occupancies")
 			if len(vehicleOccupancyStatus) > 0 {
 				toActive, _ := strconv.ParseBool(vehicleOccupancyStatus)
-				manager.GetVehiculeOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
 			}
-			lastVehicleOccupanciesDataUpdate = manager.GetVehiculeOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
-			loadVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().LoadOccupancyData()
-			refreshVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().GetRereshTime()
+			lastVehicleOccupanciesDataUpdate = manager.GetVehicleOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
+			loadVehicleOccupanciesData = manager.GetVehicleOccupanciesContext().LoadOccupancyData()
+			refreshVehicleOccupanciesData = manager.GetVehicleOccupanciesContext().GetRereshTime()
+		}
+
+		var lastVehicleLocationsDataUpdate time.Time
+		var loadVehicleLocationsData bool = false
+		var refreshVehicleLocationData string
+		if manager.GetVehicleLocationsContext() != nil {
+			// manage vehiclelocations activation /status?vehicle_locations=true or false
+			vehicleLocationsStatus := c.Query("vehicle_locations")
+			if len(vehicleLocationsStatus) > 0 {
+				toActive, _ := strconv.ParseBool(vehicleLocationsStatus)
+				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+			}
+			lastVehicleLocationsDataUpdate = manager.GetVehicleLocationsContext().GetLastVehicleLocationsDataUpdate()
+			loadVehicleLocationsData = manager.GetVehicleLocationsContext().LoadLocationsData()
+			refreshVehicleLocationData = manager.GetVehicleLocationsContext().GetRereshTime()
 		}
 
 		var lastEquipmentDataUpdate time.Time
@@ -113,6 +130,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastEquipmentDataUpdate,
 			LoadingStatus{loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
 			LoadingStatus{loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
+			LoadingStatus{loadVehicleLocationsData, refreshVehicleLocationData, lastVehicleLocationsDataUpdate},
 		})
 	}
 }
@@ -155,4 +173,6 @@ func init() {
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
 	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingDuration)
 	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingErrors)
+	prometheus.MustRegister(vehiclelocations.VehicleLocationsLoadingDuration)
+	prometheus.MustRegister(vehiclelocations.VehicleLocationsLoadingErrors)
 }

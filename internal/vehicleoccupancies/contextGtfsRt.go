@@ -26,7 +26,7 @@ type VehicleOccupanciesGtfsRtContext struct {
 	mutex           sync.RWMutex
 }
 
-var start = time.Now() // TODO: Just for test, delete to release
+var start = time.Now()
 
 func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupanciesContext() *VehicleOccupanciesContext {
 	d.mutex.Lock()
@@ -62,17 +62,10 @@ func (d *VehicleOccupanciesGtfsRtContext) CleanListOldVehicleJourney(delay time.
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	nbVj := len(d.vehiclesJourney) // TODO: Just for test, delete to release
-	del := false                   // TODO: Just for test, delete to release
-
 	for idx, v := range d.vehiclesJourney {
 		if v.CreateDate.Add(delay * time.Hour).Before(time.Now()) {
 			delete(d.vehiclesJourney, idx)
-			del = true
 		}
-	}
-	if del {
-		logrus.Debugf("*** Clean old VehicleJourney until %d hour - %d/%d", delay, nbVj, len(d.vehiclesJourney))
 	}
 }
 
@@ -94,8 +87,8 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
 func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
 
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
@@ -104,14 +97,14 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 
 // main loop to refresh vehicle_occupancies from Gtfs-rt flux
 func (d *VehicleOccupanciesGtfsRtContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
-	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-	connectionTimeout time.Duration, location *time.Location) {
+	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location) {
 
 	// Wait 10 seconds before reloading vehicleoccupacy informations
 	time.Sleep(10 * time.Second)
 	for {
-		err := refreshVehicleOccupancies(d, externalURI, externalToken, navitiaURI, navitiaToken,
-			connectionTimeout, location)
+		err := refreshVehicleOccupancies(d, externalURI, externalToken, navitiaURI, navitiaToken, occupancyCleanVJ,
+			occupancyCleanVO, connectionTimeout, location)
 		if err != nil {
 			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
 		} else {
@@ -181,18 +174,18 @@ func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
 }
 
 func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, external_url url.URL,
-	external_token string, navitiaURI url.URL, navitiaToken string, connectionTimeout time.Duration,
-	location *time.Location) error {
+	external_token string, navitiaURI url.URL, navitiaToken string, occupancyCleanVJ, occupancyCleanVO,
+	connectionTimeout time.Duration, location *time.Location) error {
 
 	begin := time.Now()
-	newT := start.Add(time.Minute * 10) // TODO: Just for test, delete to release
+	timeCleanVO := start.Add(occupancyCleanVO * time.Hour)
 
 	// Get all data from Gtfs-rt flux
 	gtfsRt, err := loadDataExternalSource(external_url, external_token)
 	if err != nil {
 		return errors.Errorf("loading external source: %s", err)
 	}
-	if len(gtfsRt.Vehicles) == 0 {
+	if gtfsRt == nil || len(gtfsRt.Vehicles) == 0 {
 		return fmt.Errorf("no data to load from GTFS-RT")
 	}
 
@@ -208,15 +201,14 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 		context.CleanListVehicleJourney()
 	}
 
-	// TODO: change to take param of config
-	if newT.Before(time.Now()) {
+	// Clean list VehicleOccupancies for vehicle older than delay parameter: occupancyCleanVO
+	if timeCleanVO.Before(time.Now()) {
 		context.CleanListVehicleOccupancies()
 		start = time.Now()
 	}
 
-	// Clean list VehicleJourney for vehicle older than delay parameter
-	// TODO: add parameter in config
-	context.CleanListOldVehicleJourney(1)
+	// Clean list VehicleJourney for vehicle older than delay parameter: occupancyCleanVJ
+	context.CleanListOldVehicleJourney(occupancyCleanVJ)
 
 	manageListVehicleOccupancies(context, gtfsRt, navitiaURI, navitiaToken, connectionTimeout, location)
 

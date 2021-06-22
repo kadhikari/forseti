@@ -8,15 +8,17 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/CanalTP/forseti/internal/connectors"
 )
 
 type IVehicleOccupancy interface {
 	InitContext(filesURI, externalURI url.URL,
-		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
-		connectionTimeout time.Duration, location *time.Location, occupancyActive bool)
+		externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
+		occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool)
 
 	RefreshVehicleOccupanciesLoop(predictionURI url.URL, externalToken string,
-		navitiaURI url.URL, navitiaToken string, loadExternalRefresh,
+		navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ, occupancyCleanVO,
 		connectionTimeout time.Duration, location *time.Location)
 
 	GetVehicleOccupancies(param *VehicleOccupancyRequestParameter) (
@@ -33,9 +35,9 @@ type IVehicleOccupancy interface {
 
 // Patern factory Vehicle occupancies
 func VehicleOccupancyFactory(type_vehicleoccupancy string) (IVehicleOccupancy, error) {
-	if type_vehicleoccupancy == "gtfs" {
+	if type_vehicleoccupancy == string(connectors.Connector_GRFS_RT) {
 		return &VehicleOccupanciesGtfsRtContext{}, nil
-	} else if type_vehicleoccupancy == "oditi" {
+	} else if type_vehicleoccupancy == string(connectors.Connector_ODITI) {
 		return &VehicleOccupanciesOditiContext{}, nil
 	} else {
 		return nil, fmt.Errorf("Wrong vehicleoccupancy type passed")

@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/api"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
+	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 
 	"github.com/gin-gonic/gin"
@@ -48,14 +50,29 @@ type Config struct {
 	OccupancyNavitiaToken  string        `mapstructure:"occupancy-navitia-token"`
 	OccupancyServiceToken  string        `mapstructure:"occupancy-service-token"`
 	OccupancyRefresh       time.Duration `mapstructure:"occupancy-refresh"`
+	OccupancyCleanVJ       time.Duration `mapstructure:"occupancy-clean-vj"`
+	OccupancyCleanVO       time.Duration `mapstructure:"occupancy-clean-vo"`
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
+
+	LocationsFilesURIStr   string `mapstructure:"locations-files-uri"`
+	LocationsFilesURI      url.URL
+	LocationsNavitiaURIStr string `mapstructure:"locations-navitia-uri"`
+	LocationsNavitiaURI    url.URL
+	LocationsServiceURIStr string `mapstructure:"locations-service-uri"`
+	LocationsServiceURI    url.URL
+	LocationsNavitiaToken  string        `mapstructure:"locations-navitia-token"`
+	LocationsServiceToken  string        `mapstructure:"locations-service-token"`
+	LocationsRefresh       time.Duration `mapstructure:"locations-refresh"`
+	LocationsCleanVJ       time.Duration `mapstructure:"locations-clean-vj"`
+	LocationsCleanVL       time.Duration `mapstructure:"locations-clean-vl"`
 
 	LogLevel            string        `mapstructure:"log-level"`
 	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
 	JSONLog             bool          `mapstructure:"json-log"`
 	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
+	LocationsActive     bool          `mapstructure:"locations-service-refresh-active"`
 	Connector           string        `mapstructure:"connector-type"`
 }
 
@@ -92,6 +109,21 @@ func GetConfig() (Config, error) {
 	pflag.Bool("occupancy-service-refresh-active", false, "activate the periodic refresh of vehicle occupancy data")
 	pflag.Duration("occupancy-refresh", 5*time.Minute, "time between refresh of predictions")
 	pflag.Duration("routeschedule-refresh", 24*time.Hour, "time between refresh of RouteSchedules from navitia")
+	pflag.Duration("occupancy-clean-vj", 24*time.Hour, "time between clean list of VehicleJourneys")
+	pflag.Duration("occupancy-clean-vo", 2*time.Hour, "time between clean list of VehicleOccupancies")
+
+	//Passing configurations for vehicle_locations
+	pflag.String("locations-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-navitia-token", "", "token for navitia")
+	pflag.String("locations-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("locations-service-token", "", "token for locations source")
+	pflag.Bool("locations-service-refresh-active", false, "activate the periodic refresh of vehicle locations data")
+	pflag.Duration("locations-refresh", 5*time.Minute, "time between refresh of locations")
+	pflag.Duration("locations-clean-vj", 24*time.Hour, "time between clean list of vehicleJourneys")
+	pflag.Duration("locations-clean-vl", 2*time.Hour, "time between clean list of vehicleLocations")
+
+	//Passing configurations for vehicle_occupancies and vehicle_locations
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 	pflag.String("connector-type", "oditi", "connector type to load data source")
 
@@ -113,7 +145,8 @@ func GetConfig() (Config, error) {
 	}
 
 	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
-		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr) {
+		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr,
+		config.LocationsServiceURIStr, config.LocationsNavitiaURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -125,6 +158,8 @@ func GetConfig() (Config, error) {
 		config.OccupancyFilesURIStr:   &config.OccupancyFilesURI,
 		config.OccupancyNavitiaURIStr: &config.OccupancyNavitiaURI,
 		config.OccupancyServiceURIStr: &config.OccupancyServiceURI,
+		config.LocationsServiceURIStr: &config.LocationsServiceURI,
+		config.LocationsNavitiaURIStr: &config.LocationsNavitiaURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -163,7 +198,10 @@ func main() {
 	Parkings(manager, &config, router)
 
 	// With vehicle occupancies
-	VehiculeOccupancies(manager, &config, router, location)
+	VehicleOccupancies(manager, &config, router, location)
+
+	// With vehicle locations
+	VehicleLocations(manager, &config, router, location)
 
 	// start router
 	err = router.Run()
@@ -228,46 +266,81 @@ func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) 
 	parkings.AddParkingsEntryPoint(router, parkingsContext)
 }
 
-func VehiculeOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
 	if len(config.OccupancyNavitiaURI.String()) == 0 || len(config.OccupancyServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle occupancies is disabled")
 		return
 	}
 
-	var vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	var vehicleOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	var err error
 
-	// TODO: used new param config.type
-	if config.Connector == "oditi" {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	if config.Connector == string(connectors.Connector_ODITI) {
+		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
+	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
+		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
 	} else {
-		vehiculeOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory("gtfs")
+		logrus.Error("Wrong vehicleoccupancy type passed")
+		return
+	}
+
+	manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
+
+	vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location, config.OccupancyActive)
+
+	go vehicleOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+		location)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
+
+	if vehicleOccupanciesOditiContext, ok :=
+		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
+		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
+			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+	}
+}
+
+func VehicleLocations(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+	if len(config.LocationsNavitiaURI.String()) == 0 || len(config.LocationsServiceURI.String()) == 0 {
+		logrus.Debug("Vehicle locations is disabled")
+		return
+	}
+
+	var vehicleLocationsContext vehiclelocations.IConnectors
+	var err error
+
+	if config.Connector == string(connectors.Connector_GRFS_RT) {
+		vehicleLocationsContext, err = vehiclelocations.ConnectorFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
+	} else {
+		logrus.Error("Wrong connector type passed")
+		return
 	}
 
-	manager.SetVehiculeOccupanciesContext(vehiculeOccupanciesContext)
+	manager.SetVehicleLocationsContext(vehicleLocationsContext)
 
-	vehiculeOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.ConnectionTimeout, location, config.OccupancyActive)
+	vehicleLocationsContext.InitContext(config.LocationsFilesURI, config.LocationsServiceURI,
+		config.LocationsServiceToken, config.LocationsNavitiaURI, config.LocationsNavitiaToken,
+		config.LocationsRefresh, config.LocationsCleanVJ, config.LocationsCleanVL, config.ConnectionTimeout,
+		location, config.LocationsActive)
+	go vehicleLocationsContext.RefreshVehicleLocationsLoop()
 
-	go vehiculeOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.ConnectionTimeout, location)
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehiculeOccupanciesContext)
-
-	if vehicleOccupanciesOditiContext, ok :=
-		vehiculeOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
-		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
-			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
-	}
+	vehiclelocations.AddVehicleLocationsEntryPoint(router, vehicleLocationsContext)
 }
 
 func initLog(jsonLog bool, logLevel string) {

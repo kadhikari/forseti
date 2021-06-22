@@ -185,7 +185,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 	if err != nil {
 		return errors.Errorf("loading external source: %s", err)
 	}
-	if len(gtfsRt.Vehicles) == 0 {
+	if gtfsRt == nil || len(gtfsRt.Vehicles) == 0 {
 		return fmt.Errorf("no data to load from GTFS-RT")
 	}
 

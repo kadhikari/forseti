@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net/url"
 	"time"
+
+	"github.com/CanalTP/forseti/internal/connectors"
 )
 
 type IVehicleOccupancy interface {
@@ -33,9 +35,9 @@ type IVehicleOccupancy interface {
 
 // Patern factory Vehicle occupancies
 func VehicleOccupancyFactory(type_vehicleoccupancy string) (IVehicleOccupancy, error) {
-	if type_vehicleoccupancy == "gtfs" {
+	if type_vehicleoccupancy == string(connectors.Connector_GRFS_RT) {
 		return &VehicleOccupanciesGtfsRtContext{}, nil
-	} else if type_vehicleoccupancy == "oditi" {
+	} else if type_vehicleoccupancy == string(connectors.Connector_ODITI) {
 		return &VehicleOccupanciesOditiContext{}, nil
 	} else {
 		return nil, fmt.Errorf("Wrong vehicleoccupancy type passed")

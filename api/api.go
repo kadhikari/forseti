@@ -80,31 +80,31 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var lastVehicleOccupanciesDataUpdate time.Time
 		var loadVehicleOccupanciesData bool = false
 		var refreshVehicleOccupanciesData string
-		if manager.GetVehiculeOccupanciesContext() != nil {
+		if manager.GetVehicleOccupanciesContext() != nil {
 			// manage vehicleoccupancy activation /status?vehicle_occupancies=true or false
 			vehicleOccupancyStatus := c.Query("vehicle_occupancies")
 			if len(vehicleOccupancyStatus) > 0 {
 				toActive, _ := strconv.ParseBool(vehicleOccupancyStatus)
-				manager.GetVehiculeOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
 			}
-			lastVehicleOccupanciesDataUpdate = manager.GetVehiculeOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
-			loadVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().LoadOccupancyData()
-			refreshVehicleOccupanciesData = manager.GetVehiculeOccupanciesContext().GetRereshTime()
+			lastVehicleOccupanciesDataUpdate = manager.GetVehicleOccupanciesContext().GetLastVehicleOccupanciesDataUpdate()
+			loadVehicleOccupanciesData = manager.GetVehicleOccupanciesContext().LoadOccupancyData()
+			refreshVehicleOccupanciesData = manager.GetVehicleOccupanciesContext().GetRereshTime()
 		}
 
 		var lastVehicleLocationsDataUpdate time.Time
 		var loadVehicleLocationsData bool = false
 		var refreshVehicleLocationData string
-		if manager.GetVehiculeLocationsContext() != nil {
+		if manager.GetVehicleLocationsContext() != nil {
 			// manage vehiclelocations activation /status?vehicle_locations=true or false
 			vehicleLocationsStatus := c.Query("vehicle_locations")
 			if len(vehicleLocationsStatus) > 0 {
 				toActive, _ := strconv.ParseBool(vehicleLocationsStatus)
-				manager.GetVehiculeOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
 			}
-			lastVehicleLocationsDataUpdate = manager.GetVehiculeLocationsContext().GetLastVehicleLocationsDataUpdate()
-			loadVehicleLocationsData = manager.GetVehiculeLocationsContext().LoadLocationsData()
-			refreshVehicleLocationData = manager.GetVehiculeLocationsContext().GetRereshTime()
+			lastVehicleLocationsDataUpdate = manager.GetVehicleLocationsContext().GetLastVehicleLocationsDataUpdate()
+			loadVehicleLocationsData = manager.GetVehicleLocationsContext().LoadLocationsData()
+			refreshVehicleLocationData = manager.GetVehicleLocationsContext().GetRereshTime()
 		}
 
 		var lastEquipmentDataUpdate time.Time

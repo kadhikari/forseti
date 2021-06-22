@@ -1,6 +1,7 @@
 package vehiclelocations
 
 import (
+	"fmt"
 	"net/url"
 	"strconv"
 	"sync"
@@ -20,10 +21,12 @@ type GtfsRtContext struct {
 	connector        *connectors.Connector
 	navitia          *Navitia
 	cleanVj          time.Duration
-	cleanVl          time.Time
+	cleanVl          time.Duration
 	location         *time.Location
 	mutex            sync.RWMutex
 }
+
+var start = time.Now()
 
 func (d *GtfsRtContext) GetAllVehicleLocations() *VehicleLocations {
 	d.mutex.Lock()
@@ -55,17 +58,10 @@ func (d *GtfsRtContext) CleanListOldVehicleJourney(delay time.Duration) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	nbVj := len(d.vehiclesJourney) // TODO: Just for test, delete to release
-	del := false                   // TODO: Just for test, delete to release
-
 	for idx, v := range d.vehiclesJourney {
 		if v.CreateDate.Add(delay * time.Hour).Before(time.Now()) {
 			delete(d.vehiclesJourney, idx)
-			del = true
 		}
-	}
-	if del {
-		logrus.Debugf("*** Clean old VehicleJourney until %d hour - %d/%d", delay, nbVj, len(d.vehiclesJourney))
 	}
 }
 
@@ -85,13 +81,15 @@ func (d *GtfsRtContext) AddVehicleJourney(vehicleJourney *VehicleJourney) {
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
 func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken string, navitiaURI url.URL,
-	navitiaToken string, loadExternalRefresh, connectionTimeout time.Duration, location *time.Location,
-	reloadActive bool) {
+	navitiaToken string, loadExternalRefresh, locationsCleanVJ, locationsCleanVL, connectionTimeout time.Duration,
+	location *time.Location, reloadActive bool) {
 
 	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
 	d.navitia = NewNavitia(navitiaURI, navitiaToken, connectionTimeout)
 	d.vehicleLocations = &VehicleLocations{}
 	d.location = location
+	d.cleanVj = locationsCleanVJ
+	d.cleanVl = locationsCleanVL
 	d.vehicleLocations.ManageVehicleLocationsStatus(reloadActive)
 }
 
@@ -127,12 +125,16 @@ func (d *GtfsRtContext) GetRereshTime() string {
 func refreshVehicleLocations(context *GtfsRtContext, connector *connectors.Connector,
 	navitia *Navitia) error {
 	begin := time.Now()
+	timeCleanVL := start.Add(context.cleanVl * time.Hour)
 
 	// Get all data from Gtfs-rt flux
 	gtfsRtData, err := loadDatafromConnector(connector)
 	if err != nil {
 		VehicleLocationsLoadingErrors.Inc()
 		return errors.Errorf("loading external source: %s", err)
+	}
+	if gtfsRtData == nil || len(gtfsRtData.Vehicles) == 0 {
+		return fmt.Errorf("no data to load from GTFS-RT")
 	}
 
 	// Get status Last load from Navitia and check if data loaded recently
@@ -147,12 +149,13 @@ func refreshVehicleLocations(context *GtfsRtContext, connector *connectors.Conne
 		context.CleanListVehicleJourney()
 	}
 
-	if context.cleanVl.Before(time.Now()) { // TODO: change to take param of config
+	if timeCleanVL.Before(time.Now()) {
 		context.CleanListVehicleLocations()
+		start = time.Now()
 	}
 
 	// Clean list VehicleJourney for vehicle older than delay parameter
-	context.CleanListOldVehicleJourney(context.cleanVj) // TODO: add parameter in config
+	context.CleanListOldVehicleJourney(context.cleanVj)
 
 	manageListVehicleLocations(context, gtfsRtData, navitia)
 

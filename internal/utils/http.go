@@ -4,20 +4,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 )
 
-func GetHttpClient_(url, token, header string, connectionTimeout time.Duration) (*http.Response, error) {
+func GetHttpClient_(url url.URL, token, header string, connectionTimeout time.Duration) (
+	*http.Response, error) {
+
 	client := &http.Client{Timeout: 10 * connectionTimeout}
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequest("GET", url.String(), nil)
+	req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
+	req.Header.Set(header, token)
 	if err != nil {
 		return nil, err
-	}
-
-	if token != "" && header != "" {
-		req.Header.Set("content-type", "application/x-www-form-urlencoded; param=value")
-		req.Header.Set(header, token)
 	}
 
 	resp, err := client.Do(req)

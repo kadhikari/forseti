@@ -14,7 +14,8 @@ import (
 
 type IConnectors interface {
 	InitContext(ilesURI, externalURI url.URL, externalToken string, navitiaURI url.URL, navitiaToken string,
-		loadExternalRefresh, connectionTimeout time.Duration, location *time.Location, reloadActive bool)
+		loadExternalRefresh, occupancyCleanVJ, occupancyCleanVO, connectionTimeout time.Duration,
+		location *time.Location, reloadActive bool)
 
 	RefreshVehicleLocationsLoop()
 

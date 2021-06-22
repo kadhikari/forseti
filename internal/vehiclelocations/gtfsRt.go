@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/CanalTP/forseti"
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/CanalTP/forseti/internal/utils"
 	"google.golang.org/protobuf/proto"
@@ -43,7 +43,7 @@ func NewGtfsRt(timestamp string, v []VehicleGtfsRt) *GtfsRt {
 }
 
 func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
-	resp, err := utils.GetHttpClient_(connector.GetUrl().Path, connector.GetToken(), "Authorization",
+	resp, err := utils.GetHttpClient_(connector.GetUrl(), connector.GetToken(), "Authorization",
 		connector.GetConnectionTimeout())
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
 
 // Method to parse data from GTFS-RT
 func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
-	fm := new(forseti.FeedMessage)
+	fm := new(google_transit.FeedMessage)
 	err := proto.Unmarshal(b, fm)
 	if err != nil {
 		return nil, err
@@ -76,9 +76,9 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 
 	vehicles := make([]VehicleGtfsRt, 0, len(fm.GetEntity()))
 	for _, entity := range fm.GetEntity() {
-		var vehPos *forseti.VehiclePosition = entity.GetVehicle()
-		var pos *forseti.Position = vehPos.GetPosition()
-		var trip *forseti.TripDescriptor = vehPos.GetTrip()
+		var vehPos *google_transit.VehiclePosition = entity.GetVehicle()
+		var pos *google_transit.Position = vehPos.GetPosition()
+		var trip *google_transit.TripDescriptor = vehPos.GetTrip()
 
 		veh := VehicleGtfsRt{
 			VehicleID: vehPos.GetVehicle().GetId(),

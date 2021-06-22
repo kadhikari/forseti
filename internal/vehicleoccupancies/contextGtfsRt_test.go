@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +30,7 @@ func Test_CleanListVehicleOccupancies(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -45,7 +47,7 @@ func Test_AddVehicleOccupancy(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -59,7 +61,7 @@ func Test_AddVehicleOccupancy(t *testing.T) {
 		StopId:           "stop_point:0:SP:80:4029",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        1})
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[1]})
 	require.NotNil(gtfsRtContext.voContext.VehicleOccupancies)
 	assert.Equal(len(gtfsRtContext.voContext.VehicleOccupancies), 1)
 }
@@ -68,7 +70,7 @@ func Test_CleanListVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -87,7 +89,7 @@ func Test_CleanListOldVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -106,7 +108,7 @@ func Test_AddVehicleJourney(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -129,7 +131,7 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	dateVj, _ := time.Parse("2006-01-02", "2021-05-12")
 	require.Nil(err)
 
-	vehicleOccupanciesContext, err := VehicleOccupancyFactory("gtfs")
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 	require.Nil(err)
 	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
 	require.True(ok)
@@ -253,7 +255,7 @@ var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 		StopId:           "stop_point:0:SP:80:4029",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        1},
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[1]},
 	700: {
 		Id:               700,
 		LineCode:         "45",
@@ -261,7 +263,7 @@ var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 		StopId:           "stop_point:0:SP:80:4043",
 		Direction:        0,
 		DateTime:         time.Now(),
-		Occupancy:        2},
+		Occupancy:        google_transit.VehiclePosition_OccupancyStatus_name[2]},
 }
 
 var dataGtfsRt = []VehicleGtfsRt{

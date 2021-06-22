@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
@@ -349,7 +350,7 @@ func CreateOccupanciesFromPredictions(context *VehicleOccupanciesOditiContext,
 			if rs != nil {
 				poCalc := utils.CalculateOccupancy(predict.Occupancy)
 				vo, err := NewVehicleOccupancy(rs.Id, rs.LineCode, rs.VehicleJourneyId, rs.StopId,
-					rs.Direction, rs.DateTime, int(GetOccupancyStatusForOditi(poCalc)))
+					rs.Direction, rs.DateTime, GetOccupancyStatusForOditi(poCalc))
 
 				if err != nil {
 					continue
@@ -560,4 +561,43 @@ func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, dep
 		Departure:        depart,
 		DateTime:         date,
 	}, nil
+}
+
+/* ----------------------------------------------
+// Equivalence of the occupancy value Oditi vs GTFS-RT
+---------------------------------------------- */
+
+var OditiMatchMatrixGtfsRT = [4][2]int{
+	// EMPTY for value equal 0
+	{0, 25},  // MANY_SEATS_AVAILABLE for value between > 0 and 25
+	{25, 50}, // FEW_SEATS_AVAILABLE for value between > 25 and 50
+	{50, 75}, // STANDING_ROOM_ONLY for value between > 50 and 50
+	{75, 99}, // CRUSHED_STANDING_ROOM_ONLY for value between > 75 and 50
+	// FULL for value equal or better than 100
+}
+
+func GetOccupancyStatusForOditi(Oditi_charge int) string {
+	var s int32 = 1
+	if Oditi_charge == 0 {
+		return google_transit.VehiclePosition_OccupancyStatus_name[0]
+	}
+	if Oditi_charge >= 100 {
+		return google_transit.VehiclePosition_OccupancyStatus_name[5]
+	}
+
+	for idx, p := range OditiMatchMatrixGtfsRT {
+		if InBetween(Oditi_charge, p[0], p[1]) {
+			s = s + int32(idx)
+			break
+		}
+	}
+	return google_transit.VehiclePosition_OccupancyStatus_name[s]
+}
+
+func InBetween(charge, min, max int) bool {
+	if (charge > min) && (charge <= max) {
+		return true
+	} else {
+		return false
+	}
 }

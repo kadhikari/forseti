@@ -23,7 +23,7 @@ type VehicleOccupancy struct {
 	StopId           string `json:"stop_id,omitempty"`
 	Direction        int
 	DateTime         time.Time `json:"date_time,omitempty"`
-	Occupancy        int       `json:"occupancy"`
+	Occupancy        string    `json:"occupancy"`
 }
 
 type VehicleOccupancyRequestParameter struct {

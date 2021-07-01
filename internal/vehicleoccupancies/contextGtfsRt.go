@@ -140,7 +140,7 @@ func (d *VehicleOccupanciesGtfsRtContext) GetRereshTime() string {
 func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
 
 	// External source http/REST
-	if token == "nil" {
+	if len(token) == 0 {
 		resp, err := http.Get(uri.String())
 		if err != nil {
 			VehicleOccupanciesLoadingErrors.Inc()

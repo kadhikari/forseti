@@ -229,22 +229,31 @@ func Test_parseVehiclesResponse(t *testing.T) {
 	}
 }
 
-var mapVJ = map[string]*VehicleJourney{
-	"651969": {VehicleID: "vehicle_journey:STS:651969-1",
-		CodesSource: "651969",
-		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
-			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
-		CreateDate: time.Now().Add(-2 * time.Hour)},
-	"652005": {VehicleID: "vehicle_journey:STS:652005-1",
+var mapVJ = map[string][]VehicleJourney{
+	"651969": {
+		{
+			VehicleID:   "vehicle_journey:STS:651969-1",
+			CodesSource: "651969",
+			StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+				NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+			CreateDate: time.Now().Add(-2 * time.Hour)},
+		{
+			VehicleID:   "vehicle_journey:STS:651969-2",
+			CodesSource: "651969",
+			StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:1280", "1280"),
+				NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+			CreateDate: time.Now().Add(-2 * time.Hour)},
+	},
+	"652005": {{VehicleID: "vehicle_journey:STS:652005-1",
 		CodesSource: "652005",
 		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:299", "299"),
 			NewStopPointVj("stop_point:STS:SP:600", "600")},
-		CreateDate: time.Now().Add(-2 * time.Hour)},
-	"652373": {VehicleID: "vehicle_journey:STS:652373-1",
+		CreateDate: time.Now().Add(-2 * time.Hour)}},
+	"652373": {{VehicleID: "vehicle_journey:STS:652373-1",
 		CodesSource: "652373",
 		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:814", "814"),
 			NewStopPointVj("stop_point:STS:SP:900", "900")},
-		CreateDate: time.Now()},
+		CreateDate: time.Now()}},
 }
 
 var vehicleOccupanciesMap = map[int]*VehicleOccupancy{

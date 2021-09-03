@@ -16,6 +16,7 @@ require (
 	github.com/gin-gonic/contrib v0.0.0-20180614032058-39cfb9727134
 	github.com/gin-gonic/gin v1.7.1
 	github.com/gogo/protobuf v1.3.2 // indirect
+	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lib/pq v1.10.1 // indirect
@@ -27,18 +28,18 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/pkg/sftp v1.8.3
 	github.com/prometheus/client_golang v0.9.0
-	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
+	github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4 // indirect
 	github.com/prometheus/common v0.0.0-20181020173914-7e9e6cabbd39 // indirect
 	github.com/prometheus/procfs v0.0.0-20181005140218-185b4288413d // indirect
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/pflag v1.0.3
 	github.com/spf13/viper v1.2.1
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/net v0.0.0-20210326060303-6b1517762897 // indirect
-	golang.org/x/sys v0.0.0-20210403161142-5e06dd20ab57 // indirect
+	golang.org/x/net v0.0.0-20210902165921-8d991716f632 // indirect
+	golang.org/x/sys v0.0.0-20210902050250-f475640dd07b // indirect
 	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6 // indirect
-	golang.org/x/text v0.3.5
-	google.golang.org/protobuf v1.26.0
+	golang.org/x/text v0.3.7
+	google.golang.org/protobuf v1.27.1
 	gotest.tools v2.2.0+incompatible // indirect
 )

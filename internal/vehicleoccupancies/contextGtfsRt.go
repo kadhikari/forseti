@@ -234,8 +234,8 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 			}
 
 			// add in vehicle journey list
-			for _, vj := range vjs {
-				context.AddVehicleJourney(&vj)
+			for i := 0; i < len(vjs); i++ {
+				context.AddVehicleJourney(&vjs[i])
 			}
 
 		} else {

@@ -121,7 +121,7 @@ func TestCreateVehicleJourney(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := CreateVehicleJourney(tt.args.navitiaVJ, tt.args.id_gtfsRt, date); !reflect.DeepEqual(got[0], tt.want) {
 				for _, vj := range got {
-					t.Errorf("CreateVehicleJourney() = %v, want %v", &vj, tt.want)
+					t.Errorf("CreateVehicleJourney() = %v, want %v", vj, tt.want)
 				}
 			}
 		})

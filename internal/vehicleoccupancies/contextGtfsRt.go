@@ -21,7 +21,7 @@ import (
 --------------------------------------------------------------------- */
 type VehicleOccupanciesGtfsRtContext struct {
 	voContext       *VehicleOccupanciesContext
-	vehiclesJourney map[string]*VehicleJourney
+	vehiclesJourney map[string][]VehicleJourney
 	lastLoadNavitia string
 	mutex           sync.RWMutex
 }
@@ -62,9 +62,11 @@ func (d *VehicleOccupanciesGtfsRtContext) CleanListOldVehicleJourney(delay time.
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	for idx, v := range d.vehiclesJourney {
-		if v.CreateDate.Add(delay * time.Hour).Before(time.Now()) {
-			delete(d.vehiclesJourney, idx)
+	for idx, vjs := range d.vehiclesJourney {
+		for _, v := range vjs {
+			if v.CreateDate.Add(delay * time.Hour).Before(time.Now()) {
+				delete(d.vehiclesJourney, idx)
+			}
 		}
 	}
 }
@@ -74,10 +76,11 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleJourney(vehicleJourney *Vehi
 	defer d.mutex.Unlock()
 
 	if d.vehiclesJourney == nil {
-		d.vehiclesJourney = map[string]*VehicleJourney{}
+		d.vehiclesJourney = map[string][]VehicleJourney{}
 	}
 
-	d.vehiclesJourney[vehicleJourney.CodesSource] = vehicleJourney
+	d.vehiclesJourney[vehicleJourney.CodesSource] = append(d.vehiclesJourney[vehicleJourney.CodesSource],
+		*vehicleJourney)
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
@@ -221,36 +224,43 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
 		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
-		var vj *VehicleJourney
+		var vjs []VehicleJourney
 		var err error
 
 		if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-			vj, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+			vjs, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
 			if err != nil {
 				continue
 			}
 
 			// add in vehicle journey list
-			context.AddVehicleJourney(vj)
+			for _, vj := range vjs {
+				context.AddVehicleJourney(&vj)
+			}
+
 		} else {
-			vj = context.vehiclesJourney[vehGtfsRT.Trip]
+			vjs = append(vjs, context.vehiclesJourney[vehGtfsRT.Trip]...)
 		}
 
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
 		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
 			// add in vehicle occupancy list
-			newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT, location)
-			if newVehicleOccupancy != nil {
-				context.AddVehicleOccupancy(newVehicleOccupancy)
+			for _, vj := range vjs {
+				newVehicleOccupancy := createOccupanciesFromDataSource(vj, vehGtfsRT, location)
+				if newVehicleOccupancy != nil {
+					context.AddVehicleOccupancy(newVehicleOccupancy)
+				}
 			}
 		} else {
 			tabString := strings.Split(context.voContext.VehicleOccupancies[idGtfsrt].StopId, ":")
 			spId := tabString[len(tabString)-1]
 			if spId != vehGtfsRT.StopId {
 				// add in vehicle occupancy list
-				newVehicleOccupancy := createOccupanciesFromDataSource(*vj, vehGtfsRT, location)
-				if newVehicleOccupancy != nil {
-					context.AddVehicleOccupancy(newVehicleOccupancy)
+				for _, vj := range vjs {
+					newVehicleOccupancy := createOccupanciesFromDataSource(vj, vehGtfsRT, location)
+					if newVehicleOccupancy != nil {
+						context.AddVehicleOccupancy(newVehicleOccupancy)
+					}
 				}
 			}
 

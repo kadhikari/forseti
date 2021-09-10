@@ -315,31 +315,6 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 				}
 			}
 		}
-
-		/*if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
-			// add in vehicle occupancy list
-			for _, vj := range vjs {
-				id := len(context.voContext.VehicleOccupancies) - 1
-				newVehicleOccupancy := createOccupanciesFromDataSource(id, vj, vehGtfsRT, location)
-				if newVehicleOccupancy != nil {
-					context.AddVehicleOccupancy(newVehicleOccupancy)
-				}
-			}
-		} else {
-			tabString := strings.Split(context.voContext.VehicleOccupancies[idGtfsrt].StopId, ":")
-			spId := tabString[len(tabString)-1]
-			if spId != vehGtfsRT.StopId {
-				// add in vehicle occupancy list
-				for _, vj := range vjs {
-					id := len(context.voContext.VehicleOccupancies) - 1
-					newVehicleOccupancy := createOccupanciesFromDataSource(id, vj, vehGtfsRT, location)
-					if newVehicleOccupancy != nil {
-						context.AddVehicleOccupancy(newVehicleOccupancy)
-					}
-				}
-			}
-			//TODO: ajouter un update pour mettre à jour occupancy si le stopId existe pour ce VJ
-		}*/
 	}
 }
 
@@ -368,28 +343,3 @@ func createOccupanciesFromDataSource(id int, vehicleJourney VehicleJourney,
 	}
 	return nil
 }
-
-// Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-/*func createOccupanciesFromDataSource_(vehicleJourney VehicleJourney,
-	vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleOccupancy {
-	id := fmt.Sprintf("%s%s", vehicleGtfsRt.Trip, vehicleGtfsRt.StopId)
-	idGtfsrt, _ := strconv.Atoi(id)
-	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
-	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
-	if err != nil {
-		logrus.Info(err)
-		return &VehicleOccupancy{}
-	}
-
-	for _, stopPoint := range *vehicleJourney.StopPoints {
-		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
-			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, dateLoc,
-				google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)])
-			if err != nil {
-				continue
-			}
-			return vo
-		}
-	}
-	return nil
-}*/

@@ -147,7 +147,7 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	vGtfsRt := VehicleGtfsRt{"52103", "263", "52103", 1620777600, 11, 274, "1", "652517", 45.398613, -71.90111, 0}
 
 	// Create VehicleOccupancies from existing data
-	vo := createOccupanciesFromDataSource(vj, vGtfsRt, location)
+	vo := createOccupanciesFromDataSource(10, vj, vGtfsRt, location)
 	gtfsRtContext.AddVehicleOccupancy(vo)
 	require.NotNil(voContext.VehicleOccupancies)
 	assert.Equal(len(voContext.VehicleOccupancies), 1)

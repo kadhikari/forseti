@@ -16,7 +16,7 @@ import (
 
 const (
 	URL_GET_LAST_LOAD       = "%s/status?"
-	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
+	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&since=%s&until=%s&"
 	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 	URL_GET_ROUTES          = "%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s"
 )
@@ -105,10 +105,14 @@ func GetStatusPublicationDate(uri url.URL, token string, connectionTimeout time.
 }
 
 // GetVehicleJourney get object vehicle journey from Navitia compared to GTFS-RT vehicle id.
-func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration) (
-	[]VehicleJourney, error) {
+func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration,
+	location *time.Location) ([]VehicleJourney, error) {
 	sourceCode := fmt.Sprint("source%2C", id_gtfsRt)
-	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode)
+	loc, _ := time.LoadLocation(location.String())
+	dateBefore := time.Now().In(loc).Add(-1 * time.Hour).Format("20060102T150405")
+	dateAfter := time.Now().In(loc).Add(1 * time.Hour).Format("20060102T150405")
+	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode, dateBefore, dateAfter)
+
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		return nil, err

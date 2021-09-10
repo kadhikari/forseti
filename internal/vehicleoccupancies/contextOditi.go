@@ -350,7 +350,7 @@ func CreateOccupanciesFromPredictions(context *VehicleOccupanciesOditiContext,
 			if rs != nil {
 				poCalc := utils.CalculateOccupancy(predict.Occupancy)
 				vo, err := NewVehicleOccupancy(rs.Id, rs.LineCode, rs.VehicleJourneyId, rs.StopId,
-					rs.Direction, rs.DateTime, GetOccupancyStatusForOditi(poCalc))
+					rs.Direction, rs.DateTime, GetOccupancyStatusForOditi(poCalc), "")
 
 				if err != nil {
 					continue

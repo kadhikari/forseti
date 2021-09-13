@@ -242,7 +242,6 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 	navitiaToken string, connectionTimeout time.Duration, location *time.Location) {
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
-		//idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip) //TODO: changer la clé
 		var vjs []VehicleJourney
 		var err error
 
@@ -271,7 +270,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 				}
 			}
 
-			//si le vo n'existe pas
+			// if vehicle occupancy does not exist
 			if len(vos) == 0 {
 				// add in vehicle occupancy list
 				for _, vj := range vjs {
@@ -281,7 +280,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 						context.AddVehicleOccupancy(newVehicleOccupancy)
 					}
 				}
-			} else { //si il existe
+			} else { // if vehicle occupancy exist
 				index := -1
 				for idx, v := range vos {
 					tabString := strings.Split(v.StopId, ":")
@@ -292,7 +291,7 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 					}
 				}
 
-				if index == -1 {
+				if index == -1 { // if stopId does not exist for vehicle occupancy
 					// add in vehicle occupancy list
 					for _, vj := range vjs {
 						id := len(context.voContext.VehicleOccupancies) - 1

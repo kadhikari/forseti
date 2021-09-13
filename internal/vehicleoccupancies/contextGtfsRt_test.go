@@ -124,6 +124,38 @@ func Test_AddVehicleJourney(t *testing.T) {
 	assert.Equal(len(gtfsRtContext.vehiclesJourney), 1)
 }
 
+func Test_UpdateVehicleOccupancy(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	dateVj, _ := time.Parse("2006-01-02", "2021-05-12")
+	require.Nil(err)
+
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
+
+	vj := VehicleJourney{VehicleID: "vehicle_journey:STS:652517-1",
+		CodesSource: "652517",
+		StopPoints: &[]StopPointVj{NewStopPointVj("stop_point:STS:SP:263", "263"),
+			NewStopPointVj("stop_point:STS:SP:1560", "1560")},
+		CreateDate: dateVj}
+
+	vGtfsRt := VehicleGtfsRt{"52103", "263", "52103", 1620777600, 11, 274, "1", "652517", 45.398613, -71.90111, 1}
+
+	// Create VehicleOccupancies from existing data
+	vo := createOccupanciesFromDataSource(0, vj, vGtfsRt, location)
+	gtfsRtContext.AddVehicleOccupancy(vo)
+	require.NotNil(voContext.VehicleOccupancies)
+	assert.Equal(len(voContext.VehicleOccupancies), 1)
+
+	gtfsRtContext.UpdateOccupancy(voContext.VehicleOccupancies[0], vGtfsRt, location)
+	assert.Equal(voContext.VehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
+}
+
 func Test_GetVehicleOccupancies(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
@@ -257,7 +289,7 @@ var mapVJ = map[string][]VehicleJourney{
 }
 
 var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
-	156: {
+	0: {
 		Id:               156,
 		LineCode:         "40",
 		VehicleJourneyId: "vehicle_journey:0:124695149-1",

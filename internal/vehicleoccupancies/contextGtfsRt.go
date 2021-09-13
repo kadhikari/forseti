@@ -335,7 +335,6 @@ func createOccupanciesFromDataSource(id int, vehicleJourney VehicleJourney,
 				google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)],
 				vehicleJourney.CodesSource)
 			if err != nil {
-				logrus.Info("**** ERREUR CREATE VO")
 				continue
 			}
 			return vo

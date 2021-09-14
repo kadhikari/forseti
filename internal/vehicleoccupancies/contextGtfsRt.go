@@ -5,7 +5,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -48,6 +47,7 @@ func (d *VehicleOccupanciesGtfsRtContext) CheckLastLoadChanged(lastLoadAt string
 
 func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleOccupancies() {
 	d.voContext.CleanListVehicleOccupancies()
+	logrus.Info("*** Clean list VehicleOccupancies")
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleJourney() {
@@ -85,6 +85,25 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleJourney(vehicleJourney *Vehi
 
 func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
 	d.voContext.AddVehicleOccupancy(vehicleoccupancy)
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) UpdateOccupancy(vehicleoccupancy *VehicleOccupancy,
+	vehGtfsRT VehicleGtfsRt, location *time.Location) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if vehicleoccupancy == nil {
+		return
+	}
+
+	date := time.Unix(int64(vehGtfsRT.Time), 0).UTC()
+	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
+	if err != nil {
+		logrus.Info(err)
+		dateLoc = vehicleoccupancy.DateTime
+	}
+
+	vehicleoccupancy.Occupancy = google_transit.VehiclePosition_OccupancyStatus_name[int32(vehGtfsRT.Occupancy)]
+	vehicleoccupancy.DateTime = dateLoc
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
@@ -223,12 +242,11 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 	navitiaToken string, connectionTimeout time.Duration, location *time.Location) {
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
 
-		idGtfsrt, _ := strconv.Atoi(vehGtfsRT.Trip)
 		var vjs []VehicleJourney
 		var err error
 
 		if _, ok := context.vehiclesJourney[vehGtfsRT.Trip]; !ok {
-			vjs, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout)
+			vjs, err = GetVehicleJourney(vehGtfsRT.Trip, navitiaURI, navitiaToken, connectionTimeout, location)
 			if err != nil {
 				continue
 			}
@@ -243,36 +261,66 @@ func manageListVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, gtfs
 		}
 
 		// if gtfs-rt vehicle not exist in map of vehicle occupancies
-		if _, ok := context.voContext.VehicleOccupancies[idGtfsrt]; !ok {
-			// add in vehicle occupancy list
-			for _, vj := range vjs {
-				newVehicleOccupancy := createOccupanciesFromDataSource(vj, vehGtfsRT, location)
-				if newVehicleOccupancy != nil {
-					context.AddVehicleOccupancy(newVehicleOccupancy)
+		if len(context.voContext.VehicleOccupancies) > 0 {
+			var vos []VehicleOccupancy
+
+			for _, vo := range context.voContext.VehicleOccupancies {
+				if vo.SourceCode == vehGtfsRT.Trip {
+					vos = append(vos, *vo)
 				}
 			}
-		} else {
-			tabString := strings.Split(context.voContext.VehicleOccupancies[idGtfsrt].StopId, ":")
-			spId := tabString[len(tabString)-1]
-			if spId != vehGtfsRT.StopId {
+
+			// if vehicle occupancy does not exist
+			if len(vos) == 0 {
 				// add in vehicle occupancy list
 				for _, vj := range vjs {
-					newVehicleOccupancy := createOccupanciesFromDataSource(vj, vehGtfsRT, location)
+					id := len(context.voContext.VehicleOccupancies) - 1
+					newVehicleOccupancy := createOccupanciesFromDataSource(id, vj, vehGtfsRT, location)
 					if newVehicleOccupancy != nil {
 						context.AddVehicleOccupancy(newVehicleOccupancy)
 					}
 				}
-			}
+			} else { // if vehicle occupancy exist
+				index := -1
+				for idx, v := range vos {
+					tabString := strings.Split(v.StopId, ":")
+					spId := tabString[len(tabString)-1]
+					if spId == vehGtfsRT.StopId {
+						index = idx
+						break
+					}
+				}
 
+				if index == -1 { // if stopId does not exist for vehicle occupancy
+					// add in vehicle occupancy list
+					for _, vj := range vjs {
+						id := len(context.voContext.VehicleOccupancies) - 1
+						newVehicleOccupancy := createOccupanciesFromDataSource(id, vj, vehGtfsRT, location)
+						if newVehicleOccupancy != nil {
+							context.AddVehicleOccupancy(newVehicleOccupancy)
+						}
+					}
+				} else {
+					context.UpdateOccupancy(context.voContext.VehicleOccupancies[index], vehGtfsRT, location)
+				}
+
+			}
+		} else {
+			for _, vj := range vjs {
+				id := len(context.voContext.VehicleOccupancies) - 1
+				newVehicleOccupancy := createOccupanciesFromDataSource(id, vj, vehGtfsRT, location)
+				if newVehicleOccupancy != nil {
+					context.AddVehicleOccupancy(newVehicleOccupancy)
+				}
+			}
 		}
 	}
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
+func createOccupanciesFromDataSource(id int, vehicleJourney VehicleJourney,
 	vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleOccupancy {
-	id := fmt.Sprintf("%s%s", vehicleGtfsRt.Trip, vehicleGtfsRt.StopId)
-	idGtfsrt, _ := strconv.Atoi(id)
+
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
 	if err != nil {
@@ -282,8 +330,9 @@ func createOccupanciesFromDataSource(vehicleJourney VehicleJourney,
 
 	for _, stopPoint := range *vehicleJourney.StopPoints {
 		if stopPoint.GtfsStopCode == vehicleGtfsRt.StopId {
-			vo, err := NewVehicleOccupancy(idGtfsrt, "", vehicleJourney.VehicleID, stopPoint.Id, -1, dateLoc,
-				google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)])
+			vo, err := NewVehicleOccupancy(id, "", vehicleJourney.VehicleID, stopPoint.Id, -1, dateLoc,
+				google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)],
+				vehicleJourney.CodesSource)
 			if err != nil {
 				continue
 			}

@@ -134,8 +134,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	connectionTimeout time.Duration, location *time.Location) ([]RouteSchedule, error) {
 	// Call and load routes for line=40
 	dateTime := time.Now().Truncate(24 * time.Hour).Format("20060102T000000")
-	callUrl := fmt.Sprintf(URL_GET_ROUTES, uri.String(), "IDFM:C00048:40", direction, dateTime)
-	// old code "line:0:004004040:40"
+	callUrl := fmt.Sprintf(URL_GET_ROUTES, uri.String(), "IDFM:C00048:40", direction, dateTime) // old code "line:0:004004040:40"
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		VehicleOccupanciesLoadingErrors.Inc()
@@ -157,8 +156,7 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
 
 	// Call and load routes for line=45
-	callUrl = fmt.Sprintf(URL_GET_ROUTES, uri.String(), "IDFM:C00051:45", direction, dateTime)
-	// old code "line:0:004004029:45"
+	callUrl = fmt.Sprintf(URL_GET_ROUTES, uri.String(), "IDFM:C00051:45", direction, dateTime) // old code "line:0:004004029:45"
 	resp, err = CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		VehicleOccupanciesLoadingErrors.Inc()

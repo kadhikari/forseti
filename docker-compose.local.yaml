@@ -1,7 +1,7 @@
 version: "3.2"
 services:
   forseti:
-    image: navitia/forseti:latest
+    image: navitia/forseti:master
     ports:
       - target: 8080
         published: 8088
@@ -29,15 +29,14 @@ services:
       - FORSETI_FREE_FLOATINGS_REFRESH_ACTIVE=False
 
       # Occupancies parameters
-      - FORSETI_OCCUPANCY_SERVICE_REFRESH_ACTIVE=true
+      - FORSETI_OCCUPANCY_SERVICE_REFRESH_ACTIVE=False
       - FORSETI_OCCUPANCY_FILES_URI=file:///data
-      - FORSETI_OCCUPANCY_NAVITIA_URI=https://api.navitia.io/v1/coverage/ca-qc-sherbrooke
-      - FORSETI_OCCUPANCY_SERVICE_URI=http://gtfsrt.stsherbrooke.civilia.ca/pb/vehiclePositions.pb
-      - FORSETI_OCCUPANCY_NAVITIA_TOKEN=6a92dfdc-155d-4ea3-8775-6f93a1efc498
+      - FORSETI_OCCUPANCY_NAVITIA_URI=
+      - FORSETI_OCCUPANCY_SERVICE_URI=
+      - FORSETI_OCCUPANCY_NAVITIA_TOKEN=
       - FORSETI_OCCUPANCY_SERVICE_TOKEN=
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
-      - FORSETI_CONNECTOR_TYPE=gtfsrt
 
     volumes:
       - ~/workspace/data/forseti:/data

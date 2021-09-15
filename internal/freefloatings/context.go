@@ -17,10 +17,6 @@ type FreeFloatingsContext struct {
 	freeFloatingsMutex     sync.RWMutex
 	loadFreeFloatingData   bool
 	refreshTime            time.Duration
-	start_page             int
-	items_on_page          int
-	items_per_page         int
-	total_result           int
 }
 
 func (d *FreeFloatingsContext) ManageFreeFloatingsStatus(activate bool) {
@@ -58,7 +54,8 @@ func (d *FreeFloatingsContext) GetRereshTime() string {
 }
 
 //nolint
-func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
+func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, paginate utils.Paginate, e error) {
+	var paginate_freefloatings utils.Paginate
 	resp := make([]FreeFloating, 0)
 	{
 		d.freeFloatingsMutex.RLock()
@@ -93,38 +90,15 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 		sort.Sort(ByDistance(resp))
 
 		// Paginate
-		d.total_result = len(resp)
-		d.items_per_page = param.Count
-		d.start_page = param.StartPage
-
-		if param.Count >= 0 && param.StartPage >= 0 {
-			first_item := param.StartPage * param.Count
-			last_item := first_item + param.Count
-			if first_item < len(resp) {
-				if last_item < len(resp) {
-					resp = resp[first_item:last_item]
-				} else {
-					resp = resp[first_item:]
-				}
-			} else {
-				resp = nil
-			}
-			d.items_on_page = len(resp)
+		paginate, indexS, indexE := utils.PaginateEndPoint(len(resp), param.Count, param.StartPage)
+		paginate_freefloatings = paginate
+		if indexS >= 0 {
+			resp = resp[indexS:indexE]
 		} else {
 			resp = nil
-			d.items_on_page = 0
 		}
 	}
-	return resp, nil
-}
-
-func (d *FreeFloatingsContext) NewPaginate() Paginate {
-	return Paginate{
-		Start_page:     d.start_page,
-		Items_on_page:  d.items_on_page,
-		Items_per_page: d.items_per_page,
-		Total_result:   d.total_result,
-	}
+	return resp, paginate_freefloatings, nil
 }
 
 type ByDistance []FreeFloating

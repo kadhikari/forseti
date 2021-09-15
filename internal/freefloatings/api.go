@@ -14,7 +14,7 @@ import (
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
 type FreeFloatingsResponse struct {
 	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
-	Paginate      Paginate       `json:"pagination,omitempty"`
+	Paginate      utils.Paginate `json:"pagination,omitempty"`
 	Error         string         `json:"error,omitempty"`
 }
 
@@ -27,14 +27,14 @@ func FreeFloatingsApiHandler(context *FreeFloatingsContext) gin.HandlerFunc {
 			c.JSON(http.StatusServiceUnavailable, response)
 			return
 		}
-		freeFloatings, err := context.GetFreeFloatings(parameter)
+		freeFloatings, paginate_freefloatings, err := context.GetFreeFloatings(parameter)
 		if err != nil {
 			response.Error = "No data loaded"
 			c.JSON(http.StatusServiceUnavailable, response)
 			return
 		}
 		response.FreeFloatings = freeFloatings
-		response.Paginate = context.NewPaginate()
+		response.Paginate = paginate_freefloatings
 		c.JSON(http.StatusOK, response)
 	}
 }
@@ -57,13 +57,6 @@ type FreeFloating struct {
 	Deeplink     string   `json:"deeplink,omitempty"`
 	Attributes   []string `json:"attributes,omitempty"`
 	Distance     float64  `json:"distance,omitempty"`
-}
-
-type Paginate struct {
-	Start_page     int `json:"start_page"`
-	Items_on_page  int `json:"items_on_page,omitempty"`
-	Items_per_page int `json:"items_per_page,omitempty"`
-	Total_result   int `json:"total_result,omitempty"`
 }
 
 type FreeFloatingType int

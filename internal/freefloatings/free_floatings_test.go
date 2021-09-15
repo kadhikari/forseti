@@ -260,8 +260,9 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	types = append(types, ScooterType)
 	coord := Coord{Lat: 48.846781, Lon: 2.37715}
 	p := FreeFloatingRequestParameter{Distance: 500, Coord: coord, Count: 10, Types: types}
-	free_floatings, err := freeFloatingsContext.GetFreeFloatings(&p)
+	free_floatings, paginate_freefloatings, err := freeFloatingsContext.GetFreeFloatings(&p)
 	require.Nil(err)
+	require.NotNil(paginate_freefloatings)
 	require.Len(free_floatings, 2)
 
 	assert.Equal("718WSK", free_floatings[0].PublicId)

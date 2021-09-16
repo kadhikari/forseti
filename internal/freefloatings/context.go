@@ -54,7 +54,8 @@ func (d *FreeFloatingsContext) GetRereshTime() string {
 }
 
 //nolint
-func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, e error) {
+func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParameter) (freeFloatings []FreeFloating, paginate utils.Paginate, e error) {
+	var paginate_freefloatings utils.Paginate
 	resp := make([]FreeFloating, 0)
 	{
 		d.freeFloatingsMutex.RLock()
@@ -87,11 +88,17 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 			}
 		}
 		sort.Sort(ByDistance(resp))
-		if len(resp) > param.Count {
-			resp = resp[:param.Count]
+
+		// Paginate
+		paginate, indexS, indexE := utils.PaginateEndPoint(len(resp), param.Count, param.StartPage)
+		paginate_freefloatings = paginate
+		if indexS >= 0 {
+			resp = resp[indexS:indexE]
+		} else {
+			resp = resp[:0]
 		}
 	}
-	return resp, nil
+	return resp, paginate_freefloatings, nil
 }
 
 type ByDistance []FreeFloating

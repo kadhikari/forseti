@@ -125,7 +125,7 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	var e error
 	p := FreeFloatingRequestParameter{}
 	countStr := c.DefaultQuery("count", "25")
-	p.Count = utils.StringToInt(countStr, 10)
+	p.Count = utils.StringToInt(countStr, 25)
 	distanceStr := c.DefaultQuery("distance", "500")
 	p.Distance = utils.StringToInt(distanceStr, 500)
 	startPage := c.DefaultQuery("start_page", "0")

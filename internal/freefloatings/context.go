@@ -95,7 +95,7 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 		if indexS >= 0 {
 			resp = resp[indexS:indexE]
 		} else {
-			resp = nil
+			resp = resp[:0]
 		}
 	}
 	return resp, paginate_freefloatings, nil

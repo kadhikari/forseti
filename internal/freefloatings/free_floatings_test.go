@@ -184,7 +184,8 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 
 	// Request with coord, count and start_page in parameter
 	response = FreeFloatingsResponse{}
-	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&distance=2&start_page=1&count=1", nil)
+	c.Request = httptest.NewRequest("GET",
+		"/free_floatings?coord=2.37715%3B48.846781&distance=2&start_page=1&count=1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
@@ -192,7 +193,6 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	require.Nil(response.FreeFloatings)
 	assert.Len(response.FreeFloatings, 0)
-	//println(response.FreeFloatings)
 	// Verify paginate
 	assert.Equal(1, response.Paginate.Start_page)
 	assert.Equal(0, response.Paginate.Items_on_page)
@@ -200,7 +200,6 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(0, response.Paginate.Total_result)
 
 	// Request with coord, count and start_page in parameter
-	println("*****************************************************")
 	response = FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&start_page=-1&count=1", nil)
 	w = httptest.NewRecorder()
@@ -210,7 +209,6 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	require.Nil(response.FreeFloatings)
 	assert.Len(response.FreeFloatings, 0)
-	//println(response.FreeFloatings)
 	// Verify paginate
 	assert.Equal(-1, response.Paginate.Start_page)
 	assert.Equal(0, response.Paginate.Items_on_page)

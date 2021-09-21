@@ -92,11 +92,11 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 		// Implement filter on parameters
 		for _, vo := range d.VehicleOccupancies {
 			// Filter on stop_id
-			if len(param.StopId) > 0 && param.StopId != vo.StopCode {
+			if len(param.StopCode) > 0 && param.StopCode != vo.StopCode {
 				continue
 			}
 			// Filter on vehiclejourney_id
-			if len(param.VehicleJourneyId) > 0 && param.VehicleJourneyId != vo.VehicleJourneyCode {
+			if len(param.VehicleJourneyCode) > 0 && param.VehicleJourneyCode != vo.VehicleJourneyCode {
 				continue
 			}
 			//Fileter on datetime (default value Now)

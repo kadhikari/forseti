@@ -27,15 +27,15 @@ type VehicleOccupancy struct {
 }
 
 type VehicleOccupancyRequestParameter struct {
-	StopId           string
-	VehicleJourneyId string
-	Date             time.Time
+	StopCode           string
+	VehicleJourneyCode string
+	Date               time.Time
 }
 
 func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupancyRequestParameter) {
 	p := VehicleOccupancyRequestParameter{}
-	p.StopId = c.Query("stop_id")
-	p.VehicleJourneyId = c.Query("vehiclejourney_id")
+	p.StopCode = c.Query("stop_id")
+	p.VehicleJourneyCode = c.Query("vehiclejourney_id")
 	loc, _ := time.LoadLocation(location)
 	// We accept two date formats in the parameter
 	date, err := time.ParseInLocation("20060102", c.Query("date"), loc)

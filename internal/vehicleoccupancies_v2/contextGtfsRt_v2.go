@@ -24,6 +24,15 @@ type VehicleOccupanciesGtfsRtContext struct {
 
 var start = time.Now()
 
+func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupanciesContext() *VehicleOccupanciesContext {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	if d.voContext == nil {
+		d.voContext = &VehicleOccupanciesContext{}
+	}
+	return d.voContext
+}
+
 func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleOccupancies() {
 	d.voContext.CleanListVehicleOccupancies()
 	logrus.Info("*** Clean list VehicleOccupancies")

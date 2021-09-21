@@ -37,8 +37,8 @@ type IVehicleOccupancy interface {
 func VehicleOccupancyFactory(type_vehicleoccupancy string) (IVehicleOccupancy, error) {
 	if type_vehicleoccupancy == string(connectors.Connector_GRFS_RT) {
 		return &VehicleOccupanciesGtfsRtContext{}, nil
-	} else if type_vehicleoccupancy == string(connectors.Connector_ODITI) {
-		return &VehicleOccupanciesOditiContext{}, nil
+		/*} else if type_vehicleoccupancy == string(connectors.Connector_ODITI) {
+		return &VehicleOccupanciesOditiContext{}, nil*/
 	} else {
 		return nil, fmt.Errorf("Wrong vehicleoccupancy type passed")
 	}

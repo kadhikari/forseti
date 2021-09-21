@@ -1,23 +1,16 @@
 package vehicleoccupancies
 
 import (
-	"encoding/json"
-	"fmt"
-	"net/url"
 	"strconv"
-	"time"
 
 	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/utils"
-	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )
 
 /* ---------------------------------------------------------
 // ***************** ODITI EXTERNAL SOURCE *****************
 --------------------------------------------------------- */
-
+/*
 func LoadPredictions(uri url.URL, token string, connectionTimeout time.Duration,
 	location *time.Location) ([]Prediction, error) {
 	//futuredata/getfuturedata?start_time=2021-02-15&end_time=2021-02-16
@@ -57,7 +50,7 @@ func LoadPredictionsData(predictionData *data.PredictionData, location *time.Loc
 		predictions = append(predictions, *NewPrediction(predict, location))
 	}
 	return predictions
-}
+}*/
 
 /* ---------------------------------------------------------
 // **************** GTFS-RT EXTERNAL SOURCE ****************

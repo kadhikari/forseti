@@ -14,10 +14,11 @@ import (
 )
 
 const (
-	URL_GET_LAST_LOAD       = "%s/status?"
-	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&since=%s&until=%s&"
-	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
-	URL_GET_ROUTES          = "%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s"
+	URL_GET_LAST_LOAD              = "%s/status?"
+	URL_GET_VEHICLE_JOURNEY        = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&since=%s&until=%s&depth=2&"
+	URL_GET_VEHICLES_JOURNEYS_LINE = "%s/lines/%s/vehicle_journeys?since=%s&until=%s&depth=2&"
+	VALUE_FROM_TYPE                = "source"
+	URL_GET_ROUTES                 = "%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s"
 )
 
 // Structure to load the last date of modification static data
@@ -34,37 +35,42 @@ type NavitiaVehicleJourney struct {
 			Type  string `json:"type"`
 			Value string `json:"value"`
 		} `json:"codes"`
-		Name      string `json:"name"`
+		ID             string `json:"id"`
+		JourneyPattern struct {
+			Route struct {
+				DirectionType string `json:"direction_type"`
+			} `json:"route"`
+		} `json:"journey_pattern"`
 		StopTimes []struct {
-			StopPoint struct {
+			DepartureTime string `json:"departure_time"`
+			StopPoint     struct {
 				Codes []struct {
 					Type  string `json:"type"`
 					Value string `json:"value"`
 				} `json:"codes"`
-				Coord struct {
-					Lat string `json:"lat"`
-					Lon string `json:"lon"`
-				} `json:"coord"`
 				ID string `json:"id"`
 			} `json:"stop_point"`
 		} `json:"stop_times"`
-		ID string `json:"id"`
 	} `json:"vehicle_journeys"`
 }
 
 // Structure and Consumer to creates Vehicle Journey objects
 type VehicleJourney struct {
 	VehicleID   string // vehicle journey id Navitia
-	CodesSource string // vehicle id from gtfs-rt
+	CodesSource string // vehicle source code
+	Line        string
+	Direction   string
 	StopPoints  *[]StopPointVj
 	CreateDate  time.Time
 }
 
-func NewVehicleJourney(vehicleId string, codesSource string, stopPoints []StopPointVj,
+func NewVehicleJourney(vehicleId, codesSource, line, direction string, stopPoints []StopPointVj,
 	date time.Time) *VehicleJourney {
 	return &VehicleJourney{
 		VehicleID:   vehicleId,
 		CodesSource: codesSource,
+		Line:        line,
+		Direction:   direction,
 		StopPoints:  &stopPoints,
 		CreateDate:  date,
 	}
@@ -72,14 +78,17 @@ func NewVehicleJourney(vehicleId string, codesSource string, stopPoints []StopPo
 
 // Structure and Consumer to creates Stop point from Vehicle Journey Navitia objects
 type StopPointVj struct {
-	Id           string // Stoppoint uri from navitia
-	GtfsStopCode string // StopPoint code gtfs-rt
+	Id            string // Stoppoint uri from navitia
+	GtfsStopCode  string // StopPoint code gtfs-rt
+	DepartureTime time.Time
 }
 
-func NewStopPointVj(id string, code string) StopPointVj {
+func NewStopPointVj(id string, code string, hourDeparture string) StopPointVj {
+	t, _ := time.ParseDuration(hourDeparture)
 	return StopPointVj{
-		Id:           id,
-		GtfsStopCode: code,
+		Id:            id,
+		GtfsStopCode:  code,
+		DepartureTime: time.Now().Add(t),
 	}
 }
 
@@ -103,14 +112,13 @@ func GetStatusPublicationDate(uri url.URL, token string, connectionTimeout time.
 	return navitiaStatus.Status.PublicationDate, nil
 }
 
-// GetVehicleJourney get object vehicle journey from Navitia compared to GTFS-RT vehicle id.
-func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration,
+// GetVehicleJourney get object vehicle journey from Navitia compared to ODITI vehicle id.
+func GetVehiclesJourneysWithLine(codeLine, line string, uri url.URL, token string, connectionTimeout time.Duration,
 	location *time.Location) ([]VehicleJourney, error) {
-	sourceCode := fmt.Sprint("source%2C", id_gtfsRt)
 	loc, _ := time.LoadLocation(location.String())
 	dateBefore := time.Now().In(loc).Add(-1 * time.Hour).Format("20060102T150405")
 	dateAfter := time.Now().In(loc).Add(1 * time.Hour).Format("20060102T150405")
-	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode, dateBefore, dateAfter)
+	callUrl := fmt.Sprintf(URL_GET_VEHICLES_JOURNEYS_LINE, uri.String(), codeLine, dateBefore, dateAfter)
 
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
@@ -125,7 +133,7 @@ func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTi
 		return nil, err
 	}
 
-	return CreateVehicleJourney(navitiaVJ, id_gtfsRt, time.Now()), nil
+	return CreateVehicleJourney(navitiaVJ, line, time.Now()), nil
 }
 
 // This method call Navitia api with specific url and return a request response
@@ -145,23 +153,33 @@ func CallNavitia(callUrl string, token string, connectionTimeout time.Duration) 
 }
 
 // CreateVehicleJourney create a new vehicle journey with all stop point from Navitia
-func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string, createDate time.Time) []VehicleJourney {
+func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, line string, createDate time.Time) []VehicleJourney {
 	sp := make([]StopPointVj, 0)
 	vjs := make([]VehicleJourney, 0)
 	var stopPointVj StopPointVj
+	var sourceCode string
 
 	for _, vj := range navitiaVJ.VehicleJourneys {
 		for i := 0; i < len(vj.StopTimes); i++ {
 			for j := 0; j < len(vj.StopTimes[i].StopPoint.Codes); j++ {
-				if vj.StopTimes[i].StopPoint.Codes[j].Type == STOP_POINT_CODE {
+				if vj.StopTimes[i].StopPoint.Codes[j].Type == VALUE_FROM_TYPE {
 					stopCode := vj.StopTimes[i].StopPoint.Codes[j].Value
 					stopId := vj.StopTimes[i].StopPoint.ID
-					stopPointVj = NewStopPointVj(stopId, stopCode)
+					departure := vj.StopTimes[i].DepartureTime
+					stopPointVj = NewStopPointVj(stopId, stopCode, departure)
 				}
 			}
 			sp = append(sp, stopPointVj)
 		}
-		vehiclejourney := NewVehicleJourney(vj.ID, id_gtfsRt, sp, createDate)
+
+		for _, code := range vj.Codes {
+			if code.Type == VALUE_FROM_TYPE {
+				sourceCode = code.Value
+				break
+			}
+		}
+
+		vehiclejourney := NewVehicleJourney(vj.ID, sourceCode, line, vj.JourneyPattern.Route.DirectionType, sp, createDate)
 		vjs = append(vjs, *vehiclejourney)
 	}
 	return vjs

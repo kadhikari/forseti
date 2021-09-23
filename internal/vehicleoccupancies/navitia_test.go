@@ -17,7 +17,7 @@ func TestNewVehicleJourney(t *testing.T) {
 	type args struct {
 		vehicleId   string
 		codesSource string
-		stopPoints  []StopPointVj
+		stopPoints  *[]StopPointVj
 		createDate  time.Time
 	}
 	date, _ := time.Parse("2006-01-02", "2021-05-01")
@@ -31,7 +31,7 @@ func TestNewVehicleJourney(t *testing.T) {
 			args: args{
 				vehicleId:   "stop_point:STS:SP:7002",
 				codesSource: "7002",
-				stopPoints: []StopPointVj{{"stop_point:STS:SP:7002", "7002"},
+				stopPoints: &[]StopPointVj{{"stop_point:STS:SP:7002", "7002"},
 					{"stop_point:STS:SP:169", "169"}},
 				createDate: date,
 			},
@@ -46,7 +46,7 @@ func TestNewVehicleJourney(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := NewVehicleJourney(tt.args.vehicleId, tt.args.codesSource, tt.args.stopPoints, date); !reflect.
+			if got := NewVehicleJourney(tt.args.vehicleId, tt.args.codesSource, *tt.args.stopPoints, date); !reflect.
 				DeepEqual(got, tt.want) {
 				t.Errorf("NewVehicleJourney() = %v, want %v", got, tt.want)
 			}
@@ -101,7 +101,7 @@ func TestCreateVehicleJourney(t *testing.T) {
 	tests := []struct {
 		name string
 		args args
-		want *VehicleJourney
+		want VehicleJourney
 	}{
 		{
 			name: "CreateVehicleJourney",
@@ -109,7 +109,7 @@ func TestCreateVehicleJourney(t *testing.T) {
 				navitiaVJ: vj,
 				id_gtfsRt: "652187",
 			},
-			want: &VehicleJourney{
+			want: VehicleJourney{
 				VehicleID:   "vehicle_journey:STS:652187-1",
 				CodesSource: "652187",
 				StopPoints:  &[]StopPointVj{{"stop_point:STS:SP:7002", "7002"}, {"stop_point:STS:SP:169", "169"}},
@@ -119,8 +119,10 @@ func TestCreateVehicleJourney(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if got := CreateVehicleJourney(tt.args.navitiaVJ, tt.args.id_gtfsRt, date); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CreateVehicleJourney() = %v, want %v", got.StopPoints, tt.want.StopPoints)
+			if got := CreateVehicleJourney(tt.args.navitiaVJ, tt.args.id_gtfsRt, date); !reflect.DeepEqual(got[0], tt.want) {
+				for _, vj := range got {
+					t.Errorf("CreateVehicleJourney() = %v, want %v", vj, tt.want)
+				}
 			}
 		})
 	}

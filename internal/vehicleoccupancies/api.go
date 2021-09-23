@@ -24,6 +24,7 @@ type VehicleOccupancy struct {
 	Direction        int
 	DateTime         time.Time `json:"date_time,omitempty"`
 	Occupancy        string    `json:"occupancy"`
+	SourceCode       string
 }
 
 type VehicleOccupancyRequestParameter struct {

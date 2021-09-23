@@ -16,7 +16,7 @@ import (
 
 const (
 	URL_GET_LAST_LOAD       = "%s/status?"
-	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&"
+	URL_GET_VEHICLE_JOURNEY = "%s/vehicle_journeys?filter=vehicle_journey.has_code(%s)&since=%s&until=%s&"
 	STOP_POINT_CODE         = "gtfs_stop_code" // type code vehicle journey Navitia, the same of stop_id from Gtfs-rt
 	URL_GET_ROUTES          = "%s/lines/%s/route_schedules?direction_type=%s&from_datetime=%s"
 )
@@ -105,10 +105,14 @@ func GetStatusPublicationDate(uri url.URL, token string, connectionTimeout time.
 }
 
 // GetVehicleJourney get object vehicle journey from Navitia compared to GTFS-RT vehicle id.
-func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration) (
-	*VehicleJourney, error) {
+func GetVehicleJourney(id_gtfsRt string, uri url.URL, token string, connectionTimeout time.Duration,
+	location *time.Location) ([]VehicleJourney, error) {
 	sourceCode := fmt.Sprint("source%2C", id_gtfsRt)
-	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode)
+	loc, _ := time.LoadLocation(location.String())
+	dateBefore := time.Now().In(loc).Add(-1 * time.Hour).Format("20060102T150405")
+	dateAfter := time.Now().In(loc).Add(1 * time.Hour).Format("20060102T150405")
+	callUrl := fmt.Sprintf(URL_GET_VEHICLE_JOURNEY, uri.String(), sourceCode, dateBefore, dateAfter)
+
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		return nil, err
@@ -130,7 +134,8 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	connectionTimeout time.Duration, location *time.Location) ([]RouteSchedule, error) {
 	// Call and load routes for line=40
 	dateTime := time.Now().Truncate(24 * time.Hour).Format("20060102T000000")
-	callUrl := fmt.Sprintf(URL_GET_ROUTES, uri.String(), "line:0:004004040:40", direction, dateTime)
+	callUrl := fmt.Sprintf(URL_GET_ROUTES, uri.String(), "line:IDFM:C00048", direction, dateTime)
+	// old code "line:0:004004040:40"
 	resp, err := CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		VehicleOccupanciesLoadingErrors.Inc()
@@ -146,13 +151,14 @@ func LoadRoutesWithDirection(startIndex int, uri url.URL, token, direction strin
 	}
 
 	sens := 0
-	if direction == "backward" {
+	if direction == "backward" || direction == "outbound" {
 		sens = 1
 	}
 	routeSchedules := LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, location)
 
 	// Call and load routes for line=45
-	callUrl = fmt.Sprintf(URL_GET_ROUTES, uri.String(), "line:0:004004029:45", direction, dateTime)
+	callUrl = fmt.Sprintf(URL_GET_ROUTES, uri.String(), "line:IDFM:C00051", direction, dateTime)
+	// old code "line:0:004004029:45"
 	resp, err = CallNavitia(callUrl, token, connectionTimeout)
 	if err != nil {
 		VehicleOccupanciesLoadingErrors.Inc()
@@ -194,21 +200,26 @@ func CallNavitia(callUrl string, token string, connectionTimeout time.Duration) 
 }
 
 // CreateVehicleJourney create a new vehicle journey with all stop point from Navitia
-func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string, createDate time.Time) *VehicleJourney {
+func CreateVehicleJourney(navitiaVJ *NavitiaVehicleJourney, id_gtfsRt string, createDate time.Time) []VehicleJourney {
 	sp := make([]StopPointVj, 0)
+	vjs := make([]VehicleJourney, 0)
 	var stopPointVj StopPointVj
-	for i := 0; i < len(navitiaVJ.VehicleJourneys[0].StopTimes); i++ {
-		for j := 0; j < len(navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes); j++ {
-			if navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Type == STOP_POINT_CODE {
-				stopCode := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.Codes[j].Value
-				stopId := navitiaVJ.VehicleJourneys[0].StopTimes[i].StopPoint.ID
-				stopPointVj = NewStopPointVj(stopId, stopCode)
+
+	for _, vj := range navitiaVJ.VehicleJourneys {
+		for i := 0; i < len(vj.StopTimes); i++ {
+			for j := 0; j < len(vj.StopTimes[i].StopPoint.Codes); j++ {
+				if vj.StopTimes[i].StopPoint.Codes[j].Type == STOP_POINT_CODE {
+					stopCode := vj.StopTimes[i].StopPoint.Codes[j].Value
+					stopId := vj.StopTimes[i].StopPoint.ID
+					stopPointVj = NewStopPointVj(stopId, stopCode)
+				}
 			}
+			sp = append(sp, stopPointVj)
 		}
-		sp = append(sp, stopPointVj)
+		vehiclejourney := NewVehicleJourney(vj.ID, id_gtfsRt, sp, createDate)
+		vjs = append(vjs, *vehiclejourney)
 	}
-	vj := NewVehicleJourney(navitiaVJ.VehicleJourneys[0].ID, id_gtfsRt, sp, createDate)
-	return vj
+	return vjs
 }
 
 func LoadRouteSchedulesData(startIndex int, navitiaRoutes *data.NavitiaRoutes, direction int,

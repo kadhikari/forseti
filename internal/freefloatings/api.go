@@ -14,6 +14,7 @@ import (
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint
 type FreeFloatingsResponse struct {
 	FreeFloatings []FreeFloating `json:"free_floatings,omitempty"`
+	Paginate      utils.Paginate `json:"pagination,omitempty"`
 	Error         string         `json:"error,omitempty"`
 }
 
@@ -26,13 +27,14 @@ func FreeFloatingsApiHandler(context *FreeFloatingsContext) gin.HandlerFunc {
 			c.JSON(http.StatusServiceUnavailable, response)
 			return
 		}
-		freeFloatings, err := context.GetFreeFloatings(parameter)
+		freeFloatings, paginate_freefloatings, err := context.GetFreeFloatings(parameter)
 		if err != nil {
 			response.Error = "No data loaded"
 			c.JSON(http.StatusServiceUnavailable, response)
 			return
 		}
 		response.FreeFloatings = freeFloatings
+		response.Paginate = paginate_freefloatings
 		c.JSON(http.StatusOK, response)
 	}
 }
@@ -74,10 +76,11 @@ func (f FreeFloatingType) String() string {
 }
 
 type FreeFloatingRequestParameter struct {
-	Distance int
-	Coord    Coord
-	Count    int
-	Types    []FreeFloatingType
+	Distance  int
+	Coord     Coord
+	Count     int
+	Types     []FreeFloatingType
+	StartPage int
 }
 
 func ParseFreeFloatingTypeFromParam(value string) FreeFloatingType {
@@ -121,10 +124,12 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	var longitude, latitude float64
 	var e error
 	p := FreeFloatingRequestParameter{}
-	countStr := c.DefaultQuery("count", "10")
-	p.Count = utils.StringToInt(countStr, 10)
+	countStr := c.DefaultQuery("count", "25")
+	p.Count = utils.StringToInt(countStr, 25)
 	distanceStr := c.DefaultQuery("distance", "500")
 	p.Distance = utils.StringToInt(distanceStr, 500)
+	startPage := c.DefaultQuery("start_page", "0")
+	p.StartPage = utils.StringToInt(startPage, 0)
 
 	types := c.Request.URL.Query()["type[]"]
 	UpdateParameterTypes(&p, types)

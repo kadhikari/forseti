@@ -122,7 +122,7 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 }
 
 func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int, date time.Time,
-	occupancy string) (*VehicleOccupancy, error) {
+	occupancy string, sourceCode string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
 		Id:               voId,
 		LineCode:         lineCode,
@@ -131,5 +131,6 @@ func NewVehicleOccupancy(voId int, lineCode, vjId, stopId string, direction int,
 		Direction:        direction,
 		DateTime:         date,
 		Occupancy:        occupancy,
+		SourceCode:       sourceCode,
 	}, nil
 }

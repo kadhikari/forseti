@@ -269,3 +269,45 @@ func TestChekrespStatusNotManage(t *testing.T) {
 
 	assert.Equal(err.Error(), "ERROR 100: no details for this error")
 }
+
+func TestPaginate(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	paginate, indexS, indexE := PaginateEndPoint(100, 10, 0)
+	require.NotNil(paginate)
+	assert.Equal(paginate.Start_page, 0)
+	assert.Equal(paginate.Items_on_page, 10)
+	assert.Equal(paginate.Items_per_page, 10)
+	assert.Equal(paginate.Total_result, 100)
+	assert.Equal(indexS, 0)
+	assert.Equal(indexE, 10)
+}
+
+func TestPaginateWithOutCount(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	paginate, indexS, indexE := PaginateEndPoint(20, 21, 0)
+	require.NotNil(paginate)
+	assert.Equal(paginate.Start_page, 0)
+	assert.Equal(paginate.Items_on_page, 20)
+	assert.Equal(paginate.Items_per_page, 21)
+	assert.Equal(paginate.Total_result, 20)
+	assert.Equal(indexS, 0)
+	assert.Equal(indexE, 20)
+}
+
+func TestPaginateWithOutStartPage(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	paginate, indexS, indexE := PaginateEndPoint(20, 20, 1)
+	require.NotNil(paginate)
+	assert.Equal(paginate.Start_page, 1)
+	assert.Equal(paginate.Items_on_page, 0)
+	assert.Equal(paginate.Items_per_page, 20)
+	assert.Equal(paginate.Total_result, 20)
+	assert.Equal(indexS, -1)
+	assert.Equal(indexE, 20)
+}

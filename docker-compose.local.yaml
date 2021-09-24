@@ -38,6 +38,9 @@ services:
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
 
+      # timezone location parameter
+      - FORSETI_TIMEZONE_LOCATION=Europe/Paris
+
     volumes:
       - ~/workspace/data/forseti:/data
 

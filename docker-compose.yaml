@@ -60,7 +60,10 @@ services:
       - FORSETI_ROUTESCHEDULE_REFRESH=${FORSETI_ROUTESCHEDULE_REFRESH:-3600s}
 
       # Occupancies and Locations parameters
-      - FORSETI_CONNECTOR_TYPE=${FORSETI_CONNECTOR_TYPE:-}      
+      - FORSETI_CONNECTOR_TYPE=${FORSETI_CONNECTOR_TYPE:-}
+
+      # timezone location parameter
+      - FORSETI_TIMEZONE_LOCATION=${FORSETI_TIMEZONE_LOCATION:-}
 
 networks:
   lb-common:

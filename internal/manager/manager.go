@@ -6,13 +6,13 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehiclelocations"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	v2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 )
 
 // Data manager for all apis
 type DataManager struct {
 	freeFloatingsContext       *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	vehiculeOccupanciesContext v2.IVehicleOccupancy
 	equipmentsContext          *equipments.EquipmentsContext
 	departuresContext          *departures.DeparturesContext
 	parkingsContext            *parkings.ParkingsContext
@@ -52,11 +52,11 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 }
 
 func (d *DataManager) SetVehicleOccupanciesContext(
-	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
+	vehiculeOccupanciesContext v2.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehicleOccupanciesContext() vehicleoccupancies.IVehicleOccupancy {
+func (d *DataManager) GetVehicleOccupanciesContext() v2.IVehicleOccupancy {
 	return d.vehiculeOccupanciesContext
 }
 

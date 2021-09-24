@@ -1,15 +1,14 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 import (
 	"fmt"
-	"io/ioutil"
-	"net/http"
 	"net/url"
 	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/CanalTP/forseti/internal/connectors"
+	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )
@@ -19,6 +18,7 @@ import (
 --------------------------------------------------------------------- */
 type VehicleOccupanciesGtfsRtContext struct {
 	voContext *VehicleOccupanciesContext
+	connector *connectors.Connector
 	mutex     sync.RWMutex
 }
 
@@ -43,7 +43,7 @@ func (d *VehicleOccupanciesGtfsRtContext) AddVehicleOccupancy(vehicleoccupancy *
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) UpdateOccupancy(vehicleoccupancy *VehicleOccupancy,
-	vehGtfsRT VehicleGtfsRt, location *time.Location) {
+	vehGtfsRT gtfsrtvehiclepositions.VehicleGtfsRt, location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	if vehicleoccupancy == nil {
@@ -67,6 +67,7 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
 	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
 
+	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
@@ -80,8 +81,7 @@ func (d *VehicleOccupanciesGtfsRtContext) RefreshVehicleOccupanciesLoop(external
 	// Wait 10 seconds before reloading vehicleoccupacy informations
 	time.Sleep(10 * time.Second)
 	for {
-		err := refreshVehicleOccupancies(d, externalURI, externalToken, occupancyCleanVO, connectionTimeout,
-			location)
+		err := refreshVehicleOccupancies(d, occupancyCleanVO, location)
 		if err != nil {
 			logrus.Error("Error while loading VehicleOccupancy GTFS-RT data: ", err)
 		} else {
@@ -114,50 +114,14 @@ func (d *VehicleOccupanciesGtfsRtContext) GetRereshTime() string {
 
 /********* PRIVATE FUNCTIONS *********/
 
-func loadDataExternalSource(uri url.URL, token string) (*GtfsRt, error) {
-
-	// External source http/REST
-	if len(token) == 0 {
-		resp, err := http.Get(uri.String())
-		if err != nil {
-			VehicleOccupanciesLoadingErrors.Inc()
-			return nil, err
-		}
-
-		err = utils.CheckResponseStatus(resp)
-		if err != nil {
-			VehicleOccupanciesLoadingErrors.Inc()
-			return nil, err
-		}
-
-		gtfsRtData, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			VehicleOccupanciesLoadingErrors.Inc()
-			return nil, err
-		}
-
-		gtfsRt, err := parseVehiclesResponse(gtfsRtData)
-		if err != nil {
-			return nil, err
-		}
-
-		logrus.Debug("*** Gtfs-rt size: ", len(gtfsRt.Vehicles))
-		return gtfsRt, nil
-
-	} else {
-		//TODO: add code in case of this service call external API
-		return nil, nil
-	}
-}
-
-func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, external_url url.URL,
-	external_token string, occupancyCleanVO, connectionTimeout time.Duration, location *time.Location) error {
+func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupancyCleanVO time.Duration,
+	location *time.Location) error {
 
 	begin := time.Now()
 	timeCleanVO := start.Add(occupancyCleanVO * time.Hour)
 
 	// Get all data from Gtfs-rt flux
-	gtfsRt, err := loadDataExternalSource(external_url, external_token)
+	gtfsRt, err := gtfsrtvehiclepositions.LoadGtfsRt(context.connector)
 	if err != nil {
 		return errors.Errorf("loading external source: %s", err)
 	}
@@ -201,7 +165,8 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, externa
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-func createOccupanciesFromDataSource(vehicleGtfsRt VehicleGtfsRt, location *time.Location) *VehicleOccupancy {
+func createOccupanciesFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+	location *time.Location) *VehicleOccupancy {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)

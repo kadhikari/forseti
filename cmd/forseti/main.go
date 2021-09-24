@@ -14,7 +14,7 @@ import (
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehiclelocations"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -272,17 +272,17 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		return
 	}
 
-	var vehicleOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+	var vehicleOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
 	var err error
 
 	if config.Connector == string(connectors.Connector_ODITI) {
-		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		/*vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
 		if err != nil {
 			logrus.Error(err)
 			return
-		}
+		}*/
 	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
-		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+		vehicleOccupanciesContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -303,13 +303,13 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 		location)
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
+	vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
 
-	if vehicleOccupanciesOditiContext, ok :=
+	/*if vehicleOccupanciesOditiContext, ok :=
 		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
 		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
 			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
-	}
+	}*/
 }
 
 func VehicleLocations(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {

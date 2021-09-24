@@ -1,4 +1,4 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 import (
 	"fmt"
@@ -95,7 +95,7 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 			if len(param.StopCode) > 0 && param.StopCode != vo.StopCode {
 				continue
 			}
-			// Filter on vehiclejourney_id
+			// Filter on vehiclejourney_code
 			if len(param.VehicleJourneyCode) > 0 && param.VehicleJourneyCode != vo.VehicleJourneyCode {
 				continue
 			}
@@ -125,10 +125,11 @@ func NewVehicleOccupancy(sourceCode, stopCode string, direction int, date time.T
 	occupancy string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
 		Id:                 sourceCode,
-		VehicleJourneyCode: sourceCode,
+		VehicleJourneyCode: "",
 		StopCode:           stopCode,
 		Direction:          direction,
 		DateTime:           date,
 		Occupancy:          occupancy,
+		SourceCode:         sourceCode,
 	}, nil
 }

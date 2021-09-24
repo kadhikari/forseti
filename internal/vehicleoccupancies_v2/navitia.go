@@ -1,4 +1,4 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 // Declaration of the different structures loaded from Navitia.
 // Methods for querying Navitia on the various data to be loaded.

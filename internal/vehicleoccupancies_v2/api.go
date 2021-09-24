@@ -1,4 +1,4 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 import (
 	"net/http"
@@ -17,13 +17,13 @@ type VehicleOccupanciesResponse struct {
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id                 string `json:"_"`
-	VehicleJourneyCode string `json:"vehiclejourney_code,omitempty"`
-	StopCode           string `json:"stop_code,omitempty"`
-	Direction          int
+	Id                 string    `json:"_"`
+	VehicleJourneyCode string    `json:"vehiclejourney_code"`
+	StopCode           string    `json:"stop_code"`
+	Direction          int       `json:"direction"`
 	DateTime           time.Time `json:"date_time,omitempty"`
 	Occupancy          string    `json:"occupancy"`
-	SourceCode         string
+	SourceCode         string    `json:"source_code"`
 }
 
 type VehicleOccupancyRequestParameter struct {

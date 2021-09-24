@@ -1,4 +1,4 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 import (
 	"encoding/json"

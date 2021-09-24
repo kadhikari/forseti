@@ -1,4 +1,4 @@
-package vehicleoccupancies
+package vehicleoccupanciesv2
 
 import (
 	"fmt"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/connectors"
+	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -78,7 +79,18 @@ func Test_UpdateVehicleOccupancy(t *testing.T) {
 	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
 	require.NotNil(voContext)
 
-	vGtfsRt := VehicleGtfsRt{"52103", "263", "52103", 1620777600, 11, 274, "1", "652517", 45.398613, -71.90111, 1}
+	vGtfsRt := gtfsrtvehiclepositions.VehicleGtfsRt{
+		VehicleID: "52103",
+		StopId:    "263",
+		Label:     "52103",
+		Time:      1620777600,
+		Speed:     11,
+		Bearing:   274,
+		Route:     "1",
+		Trip:      "652517",
+		Latitude:  45.398613,
+		Longitude: -71.90111,
+		Occupancy: 1}
 
 	// Create VehicleOccupancies from existing data
 	vo := createOccupanciesFromDataSource(vGtfsRt, location)
@@ -103,7 +115,18 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
 	require.NotNil(voContext)
 
-	vGtfsRt := VehicleGtfsRt{"52103", "263", "52103", 1620777600, 11, 274, "1", "652517", 45.398613, -71.90111, 0}
+	vGtfsRt := gtfsrtvehiclepositions.VehicleGtfsRt{
+		VehicleID: "52103",
+		StopId:    "263",
+		Label:     "52103",
+		Time:      1620777600,
+		Speed:     11,
+		Bearing:   274,
+		Route:     "1",
+		Trip:      "652517",
+		Latitude:  45.398613,
+		Longitude: -71.90111,
+		Occupancy: 0}
 
 	// Create VehicleOccupancies from existing data
 	vo := createOccupanciesFromDataSource(vGtfsRt, location)
@@ -150,7 +173,7 @@ func Test_parseVehiclesResponse(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *GtfsRt
+		want    *gtfsrtvehiclepositions.GtfsRt
 		wantErr bool
 	}{
 		{
@@ -158,7 +181,7 @@ func Test_parseVehiclesResponse(t *testing.T) {
 			args: args{
 				b: reader,
 			},
-			want: &GtfsRt{
+			want: &gtfsrtvehiclepositions.GtfsRt{
 				Timestamp: "1620076153",
 				Vehicles:  dataGtfsRt,
 			},
@@ -176,7 +199,7 @@ func Test_parseVehiclesResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := parseVehiclesResponse(tt.args.b)
+			got, err := gtfsrtvehiclepositions.ParseVehiclesResponse(tt.args.b)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("parseVehiclesResponse() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -205,7 +228,7 @@ var vehicleOccupanciesMap = map[string]*VehicleOccupancy{
 		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[2]},
 }
 
-var dataGtfsRt = []VehicleGtfsRt{
+var dataGtfsRt = []gtfsrtvehiclepositions.VehicleGtfsRt{
 	{"52103", "263", "52103", 1620076139, 11, 274, "1", "652517", 45.398613, -71.90111, 0},
 	{"52105", "47", "52105", 1620076116, 12, 268, "12", "652604", 45.40917, -71.930275, 0},
 	{"53101", "1326", "53101", 1620076034, 1, 262, "17", "653036", 45.40333, -71.95417, 0},

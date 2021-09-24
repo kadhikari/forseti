@@ -10,6 +10,9 @@ services:
       - TZ=Europe/Paris
       - FORSETI_LOG_LEVEL=info
 
+      # timezone location parameter
+      - FORSETI_TIMEZONE_LOCATION=Europe/Paris
+
       # Departures parameters
       - FORSETI_DEPARTURES_URI=
       - FORSETI_DEPARTURES_REFRESH=
@@ -37,9 +40,6 @@ services:
       - FORSETI_OCCUPANCY_SERVICE_TOKEN=
       - FORSETI_OCCUPANCY_REFRESH=300s
       - FORSETI_ROUTESCHEDULE_REFRESH=3600s
-
-      # timezone location parameter
-      - FORSETI_TIMEZONE_LOCATION=Europe/Paris
 
     volumes:
       - ~/workspace/data/forseti:/data

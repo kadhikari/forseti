@@ -33,8 +33,9 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 
 	vGtfsRt := gtfsRt_vehiclepositions.VehicleGtfsRt{VehicleID: "52103", StopId: "1280", Label: "52103", Time: 1621900800,
 		Speed: 0, Bearing: 0, Route: "1", Trip: "651970", Latitude: 45.9999, Longitude: -71.90111, Occupancy: 0}
-	changeGtfsRt := gtfsRt_vehiclepositions.VehicleGtfsRt{VehicleID: "52103", StopId: "1280", Label: "52103", Time: 1621900800,
-		Speed: 11, Bearing: 254, Route: "1", Trip: "651970", Latitude: 46.0000, Longitude: -72.0000, Occupancy: 0}
+	changeGtfsRt := gtfsRt_vehiclepositions.VehicleGtfsRt{VehicleID: "52103", StopId: "1280", Label: "52103",
+		Time: 1621900800, Speed: 11, Bearing: 254, Route: "1", Trip: "651970", Latitude: 46.0000,
+		Longitude: -72.0000, Occupancy: 0}
 
 	// Update vehiclePosition with no map cehiclelocations
 	vehiclePositions.UpdateVehiclePosition(1, changeGtfsRt, location)

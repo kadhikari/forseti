@@ -51,7 +51,8 @@ func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) 
 	d.lastVehiclePositionsUpdate = time.Now().UTC()
 }
 
-func (d *VehiclePositions) UpdateVehiclePosition(idx int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt, location *time.Location) {
+func (d *VehiclePositions) UpdateVehiclePosition(idx int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+	location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	if d.vehiclePositions == nil {

@@ -114,7 +114,8 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 			}
 		}
 		if !vehiclePositionFind {
-			newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1, vehGtfsRT, context.location)
+			newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1,
+				vehGtfsRT, context.location)
 			if newVehiclePosition != nil {
 				context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
 			}
@@ -128,7 +129,8 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 				}
 			}
 			if !stopCodeFind {
-				newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1, vehGtfsRT, context.location)
+				newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1,
+					vehGtfsRT, context.location)
 				if newVehiclePosition != nil {
 					context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
 				}
@@ -151,7 +153,8 @@ func loadDatafromConnector(connector *connectors.Connector) (*gtfsrtvehicleposit
 }
 
 // Create new Vehicle position from VehicleJourney and VehicleGtfsRT data
-func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt, location *time.Location) *VehiclePosition {
+func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+	location *time.Location) *VehiclePosition {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)

@@ -37,7 +37,7 @@ type StatusResponse struct {
 	LastEquipmentUpdate time.Time     `json:"last_equipment_update"`
 	FreeFloatings       LoadingStatus `json:"free_floatings,omitempty"`
 	VehicleOccupancies  LoadingStatus `json:"vehicle_occupancies,omitempty"`
-	VehiclePositions    LoadingStatus `json:"vehicle_locations,omitempty"`
+	VehiclePositions    LoadingStatus `json:"vehicle_positions,omitempty"`
 }
 
 var (
@@ -96,8 +96,8 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var loadVehiclePositionsData bool = false
 		var refreshVehicleLocationData string
 		if manager.GetVehiclePositionsContext() != nil {
-			// manage vehiclelocations activation /status?vehicle_locations=true or false
-			vehiclePositionsStatus := c.Query("vehicle_locations")
+			// manage vehiclepositions activation /status?vehicle_positions=true or false
+			vehiclePositionsStatus := c.Query("vehicle_positions")
 			if len(vehiclePositionsStatus) > 0 {
 				toActive, _ := strconv.ParseBool(vehiclePositionsStatus)
 				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)

@@ -137,22 +137,32 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 
 	// Add or update vehicle occupancy with vehicle GTFS-RT
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
-		if _, ok := context.voContext.VehicleOccupancies[vehGtfsRT.Trip]; !ok {
-			newVehicleOccupancy := createOccupanciesFromDataSource(vehGtfsRT, location)
+		vehicleOccupancyFind := false
+		for _, vo := range context.voContext.VehicleOccupancies {
+			if vo.VehicleJourneyCode == vehGtfsRT.Trip {
+				vehicleOccupancyFind = true
+				break
+			}
+		}
+
+		if !vehicleOccupancyFind {
+			newVehicleOccupancy := createOccupanciesFromDataSource(len(context.voContext.VehicleOccupancies)-1,
+				vehGtfsRT, location)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)
 			}
 		} else {
 			stopCodeFind := false
 			for _, vo := range context.voContext.VehicleOccupancies {
-				if vo.SourceCode == vehGtfsRT.Trip && vo.StopCode == vehGtfsRT.StopId {
+				if vo.VehicleJourneyCode == vehGtfsRT.Trip && vo.StopCode == vehGtfsRT.StopId {
 					context.UpdateOccupancy(vo, vehGtfsRT, location)
 					stopCodeFind = true
 					break
 				}
 			}
 			if !stopCodeFind {
-				newVehicleOccupancy := createOccupanciesFromDataSource(vehGtfsRT, location)
+				newVehicleOccupancy := createOccupanciesFromDataSource(len(context.voContext.VehicleOccupancies)-1,
+					vehGtfsRT, location)
 				if newVehicleOccupancy != nil {
 					context.AddVehicleOccupancy(newVehicleOccupancy)
 				}
@@ -165,7 +175,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-func createOccupanciesFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+func createOccupanciesFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) *VehicleOccupancy {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
@@ -175,7 +185,7 @@ func createOccupanciesFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.Vehicl
 		return &VehicleOccupancy{}
 	}
 
-	vo, err := NewVehicleOccupancy(vehicleGtfsRt.Trip, vehicleGtfsRt.StopId, -1, dateLoc,
+	vo, err := NewVehicleOccupancy(id, vehicleGtfsRt.Trip, vehicleGtfsRt.StopId, -1, dateLoc,
 		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)])
 	if err != nil {
 		return &VehicleOccupancy{}

@@ -6,17 +6,19 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehiclelocations"
-	v2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 )
 
 // Data manager for all apis
 type DataManager struct {
-	freeFloatingsContext       *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext v2.IVehicleOccupancy
-	equipmentsContext          *equipments.EquipmentsContext
-	departuresContext          *departures.DeparturesContext
-	parkingsContext            *parkings.ParkingsContext
-	vehicleLocationsContext    vehiclelocations.IConnectors
+	freeFloatingsContext            *freefloatings.FreeFloatingsContext
+	vehiculeOccupanciesContext      vehicleoccupanciesv2.IVehicleOccupancy
+	vehiculeOccupanciesOditiContext vehicleoccupancies.IVehicleOccupancy
+	equipmentsContext               *equipments.EquipmentsContext
+	departuresContext               *departures.DeparturesContext
+	parkingsContext                 *parkings.ParkingsContext
+	vehicleLocationsContext         vehiclelocations.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {
@@ -51,12 +53,21 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 	return d.parkingsContext
 }
 
+func (d *DataManager) SetVehicleOccupanciesOditiContext(
+	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
+	d.vehiculeOccupanciesOditiContext = vehiculeOccupanciesContext
+}
+
+func (d *DataManager) GetVehicleOccupanciesOditiContext() vehicleoccupancies.IVehicleOccupancy {
+	return d.vehiculeOccupanciesOditiContext
+}
+
 func (d *DataManager) SetVehicleOccupanciesContext(
-	vehiculeOccupanciesContext v2.IVehicleOccupancy) {
+	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehicleOccupanciesContext() v2.IVehicleOccupancy {
+func (d *DataManager) GetVehicleOccupanciesContext() vehicleoccupanciesv2.IVehicleOccupancy {
 	return d.vehiculeOccupanciesContext
 }
 

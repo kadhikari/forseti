@@ -12,7 +12,7 @@ import (
 // Structure and Consumer to creates Vehicle occupancies objects
 ------------------------------------------------------------- */
 type VehicleOccupanciesContext struct {
-	VehicleOccupancies           map[string]*VehicleOccupancy
+	VehicleOccupancies           map[int]*VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
@@ -32,7 +32,7 @@ func (d *VehicleOccupanciesContext) LoadOccupancyData() bool {
 	return d.loadOccupancyData
 }
 
-func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[string]*VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[int]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 
@@ -57,7 +57,7 @@ func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *Vehicl
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	if d.VehicleOccupancies == nil {
-		d.VehicleOccupancies = map[string]*VehicleOccupancy{}
+		d.VehicleOccupancies = map[int]*VehicleOccupancy{}
 	}
 
 	d.VehicleOccupancies[vehicleoccupancy.Id] = vehicleoccupancy
@@ -70,7 +70,7 @@ func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.T
 	return d.lastVehicleOccupanciesUpdate
 }
 
-func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[string]*VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[int]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 
@@ -91,19 +91,27 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 
 		// Implement filter on parameters
 		for _, vo := range d.VehicleOccupancies {
-			// Filter on stop_id
-			if len(param.StopCode) > 0 && param.StopCode != vo.StopCode {
-				continue
-			}
+			// Filter on stop_code
+			foundStopCode := FoundStopCode(*vo, param.StopCodes)
+
 			// Filter on vehiclejourney_code
-			if len(param.VehicleJourneyCode) > 0 && param.VehicleJourneyCode != vo.VehicleJourneyCode {
-				continue
-			}
+			foundVjCode := FoundVjCode(*vo, param.VehicleJourneyCodes)
+
 			//Fileter on datetime (default value Now)
 			if vo.DateTime.Before(param.Date) {
+				//println("****************************** DATE BEFORE")
 				continue
 			}
-			occupancies = append(occupancies, *vo)
+			//println("****************************** DATE AFTER")
+			//println("****************************** ", foundStopCode, foundVjCode)
+
+			if len(param.StopCodes) == 0 || len(param.VehicleJourneyCodes) == 0 {
+				if foundVjCode && foundStopCode {
+					occupancies = append(occupancies, *vo)
+				}
+			} else if foundVjCode || foundStopCode {
+				occupancies = append(occupancies, *vo)
+			}
 		}
 		return occupancies, nil
 	}
@@ -121,15 +129,38 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 	d.refreshTime = newRefreshTime
 }
 
-func NewVehicleOccupancy(sourceCode, stopCode string, direction int, date time.Time,
+func NewVehicleOccupancy(id int, sourceCode, stopCode string, direction int, date time.Time,
 	occupancy string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
-		Id:                 sourceCode,
-		VehicleJourneyCode: "",
+		Id:                 id,
+		VehicleJourneyCode: sourceCode,
 		StopCode:           stopCode,
 		Direction:          direction,
 		DateTime:           date,
 		Occupancy:          occupancy,
-		SourceCode:         sourceCode,
 	}, nil
+}
+
+func FoundVjCode(vp VehicleOccupancy, vjCodes []string) bool {
+	if len(vjCodes) == 0 {
+		return true
+	}
+	for _, vjCode := range vjCodes {
+		if vp.VehicleJourneyCode == vjCode {
+			return true
+		}
+	}
+	return false
+}
+
+func FoundStopCode(vo VehicleOccupancy, stopCodes []string) bool {
+	if len(stopCodes) == 0 {
+		return true
+	}
+	for _, stopCode := range stopCodes {
+		if vo.StopCode == stopCode {
+			return true
+		}
+	}
+	return false
 }

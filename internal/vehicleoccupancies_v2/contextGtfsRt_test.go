@@ -3,6 +3,7 @@ package vehicleoccupanciesv2
 import (
 	"fmt"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"reflect"
 	"testing"
@@ -25,6 +26,34 @@ func TestMain(m *testing.M) {
 	}
 
 	os.Exit(m.Run())
+}
+
+func Test_InitContext(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	connector, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+	require.Nil(err)
+	gtfsRtContext, ok := connector.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+
+	uriFile, err := url.Parse("file://path_to_files/")
+	require.Nil(err)
+	urlExternal, err := url.Parse("http://gtfs-rt/test.pb")
+	require.Nil(err)
+	urlNavitia, err := url.Parse("")
+	require.Nil(err)
+	gtfsRtContext.InitContext(*uriFile, *urlExternal, "tokenExternal_123456789", *urlNavitia, "", 300, 5000,
+		5000, 200, location, false)
+	assert.Equal(gtfsRtContext.connector.GetFilesUri(), *uriFile)
+	assert.Equal(gtfsRtContext.connector.GetUrl(), *urlExternal)
+	assert.Equal(gtfsRtContext.connector.GetToken(), "tokenExternal_123456789")
+	assert.Equal(gtfsRtContext.connector.GetRefreshTime(), time.Duration(300))
+	assert.Equal(gtfsRtContext.connector.GetConnectionTimeout(), time.Duration(200))
+	assert.NotNil(gtfsRtContext.voContext)
+	assert.NotNil(gtfsRtContext.voContext.loadOccupancyData, false)
 }
 
 func Test_CleanListVehicleOccupancies(t *testing.T) {
@@ -56,7 +85,7 @@ func Test_AddVehicleOccupancy(t *testing.T) {
 	require.NotNil(gtfsRtContext.voContext)
 
 	gtfsRtContext.AddVehicleOccupancy(&VehicleOccupancy{
-		Id:                 "200",
+		Id:                 200,
 		VehicleJourneyCode: "vehicle_journey:0:124695149-1",
 		StopCode:           "stop_point:0:SP:80:4029",
 		Direction:          0,
@@ -93,13 +122,13 @@ func Test_UpdateVehicleOccupancy(t *testing.T) {
 		Occupancy: 1}
 
 	// Create VehicleOccupancies from existing data
-	vo := createOccupanciesFromDataSource(vGtfsRt, location)
+	vo := createOccupanciesFromDataSource(1, vGtfsRt, location)
 	gtfsRtContext.AddVehicleOccupancy(vo)
 	require.NotNil(voContext.VehicleOccupancies)
 	assert.Equal(len(voContext.VehicleOccupancies), 1)
 
-	gtfsRtContext.UpdateOccupancy(voContext.VehicleOccupancies["652517"], vGtfsRt, location)
-	assert.Equal(voContext.VehicleOccupancies["652517"].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
+	gtfsRtContext.UpdateOccupancy(voContext.VehicleOccupancies[1], vGtfsRt, location)
+	assert.Equal(voContext.VehicleOccupancies[1].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
 }
 
 func Test_GetVehicleOccupancies(t *testing.T) {
@@ -115,45 +144,54 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
 	require.NotNil(voContext)
 
-	vGtfsRt := gtfsrtvehiclepositions.VehicleGtfsRt{
-		VehicleID: "52103",
-		StopId:    "263",
-		Label:     "52103",
-		Time:      1620777600,
-		Speed:     11,
-		Bearing:   274,
-		Route:     "1",
-		Trip:      "652517",
-		Latitude:  45.398613,
-		Longitude: -71.90111,
-		Occupancy: 0}
-
 	// Create VehicleOccupancies from existing data
-	vo := createOccupanciesFromDataSource(vGtfsRt, location)
-	gtfsRtContext.AddVehicleOccupancy(vo)
+	for i := 0; i < 5; i++ {
+		vo := createOccupanciesFromDataSource(i, dataGtfsRt[i], location)
+		gtfsRtContext.AddVehicleOccupancy(vo)
+	}
 	require.NotNil(voContext.VehicleOccupancies)
-	assert.Equal(len(voContext.VehicleOccupancies), 1)
-	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
+	assert.Equal(len(voContext.VehicleOccupancies), 5)
+
+	date, err := time.ParseInLocation("2006-01-02", "2021-05-01", location)
 	require.Nil(err)
-	param := VehicleOccupancyRequestParameter{StopCode: "", VehicleJourneyCode: "", Date: date}
+	param := VehicleOccupancyRequestParameter{Date: date}
 	vehicleOccupancies, err := gtfsRtContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
-	assert.Equal(len(vehicleOccupancies), 1)
+	assert.Equal(len(vehicleOccupancies), 5)
 
-	// Call Api with StopId in the paraameter
-	param = VehicleOccupancyRequestParameter{
-		StopCode:           "263",
-		VehicleJourneyCode: "",
-		Date:               date}
+	// Call Api with single StopCode parameter and without vehicleJourneyCode
+	param = VehicleOccupancyRequestParameter{StopCodes: []string{"263"}, Date: date}
 	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
 	require.Nil(err)
 	assert.Equal(len(vehicleOccupancies), 1)
 
-	// Call Api when vehicleOcupancies list is nil
-	param = VehicleOccupancyRequestParameter{
-		StopCode:           "stop_point:STS:SP:263",
-		VehicleJourneyCode: "",
-		Date:               date}
+	// Call Api when multiple StopCode and without vehicleJourneyCode
+	param = VehicleOccupancyRequestParameter{StopCodes: []string{"1326", "185"}, Date: date}
+	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 2)
+
+	// Call Api when single vehicleJourneyCode and without StopCode
+	param = VehicleOccupancyRequestParameter{VehicleJourneyCodes: []string{"652712"}, Date: date}
+	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 1)
+
+	// Call Api when multiple vehicleJourneyCode and without StopCode
+	param = VehicleOccupancyRequestParameter{VehicleJourneyCodes: []string{"652604", "652712"}, Date: date}
+	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 2)
+
+	// Call Api when multiple vehicleJourneyCode and StopCode
+	param = VehicleOccupancyRequestParameter{StopCodes: []string{"1326", "185"},
+		VehicleJourneyCodes: []string{"652604", "652712"}, Date: date}
+	vehicleOccupancies, err = gtfsRtContext.GetVehicleOccupancies(&param)
+	require.Nil(err)
+	assert.Equal(len(vehicleOccupancies), 3)
+
+	// Call Api when StopCode vehicleOcupancies list is nil
+	param = VehicleOccupancyRequestParameter{StopCodes: []string{"1326"}, Date: date}
 	voContext.VehicleOccupancies = nil
 	_, err = gtfsRtContext.GetVehicleOccupancies(&param)
 	assert.Error(err, "no vehicle_occupancies in the data")
@@ -211,16 +249,16 @@ func Test_parseVehiclesResponse(t *testing.T) {
 	}
 }
 
-var vehicleOccupanciesMap = map[string]*VehicleOccupancy{
-	"156": {
-		Id:                 "156",
+var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
+	156: {
+		Id:                 156,
 		VehicleJourneyCode: "vehicle_journey:0:124695149-1",
 		StopCode:           "stop_point:0:SP:80:4029",
 		Direction:          0,
 		DateTime:           time.Now(),
 		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[1]},
-	"700": {
-		Id:                 "700",
+	700: {
+		Id:                 700,
 		VehicleJourneyCode: "vehicle_journey:0:124695000-1",
 		StopCode:           "stop_point:0:SP:80:4043",
 		Direction:          0,

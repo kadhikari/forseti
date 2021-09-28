@@ -55,24 +55,24 @@ type Config struct {
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
-	PositionsFilesURIStr   string `mapstructure:"locations-files-uri"`
+	PositionsFilesURIStr   string `mapstructure:"positions-files-uri"`
 	PositionsFilesURI      url.URL
-	PositionsNavitiaURIStr string `mapstructure:"locations-navitia-uri"`
+	PositionsNavitiaURIStr string `mapstructure:"positions-navitia-uri"`
 	PositionsNavitiaURI    url.URL
-	PositionsServiceURIStr string `mapstructure:"locations-service-uri"`
+	PositionsServiceURIStr string `mapstructure:"positions-service-uri"`
 	PositionsServiceURI    url.URL
-	PositionsNavitiaToken  string        `mapstructure:"locations-navitia-token"`
-	PositionsServiceToken  string        `mapstructure:"locations-service-token"`
-	PositionsRefresh       time.Duration `mapstructure:"locations-refresh"`
-	PositionsCleanVJ       time.Duration `mapstructure:"locations-clean-vj"`
-	PositionsCleanVP       time.Duration `mapstructure:"locations-clean-vp"`
+	PositionsNavitiaToken  string        `mapstructure:"positions-navitia-token"`
+	PositionsServiceToken  string        `mapstructure:"positions-service-token"`
+	PositionsRefresh       time.Duration `mapstructure:"positions-refresh"`
+	//PositionsCleanVJ       time.Duration `mapstructure:"positions-clean-vj"`
+	PositionsCleanVP time.Duration `mapstructure:"positions-clean-vp"`
 
 	LogLevel            string        `mapstructure:"log-level"`
 	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
 	JSONLog             bool          `mapstructure:"json-log"`
 	FreeFloatingsActive bool          `mapstructure:"free-floatings-refresh-active"`
 	OccupancyActive     bool          `mapstructure:"occupancy-service-refresh-active"`
-	PositionsActive     bool          `mapstructure:"locations-service-refresh-active"`
+	PositionsActive     bool          `mapstructure:"positions-service-refresh-active"`
 	Connector           string        `mapstructure:"connector-type"`
 }
 
@@ -112,18 +112,17 @@ func GetConfig() (Config, error) {
 	pflag.Duration("occupancy-clean-vj", 24*time.Hour, "time between clean list of VehicleJourneys")
 	pflag.Duration("occupancy-clean-vo", 2*time.Hour, "time between clean list of VehicleOccupancies")
 
-	//Passing configurations for vehicle_locations
-	pflag.String("locations-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("locations-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("locations-navitia-token", "", "token for navitia")
-	pflag.String("locations-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("locations-service-token", "", "token for locations source")
-	pflag.Bool("locations-service-refresh-active", false, "activate the periodic refresh of vehicle locations data")
-	pflag.Duration("locations-refresh", 5*time.Minute, "time between refresh of locations")
-	pflag.Duration("locations-clean-vj", 24*time.Hour, "time between clean list of vehicleJourneys")
-	pflag.Duration("locations-clean-vl", 2*time.Hour, "time between clean list of vehiclePositions")
+	//Passing configurations for vehicle_positions
+	pflag.String("positions-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("positions-navitia-token", "", "token for navitia")
+	pflag.String("positions-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("positions-service-token", "", "token for positions source")
+	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
+	pflag.Duration("positions-refresh", 5*time.Minute, "time between refresh of positions")
+	pflag.Duration("positions-clean-vl", 2*time.Hour, "time between clean list of vehiclePositions")
 
-	//Passing configurations for vehicle_occupancies and vehicle_locations
+	//Passing configurations for vehicle_occupancies and vehicle_positions
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 	pflag.String("connector-type", "oditi", "connector type to load data source")
 
@@ -200,7 +199,7 @@ func main() {
 	// With vehicle occupancies
 	VehicleOccupancies(manager, &config, router, location)
 
-	// With vehicle locations
+	// With vehicle positions
 	VehiclePositions(manager, &config, router, location)
 
 	// start router
@@ -314,7 +313,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 
 func VehiclePositions(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
 	if len(config.PositionsNavitiaURI.String()) == 0 || len(config.PositionsServiceURI.String()) == 0 {
-		logrus.Debug("Vehicle locations is disabled")
+		logrus.Debug("Vehicle positions is disabled")
 		return
 	}
 

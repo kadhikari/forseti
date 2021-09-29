@@ -55,15 +55,15 @@ type Config struct {
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
 	TimeZoneLocation       string        `mapstructure:"timezone-location"`
 
-	PositionsFilesURIStr   string `mapstructure:"positions-files-uri"`
-	PositionsFilesURI      url.URL
-	PositionsNavitiaURIStr string `mapstructure:"positions-navitia-uri"`
-	PositionsNavitiaURI    url.URL
+	PositionsFilesURIStr string `mapstructure:"positions-files-uri"`
+	PositionsFilesURI    url.URL
+	//PositionsNavitiaURIStr string `mapstructure:"positions-navitia-uri"`
+	//PositionsNavitiaURI    url.URL
 	PositionsServiceURIStr string `mapstructure:"positions-service-uri"`
 	PositionsServiceURI    url.URL
-	PositionsNavitiaToken  string        `mapstructure:"positions-navitia-token"`
-	PositionsServiceToken  string        `mapstructure:"positions-service-token"`
-	PositionsRefresh       time.Duration `mapstructure:"positions-refresh"`
+	//PositionsNavitiaToken  string        `mapstructure:"positions-navitia-token"`
+	PositionsServiceToken string        `mapstructure:"positions-service-token"`
+	PositionsRefresh      time.Duration `mapstructure:"positions-refresh"`
 	//PositionsCleanVJ       time.Duration `mapstructure:"positions-clean-vj"`
 	PositionsCleanVP time.Duration `mapstructure:"positions-clean-vp"`
 
@@ -114,13 +114,13 @@ func GetConfig() (Config, error) {
 
 	//Passing configurations for vehicle_positions
 	pflag.String("positions-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.String("positions-navitia-token", "", "token for navitia")
+	//pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	//pflag.String("positions-navitia-token", "", "token for navitia")
 	pflag.String("positions-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("positions-service-token", "", "token for positions source")
 	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
 	pflag.Duration("positions-refresh", 5*time.Minute, "time between refresh of positions")
-	pflag.Duration("positions-clean-vl", 2*time.Hour, "time between clean list of vehiclePositions")
+	pflag.Duration("positions-clean-vp", 10*time.Minute, "time between clean list of vehiclePositions") //2 heures
 
 	//Passing configurations for vehicle_occupancies and vehicle_positions
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
@@ -145,7 +145,7 @@ func GetConfig() (Config, error) {
 
 	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
 		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr,
-		config.PositionsServiceURIStr, config.PositionsNavitiaURIStr) {
+		config.PositionsServiceURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -158,7 +158,6 @@ func GetConfig() (Config, error) {
 		config.OccupancyNavitiaURIStr: &config.OccupancyNavitiaURI,
 		config.OccupancyServiceURIStr: &config.OccupancyServiceURI,
 		config.PositionsServiceURIStr: &config.PositionsServiceURI,
-		config.PositionsNavitiaURIStr: &config.PositionsNavitiaURI,
 	} {
 		if url, err := url.Parse(configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", configURIStr)
@@ -312,7 +311,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 }
 
 func VehiclePositions(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
-	if len(config.PositionsNavitiaURI.String()) == 0 || len(config.PositionsServiceURI.String()) == 0 {
+	if len(config.PositionsServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle positions is disabled")
 		return
 	}

@@ -75,15 +75,14 @@ func Test_GetVehiclePositions(t *testing.T) {
 	require.Nil(err)
 	assert.Equal(len(vehiclePositions), 0)
 
-	// Call Api with no existing vehicle_journey_id
-	gtfsRtContext.CleanListVehiclePositions()
+	// Call Api with no existing vehicle_journey_code
+	gtfsRtContext.CleanListVehiclePositions(time.Now())
 	pVehiclePositions.vehiclePositions = map[int]*VehiclePosition{
 		0: {0, "651970", date, 45.398613, -71.90111, 0, 0}}
 	param = VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651969"}, Date: date}
 	vehiclePositions, err = gtfsRtContext.GetVehiclePositions(&param)
 	require.Nil(err)
 	assert.Equal(len(vehiclePositions), 0)
-
 }
 
 func Test_CleanListVehiclePositions(t *testing.T) {
@@ -99,7 +98,7 @@ func Test_CleanListVehiclePositions(t *testing.T) {
 
 	pVehiclePositions.vehiclePositions = vehiclePositionsMap
 	require.NotNil(pVehiclePositions.vehiclePositions)
-	gtfsRtContext.CleanListVehiclePositions()
+	gtfsRtContext.CleanListVehiclePositions(time.Now())
 	assert.Equal(len(pVehiclePositions.vehiclePositions), 0)
 }
 

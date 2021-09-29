@@ -26,16 +26,20 @@ func (d *VehiclePositions) ManageVehiclePositionsStatus(activate bool) {
 	d.loadOccupancyData = activate
 }
 
-func (d *VehiclePositions) CleanListVehiclePositions() {
+func (d *VehiclePositions) CleanListVehiclePositions(timeCleanVP time.Time) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
+	cpt := 0
 
 	if d.vehiclePositions != nil {
-		for k := range d.vehiclePositions {
-			delete(d.vehiclePositions, k)
+		for k, vo := range d.vehiclePositions {
+			if vo.DateTime.Before(timeCleanVP) {
+				delete(d.vehiclePositions, k)
+				cpt = +1
+			}
 		}
 	}
-	logrus.Info("*** Clean list VehiclePositions")
+	logrus.Info("*** Number of clean VehiclePositions: ", cpt)
 }
 
 func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) {

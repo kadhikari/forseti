@@ -13,12 +13,12 @@ import (
 )
 
 /* ---------------------------------------------------------------------
-// Structure and Consumer to creates Vehicle locations GTFS-RT objects
+// Structure and Consumer to creates Vehicle positions GTFS-RT objects
 --------------------------------------------------------------------- */
 type GtfsRtContext struct {
 	vehiclePositions *VehiclePositions
 	connector        *connectors.Connector
-	cleanVl          time.Duration
+	cleanVp          time.Duration
 	location         *time.Location
 	mutex            sync.RWMutex
 }
@@ -34,8 +34,8 @@ func (d *GtfsRtContext) GetAllVehiclePositions() *VehiclePositions {
 	return d.vehiclePositions
 }
 
-func (d *GtfsRtContext) CleanListVehiclePositions() {
-	d.vehiclePositions.CleanListVehiclePositions()
+func (d *GtfsRtContext) CleanListVehiclePositions(timeCleanVP time.Time) {
+	d.vehiclePositions.CleanListVehiclePositions(timeCleanVP)
 }
 
 func (d *GtfsRtContext) GetVehiclePositions(param *VehiclePositionRequestParameter) (
@@ -46,26 +46,25 @@ func (d *GtfsRtContext) GetVehiclePositions(param *VehiclePositionRequestParamet
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
 func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken string, loadExternalRefresh,
-	locationsCleanVP, connectionTimeout time.Duration,
-	location *time.Location, reloadActive bool) {
+	positionsCleanVP, connectionTimeout time.Duration, location *time.Location, reloadActive bool) {
 
 	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
 	d.vehiclePositions = &VehiclePositions{}
 	d.location = location
-	d.cleanVl = locationsCleanVP
+	d.cleanVp = positionsCleanVP
 	d.vehiclePositions.ManageVehiclePositionsStatus(reloadActive)
 }
 
-// main loop to refresh vehicle_locations
+// main loop to refresh vehicle_positions
 func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
-	// Wait 10 seconds before reloading vehiclelocation informations
+	// Wait 10 seconds before reloading vehicleposition informations
 	time.Sleep(10 * time.Second)
 	for {
 		err := refreshVehiclePositions(d, d.connector)
 		if err != nil {
 			logrus.Error("Error while loading VehiclePositions GTFS-RT data: ", err)
 		} else {
-			logrus.Debug("vehicle_locations GTFS-RT data updated")
+			logrus.Debug("vehicle_positions GTFS-RT data updated")
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
@@ -87,7 +86,8 @@ func (d *GtfsRtContext) GetRereshTime() string {
 
 func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Connector) error {
 	begin := time.Now()
-	timeCleanVL := start.Add(context.cleanVl * time.Hour)
+	timeCleanVP := start.Add(context.cleanVp * time.Minute)
+	//timeCleanVP := start.Add(context.cleanVp * time.Hour)
 
 	// Get all data from Gtfs-rt flux
 	gtfsRt, err := loadDatafromConnector(connector)
@@ -99,8 +99,8 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 		return fmt.Errorf("no data to load from GTFS-RT")
 	}
 
-	if timeCleanVL.Before(time.Now()) {
-		context.CleanListVehiclePositions()
+	if timeCleanVP.Before(time.Now()) {
+		context.CleanListVehiclePositions(timeCleanVP)
 		start = time.Now()
 	}
 
@@ -152,7 +152,7 @@ func loadDatafromConnector(connector *connectors.Connector) (*gtfsrtvehicleposit
 	return gtfsRtData, nil
 }
 
-// Create new Vehicle position from VehicleJourney and VehicleGtfsRT data
+// Create new Vehicle position from VehicleGtfsRT data
 func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) *VehiclePosition {
 

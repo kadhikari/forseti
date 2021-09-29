@@ -99,11 +99,8 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 
 			//Fileter on datetime (default value Now)
 			if vo.DateTime.Before(param.Date) {
-				//println("****************************** DATE BEFORE")
 				continue
 			}
-			//println("****************************** DATE AFTER")
-			//println("****************************** ", foundStopCode, foundVjCode)
 
 			if len(param.StopCodes) == 0 || len(param.VehicleJourneyCodes) == 0 {
 				if foundVjCode && foundStopCode {

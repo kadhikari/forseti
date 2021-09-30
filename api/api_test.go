@@ -202,7 +202,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	engine = SetupRouter(&manager, engine)
 
 	// Verify /status
-	manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
+	manager.SetVehicleOccupanciesOditiContext(vehicleOccupanciesOditiContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -212,7 +212,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &status)
 
 	require.Nil(err)
-	assert.True(status.VehicleOccupancies.LastUpdate.After(startTime))
+	assert.False(status.VehicleOccupancies.LastUpdate.After(startTime))
 	assert.True(status.VehicleOccupancies.LastUpdate.Before(time.Now()))
 	assert.False(status.VehicleOccupancies.RefreshActive)
 	assert.False(status.FreeFloatings.RefreshActive)
@@ -225,7 +225,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &status)
 
 	require.Nil(err)
-	assert.True(status.VehicleOccupancies.RefreshActive)
+	assert.False(status.VehicleOccupancies.RefreshActive)
 	assert.False(status.FreeFloatings.RefreshActive)
 }
 

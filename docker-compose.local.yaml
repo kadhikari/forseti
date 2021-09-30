@@ -10,6 +10,9 @@ services:
       - TZ=Europe/Paris
       - FORSETI_LOG_LEVEL=info
 
+      # timezone location parameter
+      - FORSETI_TIMEZONE_LOCATION=Europe/Paris
+
       # Departures parameters
       - FORSETI_DEPARTURES_URI=
       - FORSETI_DEPARTURES_REFRESH=

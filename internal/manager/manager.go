@@ -5,9 +5,9 @@ import (
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	"github.com/CanalTP/forseti/internal/vehiclepositions"
 )
 
 // Data manager for all apis
@@ -18,7 +18,7 @@ type DataManager struct {
 	equipmentsContext               *equipments.EquipmentsContext
 	departuresContext               *departures.DeparturesContext
 	parkingsContext                 *parkings.ParkingsContext
-	vehicleLocationsContext         vehiclelocations.IConnectors
+	vehiclePositionsContext         vehiclepositions.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {
@@ -71,11 +71,11 @@ func (d *DataManager) GetVehicleOccupanciesContext() vehicleoccupanciesv2.IVehic
 	return d.vehiculeOccupanciesContext
 }
 
-func (d *DataManager) SetVehicleLocationsContext(
-	vehicleLocationsContext vehiclelocations.IConnectors) {
-	d.vehicleLocationsContext = vehicleLocationsContext
+func (d *DataManager) SetVehiclePositionsContext(
+	vehiclePositionsContext vehiclepositions.IConnectors) {
+	d.vehiclePositionsContext = vehiclePositionsContext
 }
 
-func (d *DataManager) GetVehicleLocationsContext() vehiclelocations.IConnectors {
-	return d.vehicleLocationsContext
+func (d *DataManager) GetVehiclePositionsContext() vehiclepositions.IConnectors {
+	return d.vehiclePositionsContext
 }

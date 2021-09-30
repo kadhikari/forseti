@@ -85,7 +85,8 @@ func Test_CleanListVehicleOccupancyForOldVo(t *testing.T) {
 
 	// Create VehicleOccupancies from existing data
 	vGtfsRt := gtfsrtvehiclepositions.VehicleGtfsRt{VehicleID: "52103", StopId: "263", Label: "52103",
-		Time: 1620076139, Speed: 11, Bearing: 274, Route: "1", Trip: "652517", Latitude: 45.398613, Longitude: -71.90111, Occupancy: 0}
+		Time: 1620076139, Speed: 11, Bearing: 274, Route: "1", Trip: "652517", Latitude: 45.398613,
+		Longitude: -71.90111, Occupancy: 0}
 	vo := createOccupanciesFromDataSource(0, vGtfsRt, location)
 	vo.DateTime = time.Now()
 	gtfsRtContext.AddVehicleOccupancy(vo)

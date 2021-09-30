@@ -15,6 +15,7 @@ import (
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	"github.com/CanalTP/forseti/internal/vehiclepositions"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"

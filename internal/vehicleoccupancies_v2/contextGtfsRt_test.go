@@ -66,7 +66,7 @@ func Test_CleanListVehicleOccupancies(t *testing.T) {
 
 	voContext.VehicleOccupancies = vehicleOccupanciesMap
 	require.NotNil(voContext.VehicleOccupancies)
-	gtfsRtContext.CleanListVehicleOccupancies()
+	gtfsRtContext.CleanListVehicleOccupancies(0 * time.Minute) // clean now
 	assert.Equal(len(voContext.VehicleOccupancies), 0)
 }
 

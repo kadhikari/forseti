@@ -29,6 +29,9 @@ services:
       - TZ=${TZ:-Europe/Paris}
       - FORSETI_LOG_LEVEL=${FORSETI_LOG_LEVEL:-info}
 
+      # timezone location parameter
+      - FORSETI_TIMEZONE_LOCATION=${FORSETI_TIMEZONE_LOCATION:-}
+
       # Departures parameters
       - FORSETI_DEPARTURES_URI=${FORSETI_DEPARTURES_URI:-}
       - FORSETI_DEPARTURES_REFRESH=${FORSETI_DEPARTURES_REFRESH:-}
@@ -60,7 +63,8 @@ services:
       - FORSETI_ROUTESCHEDULE_REFRESH=${FORSETI_ROUTESCHEDULE_REFRESH:-3600s}
 
       # Occupancies and Locations parameters
-      - FORSETI_CONNECTOR_TYPE=${FORSETI_CONNECTOR_TYPE:-}      
+      - FORSETI_CONNECTOR_TYPE=${FORSETI_CONNECTOR_TYPE:-}
+
 
 networks:
   lb-common:

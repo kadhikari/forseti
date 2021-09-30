@@ -34,7 +34,7 @@ func (d *GtfsRtContext) GetAllVehiclePositions() *VehiclePositions {
 	return d.vehiclePositions
 }
 
-func (d *GtfsRtContext) CleanListVehiclePositions(timeCleanVP time.Time) {
+func (d *GtfsRtContext) CleanListVehiclePositions(timeCleanVP time.Duration) {
 	d.vehiclePositions.CleanListVehiclePositions(timeCleanVP)
 }
 
@@ -64,7 +64,8 @@ func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
 		if err != nil {
 			logrus.Error("Error while loading VehiclePositions GTFS-RT data: ", err)
 		} else {
-			logrus.Debug("vehicle_positions GTFS-RT data updated")
+			logrus.Info("Vehicle_positions GTFS-RT data updated")
+			logrus.Info("Vehicle_positions list size: ", len(d.vehiclePositions.vehiclePositions))
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
@@ -86,8 +87,7 @@ func (d *GtfsRtContext) GetRereshTime() string {
 
 func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Connector) error {
 	begin := time.Now()
-	timeCleanVP := start.Add(context.cleanVp * time.Minute)
-	//timeCleanVP := start.Add(context.cleanVp * time.Hour)
+	timeCleanVP := start.Add(context.cleanVp)
 
 	// Get all data from Gtfs-rt flux
 	gtfsRt, err := loadDatafromConnector(connector)
@@ -100,7 +100,7 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 	}
 
 	if timeCleanVP.Before(time.Now()) {
-		context.CleanListVehiclePositions(timeCleanVP)
+		context.CleanListVehiclePositions(context.cleanVp)
 		start = time.Now()
 	}
 

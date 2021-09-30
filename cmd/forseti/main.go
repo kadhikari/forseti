@@ -114,13 +114,11 @@ func GetConfig() (Config, error) {
 
 	//Passing configurations for vehicle_positions
 	pflag.String("positions-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	//pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	//pflag.String("positions-navitia-token", "", "token for navitia")
 	pflag.String("positions-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("positions-service-token", "", "token for positions source")
 	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
 	pflag.Duration("positions-refresh", 5*time.Minute, "time between refresh of positions")
-	pflag.Duration("positions-clean-vp", 10*time.Minute, "time between clean list of vehiclePositions") //2 heures
+	pflag.Duration("positions-clean-vp", 2*time.Hour, "time between clean list of vehiclePositions")
 
 	//Passing configurations for vehicle_occupancies and vehicle_positions
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")

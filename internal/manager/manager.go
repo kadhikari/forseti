@@ -17,7 +17,7 @@ type DataManager struct {
 	equipmentsContext               *equipments.EquipmentsContext
 	departuresContext               *departures.DeparturesContext
 	parkingsContext                 *parkings.ParkingsContext
-	vehicleLocationsContext         vehiclelocations.IConnectors
+	vehiclePositionsContext         vehiclepositions.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {

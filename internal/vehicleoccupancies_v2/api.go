@@ -19,21 +19,21 @@ type VehicleOccupanciesResponse struct {
 type VehicleOccupancy struct {
 	Id                 int       `json:"_"`
 	VehicleJourneyCode string    `json:"vehicle_journey_code"`
-	StopCode           string    `json:"stop_code"`
+	StopPointCode      string    `json:"stop_point_code"`
 	Direction          int       `json:"direction"`
 	DateTime           time.Time `json:"date_time,omitempty"`
 	Occupancy          string    `json:"occupancy"`
 }
 
 type VehicleOccupancyRequestParameter struct {
-	StopCodes           []string
+	StopPointCodes      []string
 	VehicleJourneyCodes []string
 	Date                time.Time
 }
 
 func InitVehicleOccupanyrequestParameter(c *gin.Context) (param *VehicleOccupancyRequestParameter) {
 	p := VehicleOccupancyRequestParameter{}
-	p.StopCodes = c.Request.URL.Query()["stop_code[]"]
+	p.StopPointCodes = c.Request.URL.Query()["stop_point_code[]"]
 	p.VehicleJourneyCodes = c.Request.URL.Query()["vehicle_journey_code[]"]
 	loc, _ := time.LoadLocation(location)
 	// We accept two date formats in the parameter

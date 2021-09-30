@@ -101,9 +101,10 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Len(resp.VehicleOccupancies, 2)
 	assert.Empty(resp.Error)
 
+	// Test if parameter stop_point_code corresponding to vehicle_journey_code
 	resp = VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest("GET",
-		"/vehicle_occupancies?date=20210118&vehicle_journey_code[]=653197&stop_code[]=4121", nil)
+		"/vehicle_occupancies?date=20210118&vehicle_journey_code[]=653197&stop_point_code[]=378", nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
@@ -114,18 +115,19 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	require.Nil(err)
 	assert.Equal(resp.VehicleOccupancies[0].VehicleJourneyCode, "653197")
-	assert.Equal(resp.VehicleOccupancies[0].StopCode, "378")
+	assert.Equal(resp.VehicleOccupancies[0].StopPointCode, "378")
 	assert.Equal(resp.VehicleOccupancies[0].DateTime.Format("20060102T150405"), "20210503T210832")
 	assert.Equal(resp.VehicleOccupancies[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
 
+	// Test if parameter stop_point_code not corresponding to vehicle_journey_code
 	resp = VehicleOccupanciesResponse{}
 	c.Request = httptest.NewRequest("GET",
-		"/vehicle_occupancies?date=20210118&vehicle_journey_code[]=653197&stop_code[]=47", nil)
+		"/vehicle_occupancies?date=20210118&vehicle_journey_code[]=653197&stop_point_code[]=47", nil)
 	w = httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
 	require.Equal(200, w.Code)
 	err = json.Unmarshal(w.Body.Bytes(), &resp)
 	require.Nil(err)
-	assert.Len(resp.VehicleOccupancies, 2)
+	assert.Len(resp.VehicleOccupancies, 0)
 	assert.Empty(resp.Error)
 }

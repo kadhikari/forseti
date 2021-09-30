@@ -92,23 +92,21 @@ func (d *VehicleOccupanciesContext) GetVehicleOccupancies(param *VehicleOccupanc
 		// Implement filter on parameters
 		for _, vo := range d.VehicleOccupancies {
 			// Filter on stop_code
-			foundStopCode := FoundStopCode(*vo, param.StopCodes)
+			if ok := FoundStopCode(*vo, param.StopPointCodes); !ok {
+				continue
+			}
 
 			// Filter on vehiclejourney_code
-			foundVjCode := FoundVjCode(*vo, param.VehicleJourneyCodes)
+			if ok := FoundVjCode(*vo, param.VehicleJourneyCodes); !ok {
+				continue
+			}
 
-			//Fileter on datetime (default value Now)
+			//Filter on datetime (default value Now)
 			if vo.DateTime.Before(param.Date) {
 				continue
 			}
 
-			if len(param.StopCodes) == 0 || len(param.VehicleJourneyCodes) == 0 {
-				if foundVjCode && foundStopCode {
-					occupancies = append(occupancies, *vo)
-				}
-			} else if foundVjCode || foundStopCode {
-				occupancies = append(occupancies, *vo)
-			}
+			occupancies = append(occupancies, *vo)
 		}
 		return occupancies, nil
 	}
@@ -126,12 +124,12 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 	d.refreshTime = newRefreshTime
 }
 
-func NewVehicleOccupancy(id int, sourceCode, stopCode string, direction int, date time.Time,
+func NewVehicleOccupancy(id int, sourceCode, stopPointCode string, direction int, date time.Time,
 	occupancy string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
 		Id:                 id,
 		VehicleJourneyCode: sourceCode,
-		StopCode:           stopCode,
+		StopPointCode:      stopPointCode,
 		Direction:          direction,
 		DateTime:           date,
 		Occupancy:          occupancy,
@@ -150,12 +148,12 @@ func FoundVjCode(vp VehicleOccupancy, vjCodes []string) bool {
 	return false
 }
 
-func FoundStopCode(vo VehicleOccupancy, stopCodes []string) bool {
-	if len(stopCodes) == 0 {
+func FoundStopCode(vo VehicleOccupancy, stopPointCode []string) bool {
+	if len(stopPointCode) == 0 {
 		return true
 	}
-	for _, stopCode := range stopCodes {
-		if vo.StopCode == stopCode {
+	for _, stopCode := range stopPointCode {
+		if vo.StopPointCode == stopCode {
 			return true
 		}
 	}

@@ -154,7 +154,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 		} else {
 			stopCodeFind := false
 			for _, vo := range context.voContext.VehicleOccupancies {
-				if vo.VehicleJourneyCode == vehGtfsRT.Trip && vo.StopCode == vehGtfsRT.StopId {
+				if vo.VehicleJourneyCode == vehGtfsRT.Trip && vo.StopPointCode == vehGtfsRT.StopId {
 					context.UpdateOccupancy(vo, vehGtfsRT, location)
 					stopCodeFind = true
 					break

@@ -7,6 +7,7 @@ import (
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	"github.com/CanalTP/forseti/internal/vehiclepositions"
 )
 
 // Data manager for all apis

@@ -1,0 +1,33 @@
+mnemo;stop_name;stop_id;direction
+CPC;Copernic;IDFM:28650;0
+CPC;Copernic;IDFM:12736;1
+DEL;Delattre de Tassigny;IDFM:24690;1
+DEW;Dewoitine;IDFM:42004;1
+EXL;Exelmans;IDFM:24691;0
+GDR;Grange Dame Rose;IDFM:12715;1
+GDR;Grange Dame Rose;IDFM:12714;0
+INO;Inovel Parc Nord;IDFM:2162;0
+INO;Inovel Parc Nord;IDFM:2162;1
+VY;La Cheminee;IDFM:12717;0
+VY;La Cheminee;IDFM:14492;1
+LBO;Le Bois;IDFM:42007;0
+LBO;Le Bois;IDFM:37039;1
+LVS;Louvois;IDFM:38967;0
+LVS;Louvois;IDFM:12821;1
+MAV;Mairie de Velizy;IDFM:2160;0
+MAV;Mairie de Velizy;IDFM:2159;1
+MDT;Marcel Dassault;IDFM:42010;0
+MDT;Marcel Dassault;IDFM:12722;1
+MOR;Morane;IDFM:12807;1
+MOR;Morane;IDFM:12806;0
+MDS;Musee de Sevres;IDFM:20444;0
+MDS;Musee de Sevres;IDFM:20444;1
+NPT;Nieuport;IDFM:12723;0
+PTR;Pasteur;IDFM:28649;0
+PTR;Pasteur;IDFM:12735;1
+PDS;Pont de Sevres;IDFM:12836;0
+PDS;Pont de Sevres;IDFM:28664;1
+RSE;Residence Europe;IDFM:12713;1
+RSE;Residence Europe;IDFM:12712;0
+TDR;Traite de Rome;IDFM:12726;1
+GRV;Velizy 2;IDFM:12734;0

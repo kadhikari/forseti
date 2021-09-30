@@ -15,6 +15,7 @@ import (
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/vehiclelocations"
 	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
@@ -272,43 +273,57 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		return
 	}
 
-	var vehicleOccupanciesContext vehicleoccupancies.IVehicleOccupancy
 	var err error
 
 	if config.Connector == string(connectors.Connector_ODITI) {
-		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		var vehicleOccupanciesOditiContext vehicleoccupancies.IVehicleOccupancy
+		vehicleOccupanciesOditiContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
+		manager.SetVehicleOccupanciesOditiContext(vehicleOccupanciesOditiContext)
+
+		vehicleOccupanciesOditiContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+			location, config.OccupancyActive)
+
+		go vehicleOccupanciesOditiContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+			location)
+		vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesOditiContext)
+
+		/*if vehicleOccupanciesOditiContext, ok :=
+		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {*/
+		go vehicleOccupanciesOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext).
+			RefreshDataFromNavitia(config.OccupancyNavitiaURI,
+				config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
+		//}
 	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
-		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+		var vehicleOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
+		vehicleOccupanciesContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
 		}
+
+		manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
+
+		vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
+			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+			location, config.OccupancyActive)
+
+		go vehicleOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
+			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
+			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
+			location)
+		vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
 	} else {
 		logrus.Error("Wrong vehicleoccupancy type passed")
 		return
-	}
-
-	manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
-
-	vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
-		location, config.OccupancyActive)
-
-	go vehicleOccupanciesContext.RefreshVehicleOccupanciesLoop(config.OccupancyServiceURI,
-		config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
-		config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
-		location)
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
-
-	if vehicleOccupanciesOditiContext, ok :=
-		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {
-		go vehicleOccupanciesOditiContext.RefreshDataFromNavitia(config.OccupancyNavitiaURI,
-			config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
 	}
 }
 

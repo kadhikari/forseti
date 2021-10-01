@@ -33,8 +33,8 @@ func (d *VehicleOccupanciesGtfsRtContext) GetVehicleOccupanciesContext() *Vehicl
 	return d.voContext
 }
 
-func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleOccupancies() {
-	d.voContext.CleanListVehicleOccupancies()
+func (d *VehicleOccupanciesGtfsRtContext) CleanListVehicleOccupancies(timeCleanVO time.Duration) {
+	d.voContext.CleanListVehicleOccupancies(timeCleanVO)
 	logrus.Info("*** Clean list VehicleOccupancies")
 }
 
@@ -131,7 +131,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 
 	// Clean list VehicleOccupancies for vehicle older than delay parameter: occupancyCleanVO
 	if timeCleanVO.Before(time.Now()) {
-		context.CleanListVehicleOccupancies()
+		context.CleanListVehicleOccupancies(occupancyCleanVO)
 		start = time.Now()
 	}
 

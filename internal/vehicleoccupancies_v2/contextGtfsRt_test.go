@@ -66,8 +66,48 @@ func Test_CleanListVehicleOccupancies(t *testing.T) {
 
 	voContext.VehicleOccupancies = vehicleOccupanciesMap
 	require.NotNil(voContext.VehicleOccupancies)
-	gtfsRtContext.CleanListVehicleOccupancies()
+	gtfsRtContext.CleanListVehicleOccupancies(0 * time.Minute) // clean now
 	assert.Equal(len(voContext.VehicleOccupancies), 0)
+}
+
+func Test_CleanListVehicleOccupancyForOldVo(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	vehicleOccupanciesContext, err := VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+	require.Nil(err)
+	gtfsRtContext, ok := vehicleOccupanciesContext.(*VehicleOccupanciesGtfsRtContext)
+	require.True(ok)
+	voContext := gtfsRtContext.GetVehicleOccupanciesContext()
+	require.NotNil(voContext)
+
+	// Create VehicleOccupancies from existing data
+	vGtfsRt := gtfsrtvehiclepositions.VehicleGtfsRt{VehicleID: "52103", StopId: "263", Label: "52103",
+		Time: 1620076139, Speed: 11, Bearing: 274, Route: "1", Trip: "652517", Latitude: 45.398613,
+		Longitude: -71.90111, Occupancy: 0}
+	vo := createOccupanciesFromDataSource(0, vGtfsRt, location)
+	vo.DateTime = time.Now()
+	gtfsRtContext.AddVehicleOccupancy(vo)
+
+	vGtfsRt = gtfsrtvehiclepositions.VehicleGtfsRt{VehicleID: "52105", StopId: "47", Label: "52105",
+		Time: 1620076116, Speed: 12, Bearing: 268, Route: "12", Trip: "652604", Latitude: 45.40917,
+		Longitude: -71.930275, Occupancy: 00}
+	vo = createOccupanciesFromDataSource(1, vGtfsRt, location)
+	vo.DateTime = time.Now()
+	gtfsRtContext.AddVehicleOccupancy(vo)
+
+	vGtfsRt = gtfsrtvehiclepositions.VehicleGtfsRt{VehicleID: "53101", StopId: "1326", Label: "53101",
+		Time: 1620076034, Speed: 1, Bearing: 262, Route: "17", Trip: "653036", Latitude: 45.40333,
+		Longitude: -71.95417, Occupancy: 00}
+	vo = createOccupanciesFromDataSource(2, vGtfsRt, location)
+	gtfsRtContext.AddVehicleOccupancy(vo)
+	assert.Equal(len(voContext.VehicleOccupancies), 3)
+
+	require.NotNil(voContext.VehicleOccupancies)
+	gtfsRtContext.CleanListVehicleOccupancies(5 * time.Minute)
+	assert.Equal(len(voContext.VehicleOccupancies), 2)
 }
 
 func Test_AddVehicleOccupancy(t *testing.T) {
@@ -197,17 +237,24 @@ func Test_GetVehicleOccupancies(t *testing.T) {
 var vehicleOccupanciesMap = map[int]*VehicleOccupancy{
 	156: {
 		Id:                 156,
-		VehicleJourneyCode: "vehicle_journey:0:124695149-1",
-		StopPointCode:      "stop_point:0:SP:80:4029",
+		VehicleJourneyCode: "vehicle_journey_code:123456",
+		StopPointCode:      "stop_point_code:987",
 		Direction:          0,
 		DateTime:           time.Now(),
 		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[1]},
 	700: {
 		Id:                 700,
-		VehicleJourneyCode: "vehicle_journey:0:124695000-1",
-		StopPointCode:      "stop_point:0:SP:80:4043",
+		VehicleJourneyCode: "vehicle_journey_code:789012",
+		StopPointCode:      "stop_point_code:456",
 		Direction:          0,
 		DateTime:           time.Now(),
+		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[2]},
+	666: {
+		Id:                 666,
+		VehicleJourneyCode: "vehicle_journey_code:652517",
+		StopPointCode:      "stop_point_code:263",
+		Direction:          0,
+		DateTime:           time.Now().Add(time.Duration(300)),
 		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[2]},
 }
 

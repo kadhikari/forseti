@@ -41,16 +41,20 @@ func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies 
 	d.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *VehicleOccupanciesContext) CleanListVehicleOccupancies() {
+func (d *VehicleOccupanciesContext) CleanListVehicleOccupancies(timeCleanVO time.Duration) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
+	cpt := 0
 
 	if d.VehicleOccupancies != nil {
-		for k := range d.VehicleOccupancies {
-			delete(d.VehicleOccupancies, k)
+		for k, vo := range d.VehicleOccupancies {
+			if vo.DateTime.Before(time.Now().Add(-timeCleanVO).UTC()) {
+				delete(d.VehicleOccupancies, k)
+				cpt += 1
+			}
 		}
 	}
-	logrus.Info("*** Clean list VehicleOccupancies")
+	logrus.Info("*** Number of clean VehicleOccupancies: ", cpt)
 }
 func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.Lock()

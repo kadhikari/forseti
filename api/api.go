@@ -94,17 +94,17 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 
 		var lastVehiclePositionsDataUpdate time.Time
 		var loadVehiclePositionsData bool = false
-		var refreshVehicleLocationData string
+		var refreshVehiclePositionsData string
 		if manager.GetVehiclePositionsContext() != nil {
 			// manage vehiclepositions activation /status?vehicle_positions=true or false
 			vehiclePositionsStatus := c.Query("vehicle_positions")
 			if len(vehiclePositionsStatus) > 0 {
 				toActive, _ := strconv.ParseBool(vehiclePositionsStatus)
-				manager.GetVehicleOccupanciesContext().ManageVehicleOccupancyStatus(toActive)
+				manager.GetVehiclePositionsContext().ManageVehiclePositionsStatus(toActive)
 			}
 			lastVehiclePositionsDataUpdate = manager.GetVehiclePositionsContext().GetLastVehiclePositionsDataUpdate()
 			loadVehiclePositionsData = manager.GetVehiclePositionsContext().LoadPositionsData()
-			refreshVehicleLocationData = manager.GetVehiclePositionsContext().GetRereshTime()
+			refreshVehiclePositionsData = manager.GetVehiclePositionsContext().GetRereshTime()
 		}
 
 		var lastEquipmentDataUpdate time.Time
@@ -130,7 +130,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastEquipmentDataUpdate,
 			LoadingStatus{loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
 			LoadingStatus{loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
-			LoadingStatus{loadVehiclePositionsData, refreshVehicleLocationData, lastVehiclePositionsDataUpdate},
+			LoadingStatus{loadVehiclePositionsData, refreshVehiclePositionsData, lastVehiclePositionsDataUpdate},
 		})
 	}
 }

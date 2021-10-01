@@ -75,6 +75,10 @@ func (d *GtfsRtContext) GetLastVehiclePositionsDataUpdate() time.Time {
 	return d.vehiclePositions.GetLastVehiclePositionsDataUpdate()
 }
 
+func (d *GtfsRtContext) ManageVehiclePositionsStatus(vehiclePositionsActive bool) {
+	d.vehiclePositions.ManageVehiclePositionsStatus(vehiclePositionsActive)
+}
+
 func (d *GtfsRtContext) LoadPositionsData() bool {
 	return d.vehiclePositions.LoadPositionsData()
 }

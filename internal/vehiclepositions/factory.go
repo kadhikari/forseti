@@ -23,6 +23,8 @@ type IConnectors interface {
 
 	GetLastVehiclePositionsDataUpdate() time.Time
 
+	ManageVehiclePositionsStatus(activate bool)
+
 	LoadPositionsData() bool
 
 	GetRereshTime() string

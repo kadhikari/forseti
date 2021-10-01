@@ -1,6 +1,0 @@
-bin
-/forseti
-google_transit/
-/coverage.txt
-/docker-compose.local.yaml
-.vscode/

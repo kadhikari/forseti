@@ -5,7 +5,6 @@ import (
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 	"github.com/CanalTP/forseti/internal/vehiclepositions"
 )
@@ -14,7 +13,7 @@ import (
 type DataManager struct {
 	freeFloatingsContext            *freefloatings.FreeFloatingsContext
 	vehiculeOccupanciesContext      vehicleoccupanciesv2.IVehicleOccupancy
-	vehiculeOccupanciesOditiContext vehicleoccupancies.IVehicleOccupancy
+	vehiculeOccupanciesOditiContext vehicleoccupanciesv2.IVehicleOccupancy
 	equipmentsContext               *equipments.EquipmentsContext
 	departuresContext               *departures.DeparturesContext
 	parkingsContext                 *parkings.ParkingsContext
@@ -54,11 +53,11 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 }
 
 func (d *DataManager) SetVehicleOccupanciesOditiContext(
-	vehiculeOccupanciesContext vehicleoccupancies.IVehicleOccupancy) {
+	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy) {
 	d.vehiculeOccupanciesOditiContext = vehiculeOccupanciesContext
 }
 
-func (d *DataManager) GetVehicleOccupanciesOditiContext() vehicleoccupancies.IVehicleOccupancy {
+func (d *DataManager) GetVehicleOccupanciesOditiContext() vehicleoccupanciesv2.IVehicleOccupancy {
 	return d.vehiculeOccupanciesOditiContext
 }
 

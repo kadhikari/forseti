@@ -13,7 +13,6 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 	"github.com/CanalTP/forseti/internal/vehiclepositions"
 
@@ -272,8 +271,8 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 	var err error
 
 	if config.Connector == string(connectors.Connector_ODITI) {
-		var vehicleOccupanciesOditiContext vehicleoccupancies.IVehicleOccupancy
-		vehicleOccupanciesOditiContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		var vehicleOccupanciesOditiContext vehicleoccupanciesv2.IVehicleOccupancy
+		vehicleOccupanciesOditiContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -289,14 +288,8 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 			location)
-		vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesOditiContext)
+		vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesOditiContext)
 
-		/*if vehicleOccupanciesOditiContext, ok :=
-		vehicleOccupanciesContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext); ok {*/
-		go vehicleOccupanciesOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext).
-			RefreshDataFromNavitia(config.OccupancyNavitiaURI,
-				config.OccupancyNavitiaToken, config.RouteScheduleRefresh, config.ConnectionTimeout, location)
-		//}
 	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
 		var vehicleOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
 		vehicleOccupanciesContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))

@@ -148,20 +148,25 @@ func GetConfig() (Config, error) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
-	for configURIStr, configURI := range map[string]*url.URL{
-		config.DeparturesURIStr:       &config.DeparturesURI,
-		config.ParkingsURIStr:         &config.ParkingsURI,
-		config.EquipmentsURIStr:       &config.EquipmentsURI,
-		config.FreeFloatingsURIStr:    &config.FreeFloatingsURI,
-		config.OccupancyFilesURIStr:   &config.OccupancyFilesURI,
-		config.OccupancyNavitiaURIStr: &config.OccupancyNavitiaURI,
-		config.OccupancyServiceURIStr: &config.OccupancyServiceURI,
-		config.PositionsServiceURIStr: &config.PositionsServiceURI,
+	type ConfigUri struct {
+		configURIStr string
+		configURI    *url.URL
+	}
+
+	for _, uri := range []ConfigUri{
+		{config.DeparturesURIStr, &config.DeparturesURI},
+		{config.ParkingsURIStr, &config.ParkingsURI},
+		{config.EquipmentsURIStr, &config.EquipmentsURI},
+		{config.FreeFloatingsURIStr, &config.FreeFloatingsURI},
+		{config.OccupancyFilesURIStr, &config.OccupancyFilesURI},
+		{config.OccupancyNavitiaURIStr, &config.OccupancyNavitiaURI},
+		{config.OccupancyServiceURIStr, &config.OccupancyServiceURI},
+		{config.PositionsServiceURIStr, &config.PositionsServiceURI},
 	} {
-		if url, err := url.Parse(configURIStr); err != nil {
-			logrus.Errorf("Unable to parse data url: %s", configURIStr)
+		if url, err := url.Parse(uri.configURIStr); err != nil {
+			logrus.Errorf("Unable to parse data url: %s", uri.configURIStr)
 		} else {
-			*configURI = *url
+			*uri.configURI = *url
 		}
 	}
 

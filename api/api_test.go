@@ -21,7 +21,7 @@ import (
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 )
 
 var defaultTimeout time.Duration = time.Second * 10
@@ -134,33 +134,37 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vOditiContext, err := vehicleoccupancies.VehicleOccupancyFactory("oditi")
+	vOditiContext, err := vehicleoccupanciesv2.VehicleOccupancyFactory("oditi")
 	require.Nil(err)
-	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext)
+	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupanciesv2.VehicleOccupanciesOditiContext)
 	require.True(ok)
 
 	vehicleOccupanciesContext := vehicleOccupanciesOditiContext.GetVehicleOccupanciesContext()
+	vehicleoccupanciesv2.SpFileName = "mapping_stops_netex.csv"
+	vehicleoccupanciesv2.CourseFileName = "extraction_courses_netex.csv"
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	stopPoints, err := vehicleoccupancies.LoadStopPoints(*uri, defaultTimeout)
+	stopPoints, err := vehicleoccupanciesv2.LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
-	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 25)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 32)
 
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	courses, err := vehicleoccupancies.LoadCourses(*uri, defaultTimeout)
+	courses, err := vehicleoccupanciesv2.LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	vehicleOccupanciesOditiContext.InitCourse(courses)
-	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 1)
+	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 2)
 	coursesFor40 := (vehicleOccupanciesOditiContext.GetCourses())["40"]
-	assert.Equal(len(coursesFor40), 310)
+	assert.Equal(len(coursesFor40), 99)
+	coursesFor45 := (vehicleOccupanciesOditiContext.GetCourses())["45"]
+	assert.Equal(len(coursesFor45), 100)
 
-	// Load RouteSchedules from file
-	uri, err = url.Parse(fmt.Sprintf("file://%s/route_schedules.json", fixtureDir))
+	// Load prediction from a file
+	uri, err = url.Parse(fmt.Sprintf("file://%s/predictionsNetex.json", fixtureDir))
 	require.Nil(err)
 	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(err)
@@ -168,17 +172,14 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	jsonData, err := ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	navitiaRoutes := &data.NavitiaRoutes{}
-	err = json.Unmarshal([]byte(jsonData), navitiaRoutes)
+	predicts := &data.PredictionData{}
+	err = json.Unmarshal([]byte(jsonData), predicts)
 	require.Nil(err)
-	sens := 0
-	startIndex := 1
-	routeSchedules := vehicleoccupancies.LoadRouteSchedulesData(startIndex, navitiaRoutes, sens, loc)
-	vehicleOccupanciesOditiContext.InitRouteSchedule(routeSchedules)
-	assert.Equal(len(vehicleOccupanciesOditiContext.GetRouteSchedules()), 141)
+	predictions := vehicleoccupanciesv2.LoadPredictionsData(predicts, loc)
+	assert.Equal(len(predictions), 41)
 
-	// Load prediction from a file
-	uri, err = url.Parse(fmt.Sprintf("file://%s/predictions.json", fixtureDir))
+	// Load vehicles journey
+	uri, err = url.Parse(fmt.Sprintf("file://%s/vehicleJourneysNetex.json", fixtureDir))
 	require.Nil(err)
 	reader, err = utils.GetFileWithFS(*uri)
 	require.Nil(err)
@@ -186,23 +187,25 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	jsonData, err = ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	predicts := &data.PredictionData{}
-	err = json.Unmarshal([]byte(jsonData), predicts)
+	navitiaVJ := &vehicleoccupanciesv2.NavitiaVehicleJourney{}
+	err = json.Unmarshal([]byte(jsonData), navitiaVJ)
 	require.Nil(err)
-	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
-	assert.Equal(len(predictions), 65)
+	vehicles := vehicleoccupanciesv2.CreateVehicleJourney(navitiaVJ, time.Now())
+	assert.Equal(len(vehicles), 25)
+	vehicleOccupanciesOditiContext.InitVehicleJourneys(vehicles)
 
-	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
+	// Create vehicles Occupancies
+	occupanciesWithCharge := vehicleoccupanciesv2.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
 		predictions)
 	vehicleOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
-	assert.Equal(len(vehicleOccupanciesContext.GetVehiclesOccupancies()), 35)
+	assert.Equal(len(vehicleOccupanciesContext.GetVehiclesOccupancies()), 34)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
+	vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
 	engine = SetupRouter(&manager, engine)
 
 	// Verify /status
-	manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
+	manager.SetVehicleOccupanciesOditiContext(vehicleOccupanciesOditiContext)
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -212,7 +215,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &status)
 
 	require.Nil(err)
-	assert.True(status.VehicleOccupancies.LastUpdate.After(startTime))
+	assert.False(status.VehicleOccupancies.LastUpdate.After(startTime))
 	assert.True(status.VehicleOccupancies.LastUpdate.Before(time.Now()))
 	assert.False(status.VehicleOccupancies.RefreshActive)
 	assert.False(status.FreeFloatings.RefreshActive)
@@ -225,7 +228,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &status)
 
 	require.Nil(err)
-	assert.True(status.VehicleOccupancies.RefreshActive)
+	assert.False(status.VehicleOccupancies.RefreshActive)
 	assert.False(status.FreeFloatings.RefreshActive)
 }
 

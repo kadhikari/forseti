@@ -11,13 +11,12 @@ import (
 
 // Data manager for all apis
 type DataManager struct {
-	freeFloatingsContext            *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext      vehicleoccupanciesv2.IVehicleOccupancy
-	vehiculeOccupanciesOditiContext vehicleoccupanciesv2.IVehicleOccupancy
-	equipmentsContext               *equipments.EquipmentsContext
-	departuresContext               *departures.DeparturesContext
-	parkingsContext                 *parkings.ParkingsContext
-	vehiclePositionsContext         vehiclepositions.IConnectors
+	freeFloatingsContext       *freefloatings.FreeFloatingsContext
+	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
+	equipmentsContext          *equipments.EquipmentsContext
+	departuresContext          *departures.DeparturesContext
+	parkingsContext            *parkings.ParkingsContext
+	vehiclePositionsContext    vehiclepositions.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {

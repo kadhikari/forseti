@@ -11,13 +11,12 @@ import (
 
 // Data manager for all apis
 type DataManager struct {
-	freeFloatingsContext            *freefloatings.FreeFloatingsContext
-	vehiculeOccupanciesContext      vehicleoccupanciesv2.IVehicleOccupancy
-	vehiculeOccupanciesOditiContext vehicleoccupanciesv2.IVehicleOccupancy
-	equipmentsContext               *equipments.EquipmentsContext
-	departuresContext               *departures.DeparturesContext
-	parkingsContext                 *parkings.ParkingsContext
-	vehiclePositionsContext         vehiclepositions.IConnectors
+	freeFloatingsContext       *freefloatings.FreeFloatingsContext
+	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
+	equipmentsContext          *equipments.EquipmentsContext
+	departuresContext          *departures.DeparturesContext
+	parkingsContext            *parkings.ParkingsContext
+	vehiclePositionsContext    vehiclepositions.IConnectors
 }
 
 func (d *DataManager) SetEquipmentsContext(equipmentsContext *equipments.EquipmentsContext) {
@@ -50,15 +49,6 @@ func (d *DataManager) SetParkingsContext(parkingsContext *parkings.ParkingsConte
 
 func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 	return d.parkingsContext
-}
-
-func (d *DataManager) SetVehicleOccupanciesOditiContext(
-	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy) {
-	d.vehiculeOccupanciesOditiContext = vehiculeOccupanciesContext
-}
-
-func (d *DataManager) GetVehicleOccupanciesOditiContext() vehicleoccupanciesv2.IVehicleOccupancy {
-	return d.vehiculeOccupanciesOditiContext
 }
 
 func (d *DataManager) SetVehicleOccupanciesContext(

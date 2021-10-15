@@ -282,7 +282,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			logrus.Error(err)
 			return
 		}
-		manager.SetVehicleOccupanciesOditiContext(vehicleOccupanciesOditiContext)
+		manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
 
 		vehicleOccupanciesOditiContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,

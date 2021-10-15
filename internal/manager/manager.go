@@ -52,15 +52,6 @@ func (d *DataManager) GetParkingsContext() *parkings.ParkingsContext {
 	return d.parkingsContext
 }
 
-func (d *DataManager) SetVehicleOccupanciesOditiContext(
-	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy) {
-	d.vehiculeOccupanciesOditiContext = vehiculeOccupanciesContext
-}
-
-func (d *DataManager) GetVehicleOccupanciesOditiContext() vehicleoccupanciesv2.IVehicleOccupancy {
-	return d.vehiculeOccupanciesOditiContext
-}
-
 func (d *DataManager) SetVehicleOccupanciesContext(
 	vehiculeOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy) {
 	d.vehiculeOccupanciesContext = vehiculeOccupanciesContext

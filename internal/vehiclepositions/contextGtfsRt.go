@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/connectors"
 	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/pkg/errors"
@@ -160,14 +161,22 @@ func loadDatafromConnector(connector *connectors.Connector) (*gtfsrtvehicleposit
 func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) *VehiclePosition {
 
-	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
-	dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", date.String(), location)
+	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC().Format("2006-01-02T15:04:05Z")
+	print("DEBUG1: ", date, "\n")
+	d, erro := time.Parse("2006-01-02T15:04:05Z", date)
+	if erro != nil {
+		print("DEBUG_ERR1: ", erro.Error(), "\n")
+	}
+	dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", date, location)
 	if err != nil {
+		print("DEBUG_ERR2: ", err.Error(), "\n")
 		return &VehiclePosition{}
 	}
+	print("DEBUG2: ", dateLoc.String(), "\n")
 
 	vp, err := NewVehiclePosition(id, vehicleGtfsRt.Trip, dateLoc, vehicleGtfsRt.Latitude,
-		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed)
+		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed,
+		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)], d)
 	if err != nil {
 		return nil
 	}

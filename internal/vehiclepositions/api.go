@@ -18,6 +18,8 @@ type VehiclePosition struct {
 	Longitude          float32   `json:"longitude"`
 	Bearing            float32   `json:"bearing"`
 	Speed              float32   `json:"speed"`
+	Occupancy          string    `json:"occupancy,omitempty"`
+	FeedCreatedAt      time.Time `json:"feed_created_at,omitempty"`
 }
 
 // VehiclePositionsResponse defines the structure returned by the /vehicle_locations endpoint

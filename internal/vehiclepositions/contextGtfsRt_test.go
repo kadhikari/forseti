@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/connectors"
 	gtfsRt_vehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/stretchr/testify/assert"
@@ -30,6 +31,7 @@ func Test_GetVehiclePositions(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 	date, err := time.ParseInLocation("2006-01-02", "2021-05-25", location)
+	print("*********** ", date.String())
 	require.Nil(err)
 
 	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
@@ -43,16 +45,18 @@ func Test_GetVehiclePositions(t *testing.T) {
 		Speed: 11, Bearing: 274, Route: "1", Trip: "651970", Latitude: 45.398613, Longitude: -71.90111, Occupancy: 0}
 
 	// Call Api without vehiclePositions in the data
-	param := VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651970"}, Date: date}
+	param := VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651970"}, Date: date.UTC()}
 	_, err = gtfsRtContext.GetVehiclePositions(&param)
 	require.NotNil(err)
 	assert.EqualError(err, "no vehicle_locations in the data")
 
 	// Create vehiclePositions from existing data
 	vp := createVehiclePositionFromDataSource(1, vGtfsRt, location)
+	print("###################", vp.Id)
 	gtfsRtContext.vehiclePositions.AddVehiclePosition(vp)
 	require.NotNil(gtfsRtContext.vehiclePositions.vehiclePositions)
 	assert.Equal(len(gtfsRtContext.vehiclePositions.vehiclePositions), 1)
+	//print("\n********", gtfsRtContext.vehiclePositions.vehiclePositions[0].DateTime.String(), "\n")
 
 	// Call Api with vehicle_journey_code
 	vehiclePositions, err := gtfsRtContext.GetVehiclePositions(&param)
@@ -78,7 +82,7 @@ func Test_GetVehiclePositions(t *testing.T) {
 	// Call Api with no existing vehicle_journey_code
 	gtfsRtContext.CleanListVehiclePositions(1 * time.Minute)
 	pVehiclePositions.vehiclePositions = map[int]*VehiclePosition{
-		0: {0, "651970", date, 45.398613, -71.90111, 0, 0}}
+		0: {0, "651970", date, 45.398613, -71.90111, 0, 0, google_transit.VehiclePosition_OccupancyStatus_name[1], date}}
 	param = VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651969"}, Date: date}
 	vehiclePositions, err = gtfsRtContext.GetVehiclePositions(&param)
 	require.Nil(err)
@@ -136,7 +140,9 @@ var vehiclePositionsMap = map[int]*VehiclePosition{
 		Latitude:           45.413333892822266,
 		Longitude:          -71.87944793701172,
 		Bearing:            254,
-		Speed:              10},
+		Speed:              10,
+		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[1],
+		FeedCreatedAt:      time.Now()},
 	2: {
 		Id:                 2,
 		VehicleJourneyCode: "653746",
@@ -144,5 +150,7 @@ var vehiclePositionsMap = map[int]*VehiclePosition{
 		Latitude:           46.993333892822266,
 		Longitude:          -73.87944793701172,
 		Bearing:            120,
-		Speed:              23},
+		Speed:              23,
+		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[1],
+		FeedCreatedAt:      time.Now()},
 }

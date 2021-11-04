@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/CanalTP/forseti/google_transit"
 	gtfsRt_vehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -17,7 +18,8 @@ func Test_NewVehiclePosition(t *testing.T) {
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 
-	vp, err := NewVehiclePosition(651969, "vehicle_journey:STS:651969-1", date, 45.398613, -71.90111, 0, 0)
+	vp, err := NewVehiclePosition(651969, "vehicle_journey:STS:651969-1", date, 45.398613, -71.90111, 0, 0,
+		google_transit.VehiclePosition_OccupancyStatus_name[1], date)
 	assert.Nil(err)
 	require.NotNil(vp)
 }
@@ -54,4 +56,5 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 	assert.Equal(vehiclePositions.vehiclePositions[1].Longitude, float32(-72.0000))
 	assert.Equal(vehiclePositions.vehiclePositions[1].Bearing, float32(254))
 	assert.Equal(vehiclePositions.vehiclePositions[1].Speed, float32(11))
+	assert.Equal(vehiclePositions.vehiclePositions[1].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[0])
 }

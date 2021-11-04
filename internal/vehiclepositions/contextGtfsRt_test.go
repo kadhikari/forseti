@@ -31,7 +31,6 @@ func Test_GetVehiclePositions(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 	date, err := time.ParseInLocation("2006-01-02", "2021-05-25", location)
-	print("*********** ", date.String())
 	require.Nil(err)
 
 	connector, err := ConnectorFactory(string(connectors.Connector_GRFS_RT))
@@ -52,11 +51,9 @@ func Test_GetVehiclePositions(t *testing.T) {
 
 	// Create vehiclePositions from existing data
 	vp := createVehiclePositionFromDataSource(1, vGtfsRt, location)
-	print("###################", vp.Id)
 	gtfsRtContext.vehiclePositions.AddVehiclePosition(vp)
 	require.NotNil(gtfsRtContext.vehiclePositions.vehiclePositions)
 	assert.Equal(len(gtfsRtContext.vehiclePositions.vehiclePositions), 1)
-	//print("\n********", gtfsRtContext.vehiclePositions.vehiclePositions[0].DateTime.String(), "\n")
 
 	// Call Api with vehicle_journey_code
 	vehiclePositions, err := gtfsRtContext.GetVehiclePositions(&param)

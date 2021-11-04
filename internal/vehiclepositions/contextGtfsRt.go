@@ -162,17 +162,14 @@ func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehicleposi
 	location *time.Location) *VehiclePosition {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC().Format("2006-01-02T15:04:05Z")
-	print("DEBUG1: ", date, "\n")
 	d, erro := time.Parse("2006-01-02T15:04:05Z", date)
 	if erro != nil {
-		print("DEBUG_ERR1: ", erro.Error(), "\n")
+		return &VehiclePosition{}
 	}
 	dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", date, location)
 	if err != nil {
-		print("DEBUG_ERR2: ", err.Error(), "\n")
 		return &VehiclePosition{}
 	}
-	print("DEBUG2: ", dateLoc.String(), "\n")
 
 	vp, err := NewVehiclePosition(id, vehicleGtfsRt.Trip, dateLoc, vehicleGtfsRt.Latitude,
 		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed,

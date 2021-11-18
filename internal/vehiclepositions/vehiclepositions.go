@@ -31,16 +31,18 @@ func (d *VehiclePositions) CleanListVehiclePositions(timeCleanVP time.Duration) 
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	cpt := 0
+	dateBefore := time.Now().UTC().Add(-timeCleanVP)
 
 	if d.vehiclePositions != nil {
 		for k, vo := range d.vehiclePositions {
-			if vo.DateTime.Before(time.Now().Add(-timeCleanVP).UTC()) {
+			if vo.FeedCreatedAt.Before(dateBefore) {
 				delete(d.vehiclePositions, k)
 				cpt += 1
 			}
 		}
 	}
 	logrus.Info("*** Number of clean VehiclePositions: ", cpt)
+	logrus.Info("*** Number of VehiclePositions: ", len(d.vehiclePositions))
 }
 
 func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) {

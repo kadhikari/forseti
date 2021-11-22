@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/CanalTP/forseti/google_transit"
 	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
@@ -80,4 +81,5 @@ func Test_VehiclePositionsAPI(t *testing.T) {
 	assert.Equal(response.VehiclePositions[0].Longitude, float32(-71.87944793701172))
 	assert.Equal(response.VehiclePositions[0].Bearing, float32(254))
 	assert.Equal(response.VehiclePositions[0].Speed, float32(10))
+	assert.Equal(response.VehiclePositions[0].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])
 }

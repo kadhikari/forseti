@@ -1,4 +1,4 @@
-package freefloatings
+package fluctuo
 
 import (
 	"bytes"
@@ -9,24 +9,25 @@ import (
 	"time"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
-func LoadFreeFloatingsData(data *data.Data) ([]FreeFloating, error) {
+func LoadFreeFloatingsData(data *data.Data) ([]freefloatings.FreeFloating, error) {
 	// Read response body in json
-	freeFloatings := make([]FreeFloating, 0)
+	freeFloatings := make([]freefloatings.FreeFloating, 0)
 	for i := 0; i < len(data.Data.Area.Vehicles); i++ {
-		freeFloatings = append(freeFloatings, *NewFreeFloating(data.Data.Area.Vehicles[i]))
+		freeFloatings = append(freeFloatings, *freefloatings.NewFreeFloating(data.Data.Area.Vehicles[i]))
 	}
 	return freeFloatings, nil
 }
 
-func ManagefreeFloatingActivation(context *FreeFloatingsContext, freeFloatingsActive bool) {
+func ManagefreeFloatingActivation(context *freefloatings.FreeFloatingsContext, freeFloatingsActive bool) {
 	context.ManageFreeFloatingsStatus(freeFloatingsActive)
 }
 
-func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
+func RefreshFreeFloatingLoop(context *freefloatings.FreeFloatingsContext,
 	freeFloatingsURI url.URL,
 	freeFloatingsToken string,
 	freeFloatingsRefresh,
@@ -36,7 +37,7 @@ func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
 		return
 	}
 
-	context.refreshTime = freeFloatingsRefresh
+	context.RefreshTime = freeFloatingsRefresh
 
 	// Wait 10 seconds before reloading external freefloating informations
 	time.Sleep(10 * time.Second)
@@ -51,7 +52,7 @@ func RefreshFreeFloatingLoop(context *FreeFloatingsContext,
 	}
 }
 
-func RefreshFreeFloatings(context *FreeFloatingsContext,
+func RefreshFreeFloatings(context *freefloatings.FreeFloatingsContext,
 	uri url.URL,
 	token string,
 	connectionTimeout time.Duration) error {
@@ -62,13 +63,13 @@ func RefreshFreeFloatings(context *FreeFloatingsContext,
 	begin := time.Now()
 	resp, err := CallHttpClient(uri.String(), token)
 	if err != nil {
-		FreeFloatingsLoadingErrors.Inc()
+		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		return err
 	}
 
 	err = utils.CheckResponseStatus(resp)
 	if err != nil {
-		FreeFloatingsLoadingErrors.Inc()
+		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		return err
 	}
 
@@ -76,18 +77,18 @@ func RefreshFreeFloatings(context *FreeFloatingsContext,
 	decoder := json.NewDecoder(resp.Body)
 	err = decoder.Decode(data)
 	if err != nil {
-		FreeFloatingsLoadingErrors.Inc()
+		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		return err
 	}
 
 	freeFloatings, err := LoadFreeFloatingsData(data)
 	if err != nil {
-		FreeFloatingsLoadingErrors.Inc()
+		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		return err
 	}
 
 	context.UpdateFreeFloating(freeFloatings)
-	FreeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
+	freefloatings.FreeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }
 

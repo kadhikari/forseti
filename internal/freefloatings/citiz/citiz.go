@@ -15,18 +15,20 @@ import (
 
 type CitizContext struct {
 	connector *connectors.Connector
+	providers []string
 	auth      *utils.OAuthResponse
 	user      string
 	password  string
 }
 
-func (d *CitizContext) InitContext(externalURI url.URL, loadExternalRefresh,
+func (d *CitizContext) InitContext(externalURI url.URL, loadExternalRefresh time.Duration, providers []string,
 	connectionTimeout time.Duration, reloadActive bool, userName, password string) {
 
 	d.connector = connectors.NewConnector(externalURI, externalURI,
 		"kxJNxs3BsPXr6irjLWyeJkoZs8Z7HdKDPeZwlNWugsUue2MJCg7NmjBts-Q8_U-nncBX9VYXDGDXqzX2EtJ7rwZWrKRw6aZENAC2"+
 			"rqa7FPLYfw1Zop5R2-dY4I8fKnleZILU65ClRibSx3qzx2FgnHNaAXJDKcStqqLG8MAOchGFCkm6TbqJtph_PLkcgA7Hxp9iqhOt"+
 			"ko4QVfBLPblJPQ", loadExternalRefresh, connectionTimeout)
+	d.providers = providers
 	d.auth = &utils.OAuthResponse{}
 	d.user = userName
 	d.password = password
@@ -53,7 +55,10 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 	for {
 		err := RefreshFreeFloatings(d, context)
 		if err != nil {
-			logrus.Error("Error while reloading freefloating data: ", err)
+			logrus.Error("Error while reloading freefloating data: ")
+			for _, e := range err {
+				logrus.Error(fmt.Sprintf("\t- %s", e))
+			}
 		} else {
 			logrus.Debug("Free_floating data updated")
 		}
@@ -61,52 +66,70 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 	}
 }
 
-func RefreshFreeFloatings(citizContext *CitizContext, context *freefloatings.FreeFloatingsContext) error {
+func RefreshFreeFloatings(citizContext *CitizContext, context *freefloatings.FreeFloatingsContext) []error {
 	// Continue using last loaded data if loading is deactivated
 	if !context.LoadFreeFloatingsData() {
 		return nil
 	}
 	begin := time.Now()
+	var err []error
 
-	freeFloatings, err := LoadDatafromConnector(citizContext.connector)
-	if err != nil {
+	freeFloatings, e := LoadDatafromConnector(citizContext.connector, citizContext.providers)
+	if e != nil {
 		freefloatings.FreeFloatingsLoadingErrors.Inc()
-		return err
+		err = e
 	}
 
-	context.UpdateFreeFloating(freeFloatings)
+	if len(freeFloatings) > 0 {
+		context.UpdateFreeFloating(freeFloatings)
+	}
+
 	freefloatings.FreeFloatingsLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
+	return err
 }
 
-func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.FreeFloating, error) {
+func LoadDatafromConnector(connector *connectors.Connector,
+	providers []string) ([]freefloatings.FreeFloating, []error) {
+
 	urlPath := connector.GetUrl()
 	token := "Bearer " + connector.GetToken()
-	providerId := 19
-	callUrl := fmt.Sprintf("%s/api/provider/%d/extended-vehicles?refresh=true", urlPath.String(), providerId)
-	resp, err := utils.GetHttpClient(callUrl, token, "Authorization", connector.GetConnectionTimeout())
-	if err != nil {
-		return nil, err
+	freeFloatings := make([]freefloatings.FreeFloating, 0)
+	var err []error
+
+	for _, provider := range providers {
+
+		callUrl := fmt.Sprintf("%s/api/provider/%s/extended-vehicles?refresh=true", urlPath.String(), provider)
+		resp, e := utils.GetHttpClient(callUrl, token, "Authorization", connector.GetConnectionTimeout())
+		if e != nil {
+			freefloatings.FreeFloatingsLoadingErrors.Inc()
+			err = append(err, e)
+			continue
+		}
+
+		e = utils.CheckResponseStatus(resp)
+		if e != nil {
+			freefloatings.FreeFloatingsLoadingErrors.Inc()
+			err = append(err, fmt.Errorf("error with provider %s", provider))
+			continue
+		}
+
+		vehicles := &CitizData{}
+		decoder := json.NewDecoder(resp.Body)
+		e = decoder.Decode(vehicles)
+		if e != nil {
+			freefloatings.FreeFloatingsLoadingErrors.Inc()
+			err = append(err, e)
+			continue
+		}
+
+		vehiclesCitiz := LoadVehiclesData(*vehicles)
+		freeFloatings = append(freeFloatings, vehiclesCitiz...)
+		logrus.Info("Vehicles loaded from provider ", provider)
 	}
 
-	err = utils.CheckResponseStatus(resp)
-	if err != nil {
-		freefloatings.FreeFloatingsLoadingErrors.Inc()
-		return nil, err
-	}
+	logrus.Debug("*** Size of data Citiz: ", len(freeFloatings))
 
-	vehicles := &CitizData{}
-	decoder := json.NewDecoder(resp.Body)
-	err = decoder.Decode(vehicles)
-	if err != nil {
-		freefloatings.FreeFloatingsLoadingErrors.Inc()
-		return nil, err
-	}
-
-	vehiclesCitiz := LoadVehiclesData(*vehicles)
-	logrus.Debug("*** Size of data Citiz: ", len(vehiclesCitiz))
-
-	return vehiclesCitiz, nil
+	return freeFloatings, err
 }
 
 func LoadVehiclesData(vehiclesData CitizData) []freefloatings.FreeFloating {

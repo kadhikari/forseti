@@ -38,13 +38,14 @@ type Config struct {
 	EquipmentsRefresh time.Duration `mapstructure:"equipments-refresh"`
 	EquipmentsURI     url.URL
 
-	FreeFloatingsURIStr   string        `mapstructure:"free-floatings-uri"`
-	FreeFloatingsRefresh  time.Duration `mapstructure:"free-floatings-refresh"`
-	FreeFloatingsURI      url.URL
-	FreeFloatingsToken    string `mapstructure:"free-floatings-token"`
-	FreeFloatingsType     string `mapstructure:"free-floatings-type"`
-	FreeFloatingsUserName string `mapstructure:"free-floatings-username"`
-	FreeFloatingsPassword string `mapstructure:"free-floatings-password"`
+	FreeFloatingsURIStr    string        `mapstructure:"free-floatings-uri"`
+	FreeFloatingsRefresh   time.Duration `mapstructure:"free-floatings-refresh"`
+	FreeFloatingsURI       url.URL
+	FreeFloatingsToken     string   `mapstructure:"free-floatings-token"`
+	FreeFloatingsType      string   `mapstructure:"free-floatings-type"`
+	FreeFloatingsUserName  string   `mapstructure:"free-floatings-username"`
+	FreeFloatingsPassword  string   `mapstructure:"free-floatings-password"`
+	FreeFloatingsProviders []string `mapstructure:"free-floatings-providers"`
 
 	OccupancyFilesURIStr   string `mapstructure:"occupancy-files-uri"`
 	OccupancyFilesURI      url.URL
@@ -112,6 +113,7 @@ func GetConfig() (Config, error) {
 	pflag.String("free-floatings-type", "fluctuo", "connector type to load data source")
 	pflag.String("free-floatings-username", "", "username for getting API access tokens")
 	pflag.String("free-floatings-password", "", "password for getting API access tokens")
+	pflag.String("free-floatings-providers", "", "list of providers to get data \nexample: 19,127,392")
 
 	//Passing configurations for vehicle_occupancies
 	pflag.String("occupancy-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -252,8 +254,9 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 		citiz.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
 
-		c.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.ConnectionTimeout,
-			config.FreeFloatingsActive, config.FreeFloatingsUserName, config.FreeFloatingsPassword)
+		c.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.FreeFloatingsProviders,
+			config.ConnectionTimeout, config.FreeFloatingsActive, config.FreeFloatingsUserName,
+			config.FreeFloatingsPassword)
 
 		go c.RefreshFreeFloatingLoop(freeFloatingsContext)
 

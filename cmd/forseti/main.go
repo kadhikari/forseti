@@ -11,6 +11,7 @@ import (
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/equipments"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/freefloatings/fluctuo"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
@@ -40,6 +41,7 @@ type Config struct {
 	FreeFloatingsRefresh time.Duration `mapstructure:"free-floatings-refresh"`
 	FreeFloatingsURI     url.URL
 	FreeFloatingsToken   string `mapstructure:"free-floatings-token"`
+	FreeFloatingsType    string `mapstructure:"free-floatings-type"`
 
 	OccupancyFilesURIStr   string `mapstructure:"occupancy-files-uri"`
 	OccupancyFilesURI      url.URL
@@ -86,19 +88,25 @@ func noneOf(args ...string) bool {
 }
 
 func GetConfig() (Config, error) {
+	//Passing configurations for departures
 	pflag.String("departures-uri", "",
 		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt")
 	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
-	pflag.String("parkings-uri", "",
-		"format: [scheme:][//[userinfo@]host][/]path")
+
+	//Passing configurations for parkings
+	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("parkings-refresh", 30*time.Second, "time between refresh of parkings data")
-	pflag.String("equipments-uri", "",
-		"format: [scheme:][//[userinfo@]host][/]path")
+
+	//Passing configurations for equipments
+	pflag.String("equipments-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
+
+	//Passing configurations for free-floatings
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")
-	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctéo data")
+	pflag.Duration("free-floatings-refresh", 30*time.Second, "time between refresh of vehicles in Fluctuo data")
+	pflag.String("free-floatings-type", "fluctuo", "connector type to load data source")
 
 	//Passing configurations for vehicle_occupancies
 	pflag.String("occupancy-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -124,6 +132,7 @@ func GetConfig() (Config, error) {
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
 	pflag.String("connector-type", "oditi", "connector type to load data source")
 
+	//Passing globals configurations
 	pflag.Duration("connection-timeout", 10*time.Second, "timeout to establish the ssh connection")
 	pflag.Bool("json-log", false, "enable json logging")
 	pflag.String("log-level", "debug", "log level: debug, info, warn, error")
@@ -233,9 +242,9 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
 
 	// Manage activation of the periodic refresh of Fluctuo data
-	freefloatings.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
+	fluctuo.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
 
-	go freefloatings.RefreshFreeFloatingLoop(freeFloatingsContext,
+	go fluctuo.RefreshFreeFloatingLoop(freeFloatingsContext,
 		config.FreeFloatingsURI,
 		config.FreeFloatingsToken,
 		config.FreeFloatingsRefresh,

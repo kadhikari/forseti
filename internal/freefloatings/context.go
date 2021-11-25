@@ -16,7 +16,7 @@ type FreeFloatingsContext struct {
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
 	loadFreeFloatingData   bool
-	refreshTime            time.Duration
+	RefreshTime            time.Duration
 }
 
 func (d *FreeFloatingsContext) ManageFreeFloatingsStatus(activate bool) {
@@ -50,7 +50,7 @@ func (d *FreeFloatingsContext) GetLastFreeFloatingsDataUpdate() time.Time {
 func (d *FreeFloatingsContext) GetRereshTime() string {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
-	return d.refreshTime.String()
+	return d.RefreshTime.String()
 }
 
 //nolint

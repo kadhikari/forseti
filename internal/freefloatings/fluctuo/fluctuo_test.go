@@ -1,4 +1,4 @@
-package freefloatings
+package fluctuo
 
 import (
 	"encoding/json"
@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/CanalTP/forseti/internal/data"
+	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
@@ -49,11 +50,11 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	freeFloatings, err := LoadFreeFloatingsData(data)
 	require.Nil(err)
 
-	freeFloatingsContext := &FreeFloatingsContext{}
+	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 
 	freeFloatingsContext.UpdateFreeFloating(freeFloatings)
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
-	AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
+	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 
 	// Request without any parameter (coord is mandatory)
 	c.Request = httptest.NewRequest("GET", "/free_floatings", nil)
@@ -61,7 +62,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	router.ServeHTTP(w, c.Request)
 	require.Equal(503, w.Code)
 
-	var response FreeFloatingsResponse
+	var response freefloatings.FreeFloatingsResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.Nil(err)
 	assert.Len(response.FreeFloatings, 0)
@@ -84,7 +85,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(74.0, response.FreeFloatings[2].Distance)
 
 	// Request with coord, count in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=2", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -103,7 +104,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(3, response.Paginate.Total_result)
 
 	// Request with coord, type[] in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&type[]=BIKE&type[]=toto", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -130,7 +131,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(1, response.Paginate.Total_result)
 
 	// At last a test to verify distance of the only element.
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -148,7 +149,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(3, response.Paginate.Total_result)
 
 	// Request with coord, count and start_page in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=2&start_page=0", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -166,7 +167,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(3, response.Paginate.Total_result)
 
 	// Request with coord, count and start_page in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&count=2&start_page=1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -183,7 +184,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(3, response.Paginate.Total_result)
 
 	// Request with coord, count and start_page in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET",
 		"/free_floatings?coord=2.37715%3B48.846781&distance=2&start_page=1&count=1", nil)
 	w = httptest.NewRecorder()
@@ -200,7 +201,7 @@ func TestFreeFloatingsAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(0, response.Paginate.Total_result)
 
 	// Request with coord, count and start_page in parameter
-	response = FreeFloatingsResponse{}
+	response = freefloatings.FreeFloatingsResponse{}
 	c.Request = httptest.NewRequest("GET", "/free_floatings?coord=2.37715%3B48.846781&start_page=-1&count=1", nil)
 	w = httptest.NewRecorder()
 	router.ServeHTTP(w, c.Request)
@@ -256,7 +257,7 @@ func TestNewFreeFloating(t *testing.T) {
 	provider := data.ProviderNode{Name: "Pony"}
 	ff := data.Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
 		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
-	f := NewFreeFloating(ff)
+	f := freefloatings.NewFreeFloating(ff)
 	require.NotNil(f)
 
 	assert.Equal("NSCBH3", f.PublicId)
@@ -274,13 +275,13 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
 
-	freeFloatingsContext := &FreeFloatingsContext{}
+	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 
 	p1 := data.ProviderNode{Name: "Pony"}
 	p2 := data.ProviderNode{Name: "Tier"}
 
 	vehicles := make([]data.Vehicle, 0)
-	freeFloatings := make([]FreeFloating, 0)
+	freeFloatings := make([]freefloatings.FreeFloating, 0)
 	v := data.Vehicle{PublicId: "NSCBH3", Provider: p1, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
 		Latitude: 48.847232, Longitude: 2.377601, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test1"}
 	vehicles = append(vehicles, v)
@@ -292,15 +293,15 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	vehicles = append(vehicles, v)
 
 	for _, vehicle := range vehicles {
-		freeFloatings = append(freeFloatings, *NewFreeFloating(vehicle))
+		freeFloatings = append(freeFloatings, *freefloatings.NewFreeFloating(vehicle))
 	}
 	freeFloatingsContext.UpdateFreeFloating(freeFloatings)
 	// init parameters:
-	types := make([]FreeFloatingType, 0)
-	types = append(types, StationType)
-	types = append(types, ScooterType)
-	coord := Coord{Lat: 48.846781, Lon: 2.37715}
-	p := FreeFloatingRequestParameter{Distance: 500, Coord: coord, Count: 10, Types: types}
+	types := make([]freefloatings.FreeFloatingType, 0)
+	types = append(types, freefloatings.StationType)
+	types = append(types, freefloatings.ScooterType)
+	coord := freefloatings.Coord{Lat: 48.846781, Lon: 2.37715}
+	p := freefloatings.FreeFloatingRequestParameter{Distance: 500, Coord: coord, Count: 10, Types: types}
 	free_floatings, paginate_freefloatings, err := freeFloatingsContext.GetFreeFloatings(&p)
 	require.Nil(err)
 	require.NotNil(paginate_freefloatings)

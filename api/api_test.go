@@ -18,6 +18,7 @@ import (
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/departures"
 	"github.com/CanalTP/forseti/internal/freefloatings"
+	"github.com/CanalTP/forseti/internal/freefloatings/fluctuo"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
@@ -250,7 +251,7 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	err = json.Unmarshal([]byte(jsonData), data)
 	require.Nil(err)
 
-	freeFloatings, err := freefloatings.LoadFreeFloatingsData(data)
+	freeFloatings, err := fluctuo.LoadFreeFloatingsData(data)
 	require.Nil(err)
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}

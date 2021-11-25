@@ -11,6 +11,8 @@ type ConnectorType string
 const (
 	Connector_GRFS_RT ConnectorType = "gtfsrt"
 	Connector_ODITI   ConnectorType = "oditi"
+	Connector_FLUCTUO ConnectorType = "fluctuo"
+	Connector_CITIZ   ConnectorType = "citiz"
 )
 
 type Connector struct {
@@ -39,6 +41,12 @@ func (d *Connector) GetToken() string {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	return d.token
+}
+
+func (d *Connector) SetToken(tocken string) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.token = tocken
 }
 
 func (d *Connector) GetHeader() string {

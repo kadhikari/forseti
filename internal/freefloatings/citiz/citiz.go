@@ -41,17 +41,18 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 	context.SetPackageName(reflect.TypeOf(CitizContext{}).PkgPath())
 	context.RefreshTime = d.connector.GetRefreshTime()
 
-	if d.auth.Token == "" || tokenExpired() {
-		auth, err := utils.GetAuthToken(d.connector.GetUrl(), d.user, d.password, d.connector.GetConnectionTimeout())
-		if err != nil {
-			return
-		}
-		d.auth = auth
-	}
-
 	// Wait 10 seconds before reloading external freefloating informations
 	time.Sleep(10 * time.Second)
 	for {
+
+		if d.auth.Token == "" || tokenExpired() {
+			auth, err := utils.GetAuthToken(d.connector.GetUrl(), d.user, d.password, d.connector.GetConnectionTimeout())
+			if err != nil {
+				return
+			}
+			d.auth = auth
+		}
+
 		err := RefreshFreeFloatings(d, context)
 		if err != nil {
 			logrus.Error("Error while reloading freefloating data: ")

@@ -155,7 +155,7 @@ func NewCitiz(ve Vehicles) *freefloatings.FreeFloating {
 		Propulsion:   getPropulsion(ve.ElectricEngine),
 		Attributes:   []string{getPropulsion((ve.ElectricEngine))},
 		Distance:     float64(ve.KmTotal),
-		Parameters: map[string]string{
+		Properties: map[string]string{
 			"category":       ve.Category,
 			"externalRemark": ve.ExternalRemark,
 		},

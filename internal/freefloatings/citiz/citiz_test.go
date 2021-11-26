@@ -94,7 +94,7 @@ func TestNewFreeFloating(t *testing.T) {
 	assert.Equal(48.118404388427734, f.Coord.Lat)
 	assert.Equal(-1.6892282962799072, f.Coord.Lon)
 	assert.Equal("ELECTRIC", f.Propulsion)
-	assert.Equal("M", f.Parameters["category"])
+	assert.Equal("M", f.Properties["category"])
 }
 
 func TestDataManagerGetFreeFloatings(t *testing.T) {

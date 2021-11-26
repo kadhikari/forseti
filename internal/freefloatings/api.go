@@ -57,7 +57,7 @@ type FreeFloating struct {
 	Deeplink     string            `json:"deeplink,omitempty"`
 	Attributes   []string          `json:"attributes,omitempty"`
 	Distance     float64           `json:"distance,omitempty"`
-	Parameters   map[string]string `json:"parameters,omitempty"`
+	Properties   map[string]string `json:"properties,omitempty"`
 }
 
 type FreeFloatingType int

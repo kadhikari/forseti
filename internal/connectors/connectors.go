@@ -43,10 +43,10 @@ func (d *Connector) GetToken() string {
 	return d.token
 }
 
-func (d *Connector) SetToken(tocken string) {
+func (d *Connector) SetToken(token string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	d.token = tocken
+	d.token = token
 }
 
 func (d *Connector) GetHeader() string {

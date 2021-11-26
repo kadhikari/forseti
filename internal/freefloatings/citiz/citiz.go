@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
+	"reflect"
 	"strconv"
 	"time"
 
@@ -15,19 +16,16 @@ import (
 
 type CitizContext struct {
 	connector *connectors.Connector
-	providers []string
+	providers []string // list of providers to get vehicles free-floatings
 	auth      *utils.OAuthResponse
-	user      string
-	password  string
+	user      string // user to get token
+	password  string // password to get token
 }
 
 func (d *CitizContext) InitContext(externalURI url.URL, loadExternalRefresh time.Duration, providers []string,
 	connectionTimeout time.Duration, reloadActive bool, userName, password string) {
 
-	d.connector = connectors.NewConnector(externalURI, externalURI,
-		"kxJNxs3BsPXr6irjLWyeJkoZs8Z7HdKDPeZwlNWugsUue2MJCg7NmjBts-Q8_U-nncBX9VYXDGDXqzX2EtJ7rwZWrKRw6aZENAC2"+
-			"rqa7FPLYfw1Zop5R2-dY4I8fKnleZILU65ClRibSx3qzx2FgnHNaAXJDKcStqqLG8MAOchGFCkm6TbqJtph_PLkcgA7Hxp9iqhOt"+
-			"ko4QVfBLPblJPQ", loadExternalRefresh, connectionTimeout)
+	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
 	d.providers = providers
 	d.auth = &utils.OAuthResponse{}
 	d.user = userName
@@ -40,6 +38,7 @@ func ManagefreeFloatingActivation(context *freefloatings.FreeFloatingsContext, f
 
 func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloatingsContext) {
 
+	context.SetPackageName(reflect.TypeOf(CitizContext{}).PkgPath())
 	context.RefreshTime = d.connector.GetRefreshTime()
 
 	if d.auth.Token == "" || tokenExpired() {
@@ -145,7 +144,7 @@ func tokenExpired() bool {
 	return false
 }
 
-// NewFreeFloating creates a new FreeFloating object from the object Vehicle
+// NewCitiz creates a new FreeFloating object from the object Vehicle
 func NewCitiz(ve Vehicles) *freefloatings.FreeFloating {
 	return &freefloatings.FreeFloating{
 		PublicId:     ve.LicencePlate,

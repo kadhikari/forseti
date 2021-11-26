@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,6 +17,7 @@ type FreeFloatingsContext struct {
 	lastFreeFloatingUpdate time.Time
 	freeFloatingsMutex     sync.RWMutex
 	loadFreeFloatingData   bool
+	packageName            string
 	RefreshTime            time.Duration
 }
 
@@ -51,6 +53,21 @@ func (d *FreeFloatingsContext) GetRereshTime() string {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
 	return d.RefreshTime.String()
+}
+
+func (d *FreeFloatingsContext) GetPackageName() string {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+	return d.packageName
+}
+
+func (d *FreeFloatingsContext) SetPackageName(pathPackage string) {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	paths := strings.Split(pathPackage, "/")
+	size := len(paths)
+	d.packageName = paths[size-1]
 }
 
 //nolint

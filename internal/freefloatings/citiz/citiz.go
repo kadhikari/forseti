@@ -51,6 +51,7 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 				return
 			}
 			d.auth = auth
+			d.connector.SetToken(auth.Token)
 		}
 
 		err := RefreshFreeFloatings(d, context)

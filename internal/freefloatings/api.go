@@ -47,16 +47,17 @@ func AddFreeFloatingsEntryPoint(r *gin.Engine, context *FreeFloatingsContext) {
 }
 
 type FreeFloating struct {
-	PublicId     string   `json:"public_id,omitempty"`
-	ProviderName string   `json:"provider_name,omitempty"`
-	Id           string   `json:"id,omitempty"`
-	Type         string   `json:"type,omitempty"`
-	Coord        Coord    `json:"coord,omitempty"`
-	Propulsion   string   `json:"propulsion,omitempty"`
-	Battery      int      `json:"battery,omitempty"`
-	Deeplink     string   `json:"deeplink,omitempty"`
-	Attributes   []string `json:"attributes,omitempty"`
-	Distance     float64  `json:"distance,omitempty"`
+	PublicId     string            `json:"public_id,omitempty"`
+	ProviderName string            `json:"provider_name,omitempty"`
+	Id           string            `json:"id,omitempty"`
+	Type         string            `json:"type,omitempty"`
+	Coord        Coord             `json:"coord,omitempty"`
+	Propulsion   string            `json:"propulsion,omitempty"`
+	Battery      int               `json:"battery,omitempty"`
+	Deeplink     string            `json:"deeplink,omitempty"`
+	Attributes   []string          `json:"attributes,omitempty"`
+	Distance     float64           `json:"distance,omitempty"`
+	Properties   map[string]string `json:"properties,omitempty"`
 }
 
 type FreeFloatingType int

@@ -23,6 +23,7 @@ import (
 )
 
 type LoadingStatus struct {
+	Source        string    `json:"source"`
 	RefreshActive bool      `json:"refresh_active"`
 	RefreshTime   string    `json:"refresh_data"`
 	LastUpdate    time.Time `json:"last_update"`
@@ -65,6 +66,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var lastFreeFloatingsDataUpdate time.Time
 		var loadFreeFloatingData bool = false
 		var refreshFreeFloatingData string
+		var freeFloatingsSource string
 		if manager.GetFreeFloatingsContext() != nil {
 			// manage freefloating activation /status?free_floatings=true or false
 			freeFloatingStatus := c.Query("free_floatings")
@@ -72,6 +74,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 				toActive, _ := strconv.ParseBool(freeFloatingStatus)
 				manager.GetFreeFloatingsContext().ManageFreeFloatingsStatus(toActive)
 			}
+			freeFloatingsSource = manager.GetFreeFloatingsContext().GetPackageName()
 			lastFreeFloatingsDataUpdate = manager.GetFreeFloatingsContext().GetLastFreeFloatingsDataUpdate()
 			loadFreeFloatingData = manager.GetFreeFloatingsContext().LoadFreeFloatingsData()
 			refreshFreeFloatingData = manager.GetFreeFloatingsContext().GetRereshTime()
@@ -128,9 +131,9 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastDeparturesDataUpdate,
 			lastParkingsDataUpdate,
 			lastEquipmentDataUpdate,
-			LoadingStatus{loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
-			LoadingStatus{loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
-			LoadingStatus{loadVehiclePositionsData, refreshVehiclePositionsData, lastVehiclePositionsDataUpdate},
+			LoadingStatus{freeFloatingsSource, loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
+			LoadingStatus{"", loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
+			LoadingStatus{"", loadVehiclePositionsData, refreshVehiclePositionsData, lastVehiclePositionsDataUpdate},
 		})
 	}
 }

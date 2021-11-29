@@ -23,17 +23,13 @@ type CitizContext struct {
 }
 
 func (d *CitizContext) InitContext(externalURI url.URL, loadExternalRefresh time.Duration, providers []string,
-	connectionTimeout time.Duration, reloadActive bool, userName, password string) {
+	connectionTimeout time.Duration, userName, password string) {
 
 	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
 	d.providers = providers
 	d.auth = &utils.OAuthResponse{}
 	d.user = userName
 	d.password = password
-}
-
-func ManagefreeFloatingActivation(context *freefloatings.FreeFloatingsContext, freeFloatingsActive bool) {
-	context.ManageFreeFloatingsStatus(freeFloatingsActive)
 }
 
 func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloatingsContext) {

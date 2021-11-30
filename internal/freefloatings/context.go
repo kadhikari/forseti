@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/utils"
 )
 
@@ -123,18 +122,3 @@ type ByDistance []FreeFloating
 func (ff ByDistance) Len() int           { return len(ff) }
 func (ff ByDistance) Less(i, j int) bool { return ff[i].Distance < ff[j].Distance }
 func (ff ByDistance) Swap(i, j int)      { ff[i], ff[j] = ff[j], ff[i] }
-
-// NewFreeFloating creates a new FreeFloating object from the object Vehicle
-func NewFreeFloating(ve data.Vehicle) *FreeFloating {
-	return &FreeFloating{
-		PublicId:     ve.PublicId,
-		ProviderName: ve.Provider.Name,
-		Id:           ve.Id,
-		Type:         ve.Type,
-		Coord:        Coord{Lat: ve.Latitude, Lon: ve.Longitude},
-		Propulsion:   ve.Propulsion,
-		Battery:      ve.Battery,
-		Deeplink:     ve.Deeplink,
-		Attributes:   ve.Attributes,
-	}
-}

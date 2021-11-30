@@ -256,8 +256,8 @@ func TestNewFreeFloating(t *testing.T) {
 	assert := assert.New(t)
 	provider := data.ProviderNode{Name: "Pony"}
 	ff := data.Vehicle{PublicId: "NSCBH3", Provider: provider, Id: "cG9ueTpCSUtFOjEwMDQ0MQ", Type: "BIKE",
-		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test"}
-	f := freefloatings.NewFreeFloating(ff)
+		Latitude: 45.180335, Longitude: 5.7069425, Propulsion: "ASSIST", Battery: 85, Deeplink: "http://test2"}
+	f := NewFluctuo(ff)
 	require.NotNil(f)
 
 	assert.Equal("NSCBH3", f.PublicId)
@@ -268,7 +268,7 @@ func TestNewFreeFloating(t *testing.T) {
 	assert.Equal(5.7069425, f.Coord.Lon)
 	assert.Equal("ASSIST", f.Propulsion)
 	assert.Equal(85, f.Battery)
-	assert.Equal("http://test", f.Deeplink)
+	assert.Equal("http://test2", f.Deeplink)
 }
 
 func TestDataManagerGetFreeFloatings(t *testing.T) {
@@ -293,7 +293,7 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	vehicles = append(vehicles, v)
 
 	for _, vehicle := range vehicles {
-		freeFloatings = append(freeFloatings, *freefloatings.NewFreeFloating(vehicle))
+		freeFloatings = append(freeFloatings, *NewFluctuo(vehicle))
 	}
 	freeFloatingsContext.UpdateFreeFloating(freeFloatings)
 	// init parameters:

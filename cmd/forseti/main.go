@@ -248,24 +248,23 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
+	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
 	if config.FreeFloatingsType == string(connectors.Connector_CITIZ) {
 		var c = citiz.CitizContext{}
 
-		citiz.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
-
 		c.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.FreeFloatingsProviders,
-			config.ConnectionTimeout, config.FreeFloatingsActive, config.FreeFloatingsUserName,
-			config.FreeFloatingsPassword)
+			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword)
 
 		go c.RefreshFreeFloatingLoop(freeFloatingsContext)
 
 	} else if config.FreeFloatingsType == string(connectors.Connector_FLUCTUO) {
+		var f = fluctuo.FluctuoContext{}
 
-		fluctuo.ManagefreeFloatingActivation(freeFloatingsContext, config.FreeFloatingsActive)
+		f.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.FreeFloatingsToken,
+			config.ConnectionTimeout)
 
-		go fluctuo.RefreshFreeFloatingLoop(freeFloatingsContext, config.FreeFloatingsURI, config.FreeFloatingsToken,
-			config.FreeFloatingsRefresh, config.ConnectionTimeout)
+		go f.RefreshFreeFloatingLoop(freeFloatingsContext)
 	}
 }
 

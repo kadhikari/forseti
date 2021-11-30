@@ -11,8 +11,6 @@ Run Forseti and call `http://forseti:port/free_floatings`
 
 Input parameters to inform Forseti:
 
-   --free-floatings-type citiz --free-floatings-providers 19,127,111,8
-
 - `--free-floatings-uri` The path to api free-floatings to get vehicles (Required)
 - `--free-floatings-token` The token external service (Required)
 - `--free-floatings-refresh` The refresh time between 2 readings (Required)

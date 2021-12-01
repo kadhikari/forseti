@@ -41,11 +41,12 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 	time.Sleep(10 * time.Second)
 	for {
 
-		if d.auth.Token == "" || tokenExpired() {
+		if d.auth.Token == "" || tokenExpired(d.auth.Expire_in) {
 			auth, err := utils.GetAuthToken(d.connector.GetUrl(), d.user, d.password, d.connector.GetConnectionTimeout())
 			if err != nil {
 				return
 			}
+			auth.Expire_in = int(time.Now().Add(1 * time.Hour).Unix()) // Just for beta test
 			d.auth = auth
 			d.connector.SetToken(auth.Token)
 		}
@@ -137,9 +138,8 @@ func LoadVehiclesData(vehiclesData CitizData) []freefloatings.FreeFloating {
 	return vehicles
 }
 
-func tokenExpired() bool {
-	// TODO: verify expire_in from authentication
-	return false
+func tokenExpired(expireIn int) bool {
+	return int(time.Now().Unix()) > expireIn
 }
 
 // NewCitiz creates a new FreeFloating object from the object Vehicle

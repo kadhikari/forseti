@@ -46,35 +46,42 @@ func TestLoadFreeFloatingsFromFile(t *testing.T) {
 
 	require.Nil(err)
 	assert.NotEqual(len(freeFloatings), 0)
-	assert.Len(freeFloatings, 6)
+	assert.Len(freeFloatings, 5)
 	assert.NotEmpty(freeFloatings[0].Id)
-	assert.Equal("FG-034-YP", freeFloatings[0].PublicId)
+	assert.Equal("EF-629-RY", freeFloatings[0].PublicId)
 	assert.Equal("Citiz", freeFloatings[0].ProviderName)
-	assert.Equal("3842", freeFloatings[0].Id)
+	assert.Equal("2842", freeFloatings[0].Id)
 	assert.Equal("CAR", freeFloatings[0].Type)
 	assert.Equal("COMBUSTION", freeFloatings[0].Propulsion)
-	assert.Equal(48.109989166259766, freeFloatings[0].Coord.Lat)
-	assert.Equal(-1.6804883480072021, freeFloatings[0].Coord.Lon)
+	assert.Equal(47.386802673339844, freeFloatings[0].Coord.Lat)
+	assert.Equal(0.6914299726486206, freeFloatings[0].Coord.Lon)
 	assert.Equal([]string{"COMBUSTION"}, freeFloatings[0].Attributes)
+}
+
+func TestLoadCitizFromFile(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	uri, err := url.Parse(fmt.Sprintf("file://%s/citiz.json", fixtureDir))
+	require.Nil(err)
+
+	citiz, err := ReadCitizFile(*uri)
+	require.Nil(err)
+	assert.Len(citiz, 2)
+	assert.Equal("rennes", citiz[0].City)
+	assert.Equal("tours", citiz[1].City)
+	assert.Equal(int32(2000), citiz[0].Radius)
+	assert.Equal(int32(500), citiz[1].Radius)
 }
 
 func TestNewFreeFloating(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)
-	ff := Vehicles{
-		LocationId:       1428,
-		LocationName:     "Anatole France",
-		LocationCityId:   313,
-		LocationCity:     "Rennes",
-		CategoryId:       219,
-		InternalRemark:   "",
-		KmTotal:          44604,
-		AffectationStart: "2021-02-02T09:00:00",
-		AffectationEnd:   "2050-12-30T23:00:00",
-		VehiculeId:       3817,
-		ProviderId:       19,
-		Name:             "208 - 020 (M)",
-		LicencePlate:     "FG-020-PN",
+	ff := Vehicle{
+		VehiculeId:   3817,
+		ProviderId:   19,
+		Name:         "208 - 020 (M)",
+		LicencePlate: "FG-020-PN",
 		ExternalRemark: "Véhicule essence (SP95/E10) Boite manuelle\n5 portes - 5 places - GPS - limatisation\n" +
 			"Station sans Arceau de parking\nCapacité du réservoir : 50 itres\nConsommation moyenne : 4,9L/100km",
 		IsFreeFloating: false,
@@ -103,10 +110,10 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 
-	vehicles := make([]Vehicles, 0)
+	vehicles := make([]Vehicle, 0)
 	freeFloatings := make([]freefloatings.FreeFloating, 0)
 
-	v := Vehicles{
+	v := Vehicle{
 		VehiculeId:     3817,
 		ProviderId:     19,
 		LicencePlate:   "FG-020-PN",
@@ -118,7 +125,7 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	}
 	vehicles = append(vehicles, v)
 
-	v = Vehicles{
+	v = Vehicle{
 		VehiculeId:     3814,
 		ProviderId:     19,
 		LicencePlate:   "FG-050-PN",
@@ -130,11 +137,11 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	}
 	vehicles = append(vehicles, v)
 
-	v = Vehicles{
+	v = Vehicle{
 		VehiculeId:     3829,
 		ProviderId:     19,
 		LicencePlate:   "FG-335-PN",
-		IsFreeFloating: false,
+		IsFreeFloating: true,
 		ElectricEngine: false,
 		Category:       "M",
 		GpsLatitude:    48.110034942626953,
@@ -159,4 +166,5 @@ func TestDataManagerGetFreeFloatings(t *testing.T) {
 	assert.Equal("CAR", free_floatings[0].Type)
 	assert.Equal("FG-335-PN", free_floatings[1].PublicId)
 	assert.Equal("3829", free_floatings[1].Id)
+	assert.Equal("Yea", free_floatings[1].ProviderName)
 }

@@ -11,6 +11,7 @@ Run Forseti and call `http://forseti:port/free_floatings`
 
 Input parameters to inform Forseti:
 
+- `--free-floatings-files-uri` The files Path to read cities coord (Required)
 - `--free-floatings-uri` The path to api free-floatings to get vehicles (Required)
 - `--free-floatings-token` The token external service (Required)
 - `--free-floatings-refresh` The refresh time between 2 readings (Required)
@@ -21,6 +22,6 @@ Input parameters to inform Forseti:
 Exemple:
 
 ```
-./forseti --free-floatings-uri "https://path/to/external_service" --free-floatings-refresh=100s 
+./forseti --free-floatings-files-uri file:///path/to/extract_citiz.json --free-floatings-uri "https://path/to/external_service" --free-floatings-refresh=100s 
 --free-floatings-refresh-active true --free-floatings-type <type_free_floqtings> --free-floatings-providers 19,127,8
 ```

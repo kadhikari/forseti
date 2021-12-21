@@ -112,6 +112,7 @@ func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.Fre
 		if e != nil {
 			freefloatings.FreeFloatingsLoadingErrors.Inc()
 			err = append(err, fmt.Errorf("error with provider %s", c.City))
+			continue
 		}
 
 		data := &CitizData{}
@@ -120,6 +121,7 @@ func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.Fre
 		if e != nil {
 			freefloatings.FreeFloatingsLoadingErrors.Inc()
 			err = append(err, e)
+			continue
 		}
 
 		vehiclesCitiz := LoadVehiclesData(*data)

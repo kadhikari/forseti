@@ -90,6 +90,19 @@ func (d *GtfsRtContext) GetRereshTime() string {
 
 /********* PRIVATE FUNCTIONS *********/
 
+func getNextKey(context *GtfsRtContext) int {
+	if len(context.vehiclePositions.vehiclePositions) == 0 {
+		return 0
+	}
+	newKey := -1
+	for key, _ := range context.vehiclePositions.vehiclePositions {
+		if key > newKey {
+			newKey = key
+		}
+	}
+	return newKey + 1
+}
+
 func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Connector) error {
 	begin := time.Now()
 	timeCleanVP := start.Add(context.cleanVp)
@@ -119,7 +132,7 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 			}
 		}
 		if !vehiclePositionFind {
-			newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1,
+			newVehiclePosition := createVehiclePositionFromDataSource(getNextKey(context),
 				vehGtfsRT, context.location)
 			if newVehiclePosition != nil {
 				context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
@@ -134,7 +147,7 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 				}
 			}
 			if !stopCodeFind {
-				newVehiclePosition := createVehiclePositionFromDataSource(len(context.vehiclePositions.vehiclePositions)-1,
+				newVehiclePosition := createVehiclePositionFromDataSource(getNextKey(context),
 					vehGtfsRT, context.location)
 				if newVehiclePosition != nil {
 					context.vehiclePositions.AddVehiclePosition(newVehiclePosition)

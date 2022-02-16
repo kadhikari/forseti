@@ -95,7 +95,7 @@ func getNextKey(context *GtfsRtContext) int {
 		return 0
 	}
 	newKey := -1
-	for key, _ := range context.vehiclePositions.vehiclePositions {
+	for key := range context.vehiclePositions.vehiclePositions {
 		if key > newKey {
 			newKey = key
 		}

@@ -14,7 +14,7 @@ import (
 // Structure and Consumer to creates Vehicle locations objects
 ------------------------------------------------------------- */
 type VehiclePositions struct {
-	vehiclePositions           map[int]*VehiclePosition
+	vehiclePositions           map[string]*VehiclePosition
 	lastVehiclePositionsUpdate time.Time
 	loadOccupancyData          bool
 	mutex                      sync.RWMutex
@@ -50,27 +50,26 @@ func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) 
 	defer d.mutex.Unlock()
 
 	if d.vehiclePositions == nil {
-		d.vehiclePositions = map[int]*VehiclePosition{}
+		d.vehiclePositions = map[string]*VehiclePosition{}
 	}
 
-	d.vehiclePositions[vehiclelocation.Id] = vehiclelocation
+	d.vehiclePositions[vehiclelocation.VehicleJourneyCode] = vehiclelocation
 	d.lastVehiclePositionsUpdate = time.Now().UTC()
 }
 
-func (d *VehiclePositions) UpdateVehiclePosition(idx int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
-	location *time.Location) {
+func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt, location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	if d.vehiclePositions == nil {
 		return
 	}
 
-	d.vehiclePositions[idx].Latitude = vehicleGtfsRt.Latitude
-	d.vehiclePositions[idx].Longitude = vehicleGtfsRt.Longitude
-	d.vehiclePositions[idx].Bearing = vehicleGtfsRt.Bearing
-	d.vehiclePositions[idx].Speed = vehicleGtfsRt.Speed
-	d.vehiclePositions[idx].Occupancy = google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
-	d.vehiclePositions[idx].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
+	d.vehiclePositions[vehicleGtfsRt.Trip].Latitude = vehicleGtfsRt.Latitude
+	d.vehiclePositions[vehicleGtfsRt.Trip].Longitude = vehicleGtfsRt.Longitude
+	d.vehiclePositions[vehicleGtfsRt.Trip].Bearing = vehicleGtfsRt.Bearing
+	d.vehiclePositions[vehicleGtfsRt.Trip].Speed = vehicleGtfsRt.Speed
+	d.vehiclePositions[vehicleGtfsRt.Trip].Occupancy = google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
+	d.vehiclePositions[vehicleGtfsRt.Trip].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	d.lastVehiclePositionsUpdate = time.Now()
 }
 
@@ -116,10 +115,9 @@ func (d *VehiclePositions) LoadPositionsData() bool {
 	return d.loadOccupancyData
 }
 
-func NewVehiclePosition(id int, sourceCode string, date time.Time, lat float32, lon float32, bearing float32,
+func NewVehiclePosition(sourceCode string, date time.Time, lat float32, lon float32, bearing float32,
 	speed float32, occupancy string, feedCreateAt time.Time) (*VehiclePosition, error) {
 	return &VehiclePosition{
-		Id:                 id,
 		VehicleJourneyCode: sourceCode,
 		DateTime:           date,
 		Latitude:           lat,

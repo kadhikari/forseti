@@ -18,7 +18,7 @@ func Test_NewVehiclePosition(t *testing.T) {
 	date, err := time.ParseInLocation("2006-01-02", "2021-02-22", location)
 	require.Nil(err)
 
-	vp, err := NewVehiclePosition(651969, "vehicle_journey:STS:651969-1", date, 45.398613, -71.90111, 0, 0,
+	vp, err := NewVehiclePosition("vehicle_journey:STS:651969-1", date, 45.398613, -71.90111, 0, 0,
 		google_transit.VehiclePosition_OccupancyStatus_name[1], date)
 	assert.Nil(err)
 	require.NotNil(vp)
@@ -40,21 +40,21 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 		Longitude: -72.0000, Occupancy: 0}
 
 	// Update vehiclePosition with no map cehiclelocations
-	vehiclePositions.UpdateVehiclePosition(1, changeGtfsRt, location)
+	vehiclePositions.UpdateVehiclePosition(changeGtfsRt, location)
 	require.Nil(vehiclePositions.vehiclePositions)
 
 	// Create vehiclePosition from existing data
-	vp := createVehiclePositionFromDataSource(1, vGtfsRt, location)
+	vp := createVehiclePositionFromDataSource(vGtfsRt, location)
 	//t.Log("DATE: ", vp.DateTime)
 	vehiclePositions.AddVehiclePosition(vp)
 	require.NotNil(vehiclePositions.vehiclePositions)
 	assert.Equal(len(vehiclePositions.vehiclePositions), 1)
 
 	// Update vehiclePosition with existing data
-	vehiclePositions.UpdateVehiclePosition(1, changeGtfsRt, location)
-	assert.Equal(vehiclePositions.vehiclePositions[1].Latitude, float32(46.0000))
-	assert.Equal(vehiclePositions.vehiclePositions[1].Longitude, float32(-72.0000))
-	assert.Equal(vehiclePositions.vehiclePositions[1].Bearing, float32(254))
-	assert.Equal(vehiclePositions.vehiclePositions[1].Speed, float32(11))
-	assert.Equal(vehiclePositions.vehiclePositions[1].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[0])
+	vehiclePositions.UpdateVehiclePosition(changeGtfsRt, location)
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Latitude, float32(46.0000))
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Longitude, float32(-72.0000))
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Bearing, float32(254))
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Speed, float32(11))
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[0])
 }

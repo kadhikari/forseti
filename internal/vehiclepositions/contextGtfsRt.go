@@ -65,8 +65,7 @@ func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
 		if err != nil {
 			logrus.Error("Error while loading VehiclePositions GTFS-RT data: ", err)
 		} else {
-			logrus.Info("Vehicle_positions GTFS-RT data updated")
-			logrus.Info("Vehicle_positions list size: ", len(d.vehiclePositions.vehiclePositions))
+			logrus.Info("Vehicle_positions data updated, list size: ", len(d.vehiclePositions.vehiclePositions))
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
@@ -162,10 +161,12 @@ func createVehiclePositionFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.Ve
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC().Format("2006-01-02T15:04:05Z")
 	d, erro := time.Parse("2006-01-02T15:04:05Z", date)
 	if erro != nil {
+		logrus.Error("Impossible to parse datetime, reason: ", erro)
 		return &VehiclePosition{}
 	}
 	dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", date, location)
 	if err != nil {
+		logrus.Error("Impossible to parse datetime with location, reason: ", erro)
 		return &VehiclePosition{}
 	}
 
@@ -173,6 +174,7 @@ func createVehiclePositionFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.Ve
 		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed,
 		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)], d)
 	if err != nil {
+		logrus.Error("Impossible to create new vehicle position, reason: ", erro)
 		return nil
 	}
 	return vp

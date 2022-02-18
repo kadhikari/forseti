@@ -117,6 +117,9 @@ func (d *VehicleOccupanciesGtfsRtContext) GetRereshTime() string {
 func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupancyCleanVO time.Duration,
 	location *time.Location) error {
 
+	if !context.LoadOccupancyData() {
+		return nil
+	}
 	begin := time.Now()
 	timeCleanVO := start.Add(occupancyCleanVO * time.Hour)
 

@@ -14,7 +14,7 @@ import (
 // Structure and Consumer to creates Vehicle locations objects
 ------------------------------------------------------------- */
 type VehiclePositions struct {
-	vehiclePositions           map[int]*VehiclePosition
+	vehiclePositions           map[string]*VehiclePosition
 	lastVehiclePositionsUpdate time.Time
 	loadOccupancyData          bool
 	mutex                      sync.RWMutex
@@ -50,14 +50,14 @@ func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) 
 	defer d.mutex.Unlock()
 
 	if d.vehiclePositions == nil {
-		d.vehiclePositions = map[int]*VehiclePosition{}
+		d.vehiclePositions = map[string]*VehiclePosition{}
 	}
 
-	d.vehiclePositions[vehiclelocation.Id] = vehiclelocation
+	d.vehiclePositions[vehiclelocation.VehicleJourneyCode] = vehiclelocation
 	d.lastVehiclePositionsUpdate = time.Now().UTC()
 }
 
-func (d *VehiclePositions) UpdateVehiclePosition(idx int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -65,12 +65,13 @@ func (d *VehiclePositions) UpdateVehiclePosition(idx int, vehicleGtfsRt gtfsrtve
 		return
 	}
 
-	d.vehiclePositions[idx].Latitude = vehicleGtfsRt.Latitude
-	d.vehiclePositions[idx].Longitude = vehicleGtfsRt.Longitude
-	d.vehiclePositions[idx].Bearing = vehicleGtfsRt.Bearing
-	d.vehiclePositions[idx].Speed = vehicleGtfsRt.Speed
-	d.vehiclePositions[idx].Occupancy = google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
-	d.vehiclePositions[idx].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
+	d.vehiclePositions[vehicleGtfsRt.Trip].Latitude = vehicleGtfsRt.Latitude
+	d.vehiclePositions[vehicleGtfsRt.Trip].Longitude = vehicleGtfsRt.Longitude
+	d.vehiclePositions[vehicleGtfsRt.Trip].Bearing = vehicleGtfsRt.Bearing
+	d.vehiclePositions[vehicleGtfsRt.Trip].Speed = vehicleGtfsRt.Speed
+	d.vehiclePositions[vehicleGtfsRt.Trip].Occupancy =
+		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
+	d.vehiclePositions[vehicleGtfsRt.Trip].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	d.lastVehiclePositionsUpdate = time.Now()
 }
 
@@ -85,19 +86,25 @@ func (d *VehiclePositions) GetVehiclePositions(param *VehiclePositionRequestPara
 			e = fmt.Errorf("no vehicle_locations in the data")
 			return
 		}
-
 		// Implement filter on parameters
-		for _, vp := range d.vehiclePositions {
+		if len(param.VehicleJourneyCodes) == 0 {
+			for _, vp := range d.vehiclePositions {
+				if vp.DateTime.Before(param.Date) {
+					continue
+				}
+				positions = append(positions, *vp)
+			}
+		}
 
-			foundIt := FoundIt(*vp, param.VehicleJourneyCodes)
-
+		for _, vjcode := range param.VehicleJourneyCodes {
+			vp := d.vehiclePositions[vjcode]
+			if vp == nil {
+				continue
+			}
 			if vp.DateTime.Before(param.Date) {
 				continue
 			}
-
-			if foundIt {
-				positions = append(positions, *vp)
-			}
+			positions = append(positions, *vp)
 		}
 		return positions, nil
 	}
@@ -116,10 +123,9 @@ func (d *VehiclePositions) LoadPositionsData() bool {
 	return d.loadOccupancyData
 }
 
-func NewVehiclePosition(id int, sourceCode string, date time.Time, lat float32, lon float32, bearing float32,
+func NewVehiclePosition(sourceCode string, date time.Time, lat float32, lon float32, bearing float32,
 	speed float32, occupancy string, feedCreateAt time.Time) (*VehiclePosition, error) {
 	return &VehiclePosition{
-		Id:                 id,
 		VehicleJourneyCode: sourceCode,
 		DateTime:           date,
 		Latitude:           lat,
@@ -129,16 +135,4 @@ func NewVehiclePosition(id int, sourceCode string, date time.Time, lat float32, 
 		Occupancy:          occupancy,
 		FeedCreatedAt:      feedCreateAt,
 	}, nil
-}
-
-func FoundIt(vp VehiclePosition, vjCodes []string) bool {
-	if len(vjCodes) == 0 {
-		return true
-	}
-	for _, vjCode := range vjCodes {
-		if vp.VehicleJourneyCode == vjCode {
-			return true
-		}
-	}
-	return false
 }

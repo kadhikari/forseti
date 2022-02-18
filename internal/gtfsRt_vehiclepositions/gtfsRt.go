@@ -47,10 +47,12 @@ func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
 	resp, err := utils.GetHttpClient_(connector.GetUrl(), connector.GetToken(), "Authorization",
 		connector.GetConnectionTimeout())
 	if err != nil {
+		logrus.Error("Impossible to call externe service, reason :", err)
 		return nil, err
 	}
 	gtfsRtData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
+		logrus.Error("Impossible to read body from response, reason :", err)
 		return nil, err
 	}
 	gtfsRt, err := ParseVehiclesResponse(gtfsRtData)
@@ -62,7 +64,7 @@ func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
 		return gtfsRt, fmt.Errorf("no data loaded from GTFS-RT")
 	}
 
-	logrus.Debug("*** Gtfs-rt size: ", len(gtfsRt.Vehicles))
+	logrus.Info("Latest gtfs-rt, size : ", len(gtfsRt.Vehicles))
 	return gtfsRt, nil
 }
 
@@ -71,6 +73,7 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 	fm := new(google_transit.FeedMessage)
 	err := proto.Unmarshal(b, fm)
 	if err != nil {
+		logrus.Error("Impossible to marshal proto, reason :", err)
 		return nil, err
 	}
 
@@ -105,7 +108,7 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 	}
 
 	if cpt > 0 {
-		logrus.Warn("Count vehicle position ignored ", cpt)
+		logrus.Warn("Count gtfs-rt items ignored ", cpt, ", reason: items without coordinates")
 	}
 
 	gtfsRt := NewGtfsRt(strTimestamp, vehicles)

@@ -65,8 +65,7 @@ func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
 		if err != nil {
 			logrus.Error("Error while loading VehiclePositions GTFS-RT data: ", err)
 		} else {
-			logrus.Info("Vehicle_positions GTFS-RT data updated")
-			logrus.Info("Vehicle_positions list size: ", len(d.vehiclePositions.vehiclePositions))
+			logrus.Info("Vehicle_positions data updated, list size: ", len(d.vehiclePositions.vehiclePositions))
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
@@ -90,20 +89,12 @@ func (d *GtfsRtContext) GetRereshTime() string {
 
 /********* PRIVATE FUNCTIONS *********/
 
-func getNextKey(context *GtfsRtContext) int {
-	if len(context.vehiclePositions.vehiclePositions) == 0 {
-		return 0
-	}
-	newKey := -1
-	for key := range context.vehiclePositions.vehiclePositions {
-		if key > newKey {
-			newKey = key
-		}
-	}
-	return newKey + 1
-}
-
 func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Connector) error {
+
+	if !context.LoadPositionsData() {
+		return nil
+	}
+
 	begin := time.Now()
 	timeCleanVP := start.Add(context.cleanVp)
 
@@ -124,35 +115,14 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 
 	// Add or update vehicle position with vehicle GTFS-RT
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
-		vehiclePositionFind := false
-		for _, vp := range context.vehiclePositions.vehiclePositions {
-			if vp.VehicleJourneyCode == vehGtfsRT.Trip {
-				vehiclePositionFind = true
-				break
-			}
-		}
-		if !vehiclePositionFind {
-			newVehiclePosition := createVehiclePositionFromDataSource(getNextKey(context),
-				vehGtfsRT, context.location)
+		oldVp := context.vehiclePositions.vehiclePositions[vehGtfsRT.Trip]
+		if oldVp == nil {
+			newVehiclePosition := createVehiclePositionFromDataSource(vehGtfsRT, context.location)
 			if newVehiclePosition != nil {
 				context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
 			}
 		} else {
-			stopCodeFind := false
-			for idx, vp := range context.vehiclePositions.vehiclePositions {
-				if vp.VehicleJourneyCode == vehGtfsRT.Trip {
-					context.vehiclePositions.UpdateVehiclePosition(idx, vehGtfsRT, context.location)
-					stopCodeFind = true
-					break
-				}
-			}
-			if !stopCodeFind {
-				newVehiclePosition := createVehiclePositionFromDataSource(getNextKey(context),
-					vehGtfsRT, context.location)
-				if newVehiclePosition != nil {
-					context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
-				}
-			}
+			context.vehiclePositions.UpdateVehiclePosition(vehGtfsRT, context.location)
 		}
 	}
 
@@ -171,23 +141,26 @@ func loadDatafromConnector(connector *connectors.Connector) (*gtfsrtvehicleposit
 }
 
 // Create new Vehicle position from VehicleGtfsRT data
-func createVehiclePositionFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+func createVehiclePositionFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) *VehiclePosition {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC().Format("2006-01-02T15:04:05Z")
 	d, erro := time.Parse("2006-01-02T15:04:05Z", date)
 	if erro != nil {
+		logrus.Error("Impossible to parse datetime, reason: ", erro)
 		return &VehiclePosition{}
 	}
 	dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", date, location)
 	if err != nil {
+		logrus.Error("Impossible to parse datetime with location, reason: ", erro)
 		return &VehiclePosition{}
 	}
 
-	vp, err := NewVehiclePosition(id, vehicleGtfsRt.Trip, dateLoc, vehicleGtfsRt.Latitude,
+	vp, err := NewVehiclePosition(vehicleGtfsRt.Trip, dateLoc, vehicleGtfsRt.Latitude,
 		vehicleGtfsRt.Longitude, vehicleGtfsRt.Bearing, vehicleGtfsRt.Speed,
 		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)], d)
 	if err != nil {
+		logrus.Error("Impossible to create new vehicle position, reason: ", erro)
 		return nil
 	}
 	return vp

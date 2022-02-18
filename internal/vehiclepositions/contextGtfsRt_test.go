@@ -50,7 +50,7 @@ func Test_GetVehiclePositions(t *testing.T) {
 	assert.EqualError(err, "no vehicle_locations in the data")
 
 	// Create vehiclePositions from existing data
-	vp := createVehiclePositionFromDataSource(1, vGtfsRt, location)
+	vp := createVehiclePositionFromDataSource(vGtfsRt, location)
 	gtfsRtContext.vehiclePositions.AddVehiclePosition(vp)
 	require.NotNil(gtfsRtContext.vehiclePositions.vehiclePositions)
 	assert.Equal(len(gtfsRtContext.vehiclePositions.vehiclePositions), 1)
@@ -78,8 +78,8 @@ func Test_GetVehiclePositions(t *testing.T) {
 
 	// Call Api with no existing vehicle_journey_code
 	gtfsRtContext.CleanListVehiclePositions(1 * time.Minute)
-	pVehiclePositions.vehiclePositions = map[int]*VehiclePosition{
-		0: {0, "651970", date, 45.398613, -71.90111, 0, 0, google_transit.VehiclePosition_OccupancyStatus_name[1], date}}
+	pVehiclePositions.vehiclePositions = map[string]*VehiclePosition{
+		"651970": {"651970", date, 45.398613, -71.90111, 0, 0, google_transit.VehiclePosition_OccupancyStatus_name[1], date}}
 	param = VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651969"}, Date: date}
 	vehiclePositions, err = gtfsRtContext.GetVehiclePositions(&param)
 	require.Nil(err)
@@ -129,9 +129,8 @@ func Test_InitContext(t *testing.T) {
 	assert.NotNil(gtfsRtContext.vehiclePositions.loadOccupancyData, false)
 }
 
-var vehiclePositionsMap = map[int]*VehiclePosition{
-	1: {
-		Id:                 1,
+var vehiclePositionsMap = map[string]*VehiclePosition{
+	"653397": {
 		VehicleJourneyCode: "653397",
 		DateTime:           time.Now(),
 		Latitude:           45.413333892822266,
@@ -140,8 +139,7 @@ var vehiclePositionsMap = map[int]*VehiclePosition{
 		Speed:              10,
 		Occupancy:          google_transit.VehiclePosition_OccupancyStatus_name[1],
 		FeedCreatedAt:      time.Now()},
-	2: {
-		Id:                 2,
+	"653746": {
 		VehicleJourneyCode: "653746",
 		DateTime:           time.Now().AddDate(0, 0, -4),
 		Latitude:           46.993333892822266,

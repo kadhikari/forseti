@@ -90,6 +90,11 @@ func (d *GtfsRtContext) GetRereshTime() string {
 /********* PRIVATE FUNCTIONS *********/
 
 func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Connector) error {
+
+	if !context.LoadPositionsData() {
+		return nil
+	}
+
 	begin := time.Now()
 	timeCleanVP := start.Add(context.cleanVp)
 

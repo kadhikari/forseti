@@ -64,7 +64,7 @@ func LoadGtfsRt(connector *connectors.Connector) (*GtfsRt, error) {
 		return gtfsRt, fmt.Errorf("no data loaded from GTFS-RT")
 	}
 
-	logrus.Info("Latest gtfs-rt, size vehicle positions : ", len(gtfsRt.Vehicles))
+	logrus.Info("Latest gtfs-rt, size : ", len(gtfsRt.Vehicles))
 	return gtfsRt, nil
 }
 
@@ -108,7 +108,7 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 	}
 
 	if cpt > 0 {
-		logrus.Warn("Count vehicle position ignored ", cpt, ", reason: vehicle position without coordinates")
+		logrus.Warn("Count gtfs-rt items ignored ", cpt, ", reason: items without coordinates")
 	}
 
 	gtfsRt := NewGtfsRt(strTimestamp, vehicles)

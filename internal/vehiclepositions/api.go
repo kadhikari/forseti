@@ -11,7 +11,6 @@ var location = "Europe/Paris"
 
 // Structures and functions to read files for vehicle_locations are here
 type VehiclePosition struct {
-	Id                 int       `json:"_"`
 	VehicleJourneyCode string    `json:"vehicle_journey_code"`
 	DateTime           time.Time `json:"date_time,omitempty"`
 	Latitude           float32   `json:"latitude"`

@@ -56,5 +56,6 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Longitude, float32(-72.0000))
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Bearing, float32(254))
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Speed, float32(11))
-	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[0])
+	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Occupancy,
+		google_transit.VehiclePosition_OccupancyStatus_name[0])
 }

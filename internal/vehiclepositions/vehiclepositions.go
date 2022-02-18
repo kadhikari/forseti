@@ -57,7 +57,8 @@ func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) 
 	d.lastVehiclePositionsUpdate = time.Now().UTC()
 }
 
-func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt, location *time.Location) {
+func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+	location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	if d.vehiclePositions == nil {
@@ -68,7 +69,8 @@ func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehicleposi
 	d.vehiclePositions[vehicleGtfsRt.Trip].Longitude = vehicleGtfsRt.Longitude
 	d.vehiclePositions[vehicleGtfsRt.Trip].Bearing = vehicleGtfsRt.Bearing
 	d.vehiclePositions[vehicleGtfsRt.Trip].Speed = vehicleGtfsRt.Speed
-	d.vehiclePositions[vehicleGtfsRt.Trip].Occupancy = google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
+	d.vehiclePositions[vehicleGtfsRt.Trip].Occupancy =
+		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
 	d.vehiclePositions[vehicleGtfsRt.Trip].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	d.lastVehiclePositionsUpdate = time.Now()
 }

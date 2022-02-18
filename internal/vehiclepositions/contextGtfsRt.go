@@ -110,33 +110,14 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 
 	// Add or update vehicle position with vehicle GTFS-RT
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
-		vehiclePositionFind := false
-		for _, vp := range context.vehiclePositions.vehiclePositions {
-			if vp.VehicleJourneyCode == vehGtfsRT.Trip {
-				vehiclePositionFind = true
-				break
-			}
-		}
-		if !vehiclePositionFind {
+		oldVp := context.vehiclePositions.vehiclePositions[vehGtfsRT.Trip]
+		if oldVp == nil {
 			newVehiclePosition := createVehiclePositionFromDataSource(vehGtfsRT, context.location)
 			if newVehiclePosition != nil {
 				context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
 			}
 		} else {
-			stopCodeFind := false
-			for _, vp := range context.vehiclePositions.vehiclePositions {
-				if vp.VehicleJourneyCode == vehGtfsRT.Trip {
-					context.vehiclePositions.UpdateVehiclePosition(vehGtfsRT, context.location)
-					stopCodeFind = true
-					break
-				}
-			}
-			if !stopCodeFind {
-				newVehiclePosition := createVehiclePositionFromDataSource(vehGtfsRT, context.location)
-				if newVehiclePosition != nil {
-					context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
-				}
-			}
+			context.vehiclePositions.UpdateVehiclePosition(vehGtfsRT, context.location)
 		}
 	}
 

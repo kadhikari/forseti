@@ -86,19 +86,25 @@ func (d *VehiclePositions) GetVehiclePositions(param *VehiclePositionRequestPara
 			e = fmt.Errorf("no vehicle_locations in the data")
 			return
 		}
-
 		// Implement filter on parameters
-		for _, vp := range d.vehiclePositions {
+		if len(param.VehicleJourneyCodes) == 0 {
+			for _, vp := range d.vehiclePositions {
+				if vp.DateTime.Before(param.Date) {
+					continue
+				}
+				positions = append(positions, *vp)
+			}
+		}
 
-			foundIt := FoundIt(*vp, param.VehicleJourneyCodes)
-
+		for _, vjcode := range param.VehicleJourneyCodes {
+			vp := d.vehiclePositions[vjcode]
+			if vp == nil {
+				continue
+			}
 			if vp.DateTime.Before(param.Date) {
 				continue
 			}
-
-			if foundIt {
-				positions = append(positions, *vp)
-			}
+			positions = append(positions, *vp)
 		}
 		return positions, nil
 	}
@@ -129,16 +135,4 @@ func NewVehiclePosition(sourceCode string, date time.Time, lat float32, lon floa
 		Occupancy:          occupancy,
 		FeedCreatedAt:      feedCreateAt,
 	}, nil
-}
-
-func FoundIt(vp VehiclePosition, vjCodes []string) bool {
-	if len(vjCodes) == 0 {
-		return true
-	}
-	for _, vjCode := range vjCodes {
-		if vp.VehicleJourneyCode == vjCode {
-			return true
-		}
-	}
-	return false
 }

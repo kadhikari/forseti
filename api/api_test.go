@@ -22,7 +22,7 @@ import (
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
 	"github.com/CanalTP/forseti/internal/utils"
-	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
 )
 
 var defaultTimeout time.Duration = time.Second * 10
@@ -135,19 +135,19 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	loc, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	vOditiContext, err := vehicleoccupanciesv2.VehicleOccupancyFactory("oditi")
+	vOditiContext, err := vehicleoccupancies.VehicleOccupancyFactory("oditi")
 	require.Nil(err)
-	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupanciesv2.VehicleOccupanciesOditiContext)
+	vehicleOccupanciesOditiContext, ok := vOditiContext.(*vehicleoccupancies.VehicleOccupanciesOditiContext)
 	require.True(ok)
 
 	vehicleOccupanciesContext := vehicleOccupanciesOditiContext.GetVehicleOccupanciesContext()
-	vehicleoccupanciesv2.SpFileName = "mapping_stops_netex.csv"
-	vehicleoccupanciesv2.CourseFileName = "extraction_courses_netex.csv"
+	vehicleoccupancies.SpFileName = "mapping_stops_netex.csv"
+	vehicleoccupancies.CourseFileName = "extraction_courses_netex.csv"
 
 	// Load StopPoints from file .../mapping_stops.csv
 	uri, err := url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	stopPoints, err := vehicleoccupanciesv2.LoadStopPoints(*uri, defaultTimeout)
+	stopPoints, err := vehicleoccupancies.LoadStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
 	vehicleOccupanciesOditiContext.InitStopPoint(stopPoints)
 	assert.Equal(len(vehicleOccupanciesOditiContext.GetStopPoints()), 32)
@@ -155,7 +155,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	// Load courses from file .../extraction_courses.csv
 	uri, err = url.Parse(fmt.Sprintf("file://%s/", fixtureDir))
 	require.Nil(err)
-	courses, err := vehicleoccupanciesv2.LoadCourses(*uri, defaultTimeout)
+	courses, err := vehicleoccupancies.LoadCourses(*uri, defaultTimeout)
 	require.Nil(err)
 	vehicleOccupanciesOditiContext.InitCourse(courses)
 	assert.Equal(len(vehicleOccupanciesOditiContext.GetCourses()), 2)
@@ -176,7 +176,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	predicts := &data.PredictionData{}
 	err = json.Unmarshal([]byte(jsonData), predicts)
 	require.Nil(err)
-	predictions := vehicleoccupanciesv2.LoadPredictionsData(predicts, loc)
+	predictions := vehicleoccupancies.LoadPredictionsData(predicts, loc)
 	assert.Equal(len(predictions), 41)
 
 	// Load vehicles journey
@@ -188,21 +188,21 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	jsonData, err = ioutil.ReadAll(reader)
 	require.Nil(err)
 
-	navitiaVJ := &vehicleoccupanciesv2.NavitiaVehicleJourney{}
+	navitiaVJ := &vehicleoccupancies.NavitiaVehicleJourney{}
 	err = json.Unmarshal([]byte(jsonData), navitiaVJ)
 	require.Nil(err)
-	vehicles := vehicleoccupanciesv2.CreateVehicleJourney(navitiaVJ, time.Now())
+	vehicles := vehicleoccupancies.CreateVehicleJourney(navitiaVJ, time.Now())
 	assert.Equal(len(vehicles), 25)
 	vehicleOccupanciesOditiContext.InitVehicleJourneys(vehicles)
 
 	// Create vehicles Occupancies
-	occupanciesWithCharge := vehicleoccupanciesv2.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
+	occupanciesWithCharge := vehicleoccupancies.CreateOccupanciesFromPredictions(vehicleOccupanciesOditiContext,
 		predictions)
 	vehicleOccupanciesContext.UpdateVehicleOccupancies(occupanciesWithCharge)
 	assert.Equal(len(vehicleOccupanciesContext.GetVehiclesOccupancies()), 34)
 
 	c, engine := gin.CreateTestContext(httptest.NewRecorder())
-	vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
+	vehicleoccupancies.AddVehicleOccupanciesEntryPoint(engine, vehicleOccupanciesOditiContext)
 	engine = SetupRouter(&manager, engine)
 
 	// Verify /status

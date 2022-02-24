@@ -1,4 +1,4 @@
-package vehicleoccupanciesv2
+package vehicleoccupancies
 
 import (
 	"testing"

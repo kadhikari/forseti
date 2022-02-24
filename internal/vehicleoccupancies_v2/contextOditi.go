@@ -222,23 +222,23 @@ func RefreshVehicleOccupancies(context *VehicleOccupanciesOditiContext, occupanc
 }
 
 func CreateOccupanciesFromPredictions(context *VehicleOccupanciesOditiContext,
-	predictions []Prediction) map[int]*VehicleOccupancy {
-	occupanciesWithCharge := make(map[int]*VehicleOccupancy)
-
-	for idx, predict := range predictions {
+	predictions []Prediction) map[string]*VehicleOccupancy {
+	occupanciesWithCharge := make(map[string]*VehicleOccupancy)
+	for _, predict := range predictions {
 		vehicleJourneyCode := context.GetVehicleJourneyCode(predict.Course)
 		if len(vehicleJourneyCode) > 0 {
 			// Fetch StopId from manager corresponding to predict.StopName and predict.Direction
 			stopCode, direction := context.GetStopId(predict.StopName, predict.Direction)
 			date := context.GetDepartureDatetime(vehicleJourneyCode, stopCode)
 			poCalc := utils.CalculateOccupancy(predict.Occupancy)
-			vo, err := NewVehicleOccupancy(idx, vehicleJourneyCode, stopCode, direction, date,
+			vo, err := NewVehicleOccupancy(vehicleJourneyCode, stopCode, direction, date,
 				GetOccupancyStatusForOditi(poCalc))
 
 			if err != nil {
 				continue
 			}
-			occupanciesWithCharge[vo.Id] = vo
+			key := getKeyVehicleOccupancy()
+			occupanciesWithCharge[key] = vo
 		}
 	}
 

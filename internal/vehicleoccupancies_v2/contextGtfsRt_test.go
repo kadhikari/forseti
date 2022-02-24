@@ -165,7 +165,6 @@ func Test_UpdateVehicleOccupancy(t *testing.T) {
 	require.NotNil(voContext.VehicleOccupancies)
 	assert.Equal(len(voContext.VehicleOccupancies), 1)
 	gtfsRtContext.UpdateOccupancy(vo, vGtfsRt, location)
-	//keys := reflect.ValueOf(voContext.VehicleOccupancies).MapKeys()
 	keys := reflect.ValueOf(voContext.VehicleOccupancies).MapKeys()
 	first_key := keys[0].String()
 	assert.Equal(voContext.VehicleOccupancies[first_key].Occupancy, google_transit.VehiclePosition_OccupancyStatus_name[1])

@@ -17,6 +17,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/uuid v1.3.0 // indirect
 	github.com/gotestyourself/gotestyourself v2.2.0+incompatible // indirect
 	github.com/kr/fs v0.1.0 // indirect
 	github.com/lib/pq v1.10.1 // indirect

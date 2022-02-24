@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
+	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
 
@@ -12,7 +12,7 @@ import (
 // Structure and Consumer to creates Vehicle occupancies objects
 ------------------------------------------------------------- */
 type VehicleOccupanciesContext struct {
-	VehicleOccupancies           map[int]*VehicleOccupancy
+	VehicleOccupancies           map[string]*VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
@@ -32,7 +32,7 @@ func (d *VehicleOccupanciesContext) LoadOccupancyData() bool {
 	return d.loadOccupancyData
 }
 
-func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[int]*VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) UpdateVehicleOccupancies(vehicleOccupancies map[string]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 
@@ -61,10 +61,10 @@ func (d *VehicleOccupanciesContext) AddVehicleOccupancy(vehicleoccupancy *Vehicl
 	defer d.vehicleOccupanciesMutex.Unlock()
 
 	if d.VehicleOccupancies == nil {
-		d.VehicleOccupancies = map[int]*VehicleOccupancy{}
+		d.VehicleOccupancies = map[string]*VehicleOccupancy{}
 	}
-
-	d.VehicleOccupancies[vehicleoccupancy.Id] = vehicleoccupancy
+	key := getKeyVehicleOccupancy()
+	d.VehicleOccupancies[key] = vehicleoccupancy
 }
 
 func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.Time {
@@ -74,7 +74,7 @@ func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.T
 	return d.lastVehicleOccupanciesUpdate
 }
 
-func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[int]*VehicleOccupancy) {
+func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[string]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
 
@@ -128,10 +128,13 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 	d.refreshTime = newRefreshTime
 }
 
-func NewVehicleOccupancy(id int, sourceCode, stopPointCode string, direction int, date time.Time,
+func getKeyVehicleOccupancy() string {
+	return uuid.New().String()
+}
+
+func NewVehicleOccupancy(sourceCode, stopPointCode string, direction int, date time.Time,
 	occupancy string) (*VehicleOccupancy, error) {
 	return &VehicleOccupancy{
-		Id:                 id,
 		VehicleJourneyCode: sourceCode,
 		StopPointCode:      stopPointCode,
 		Direction:          direction,

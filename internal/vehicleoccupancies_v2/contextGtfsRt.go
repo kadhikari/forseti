@@ -149,8 +149,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 		}
 
 		if !vehicleOccupancyFind {
-			newVehicleOccupancy := createOccupanciesFromDataSource(len(context.voContext.VehicleOccupancies)-1,
-				vehGtfsRT, location)
+			newVehicleOccupancy := createOccupanciesFromDataSource(vehGtfsRT, location)
 			if newVehicleOccupancy != nil {
 				context.AddVehicleOccupancy(newVehicleOccupancy)
 			}
@@ -164,8 +163,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 				}
 			}
 			if !stopCodeFind {
-				newVehicleOccupancy := createOccupanciesFromDataSource(len(context.voContext.VehicleOccupancies)-1,
-					vehGtfsRT, location)
+				newVehicleOccupancy := createOccupanciesFromDataSource(vehGtfsRT, location)
 				if newVehicleOccupancy != nil {
 					context.AddVehicleOccupancy(newVehicleOccupancy)
 				}
@@ -178,7 +176,7 @@ func refreshVehicleOccupancies(context *VehicleOccupanciesGtfsRtContext, occupan
 }
 
 // Create new Vehicle occupancy from VehicleJourney and VehicleGtfsRT data
-func createOccupanciesFromDataSource(id int, vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+func createOccupanciesFromDataSource(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) *VehicleOccupancy {
 
 	date := time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
@@ -188,7 +186,7 @@ func createOccupanciesFromDataSource(id int, vehicleGtfsRt gtfsrtvehicleposition
 		return &VehicleOccupancy{}
 	}
 
-	vo, err := NewVehicleOccupancy(id, vehicleGtfsRt.Trip, vehicleGtfsRt.StopId, -1, dateLoc,
+	vo, err := NewVehicleOccupancy(vehicleGtfsRt.Trip, vehicleGtfsRt.StopId, -1, dateLoc,
 		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)])
 	if err != nil {
 		return &VehicleOccupancy{}

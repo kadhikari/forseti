@@ -17,7 +17,6 @@ type VehicleOccupanciesResponse struct {
 
 // Structures and functions to read files for vehicle_occupancies are here
 type VehicleOccupancy struct {
-	Id                 int       `json:"_"`
 	VehicleJourneyCode string    `json:"vehicle_journey_code"`
 	StopPointCode      string    `json:"stop_point_code"`
 	Direction          int       `json:"direction"`

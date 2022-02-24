@@ -11,7 +11,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
 	"github.com/CanalTP/forseti/internal/vehiclepositions"
 
 	"github.com/gin-contrib/pprof"
@@ -174,8 +174,8 @@ func init() {
 	prometheus.MustRegister(equipments.EquipmentsLoadingErrors)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingDuration)
 	prometheus.MustRegister(freefloatings.FreeFloatingsLoadingErrors)
-	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingDuration)
-	prometheus.MustRegister(vehicleoccupancies.VehicleOccupanciesLoadingErrors)
+	prometheus.MustRegister(vehicleoccupanciesv2.VehicleOccupanciesLoadingDuration)
+	prometheus.MustRegister(vehicleoccupanciesv2.VehicleOccupanciesLoadingErrors)
 	prometheus.MustRegister(vehiclepositions.VehiclePositionsLoadingDuration)
 	prometheus.MustRegister(vehiclepositions.VehiclePositionsLoadingErrors)
 }

@@ -15,7 +15,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings/fluctuo"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
-	vehicleoccupanciesv2 "github.com/CanalTP/forseti/internal/vehicleoccupancies_v2"
+	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	"github.com/CanalTP/forseti/internal/vehiclepositions"
 
 	"github.com/gin-gonic/gin"
@@ -301,8 +301,8 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 	var err error
 
 	if config.Connector == string(connectors.Connector_ODITI) {
-		var vehicleOccupanciesOditiContext vehicleoccupanciesv2.IVehicleOccupancy
-		vehicleOccupanciesOditiContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
+		var vehicleOccupanciesOditiContext vehicleoccupancies.IVehicleOccupancy
+		vehicleOccupanciesOditiContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_ODITI))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -318,11 +318,11 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 			location)
-		vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesOditiContext)
+		vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesOditiContext)
 
 	} else if config.Connector == string(connectors.Connector_GRFS_RT) {
-		var vehicleOccupanciesContext vehicleoccupanciesv2.IVehicleOccupancy
-		vehicleOccupanciesContext, err = vehicleoccupanciesv2.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
+		var vehicleOccupanciesContext vehicleoccupancies.IVehicleOccupancy
+		vehicleOccupanciesContext, err = vehicleoccupancies.VehicleOccupancyFactory(string(connectors.Connector_GRFS_RT))
 		if err != nil {
 			logrus.Error(err)
 			return
@@ -339,7 +339,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
 			location)
-		vehicleoccupanciesv2.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
+		vehicleoccupancies.AddVehicleOccupanciesEntryPoint(router, vehicleOccupanciesContext)
 	} else {
 		logrus.Error("Wrong vehicleoccupancy type passed")
 		return

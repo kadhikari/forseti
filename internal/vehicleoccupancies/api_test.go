@@ -1,4 +1,4 @@
-package vehicleoccupanciesv2
+package vehicleoccupancies
 
 import (
 	"encoding/json"
@@ -46,7 +46,7 @@ func Test_VehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	assert.Equal(len(positions.Vehicles), 52)
 
 	for i := 0; i < len(positions.Vehicles); i++ {
-		occupanciesWithCharge := createOccupanciesFromDataSource(i, positions.Vehicles[i], loc)
+		occupanciesWithCharge := createOccupanciesFromDataSource(positions.Vehicles[i], loc)
 		vehicleOccupanciesContext.voContext.AddVehicleOccupancy(occupanciesWithCharge)
 	}
 	assert.Equal(len(vehicleOccupanciesContext.voContext.GetVehiclesOccupancies()), len(positions.Vehicles))

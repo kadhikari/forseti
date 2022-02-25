@@ -1,32 +1,37 @@
 package vehicleoccupancies
 
 import (
-	"errors"
 	"fmt"
-	"math"
 	"net/url"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti/google_transit"
+	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/CanalTP/forseti/internal/data"
 	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
-var spFileName = "mapping_stops.csv"
-var courseFileName = "extraction_courses.csv"
+var SpFileName = "mapping_stops.csv"
+var CourseFileName = "extraction_courses.csv"
+
+const LINE_CODE_ODITI_40 = "line:IDFM:C00048"
+const LINE_CODE_ODITI_45 = "line:IDFM:C00051"
 
 /* ---------------------------------------------------------------------
 // Structure and Consumer to creates Vehicle occupancies ODITI objects
 --------------------------------------------------------------------- */
 type VehicleOccupanciesOditiContext struct {
-	voContext      *VehicleOccupanciesContext
-	stopPoints     *map[string]StopPoint
-	courses        *map[string][]Course
-	routeSchedules *[]RouteSchedule
-	mutex          sync.RWMutex
+	voContext       *VehicleOccupanciesContext
+	stopPoints      *map[string]StopPoint
+	courses         *map[string][]Course
+	vehicleJourneys []VehicleJourney
+	connector       *connectors.Connector
+	//routeSchedules *[]RouteSchedule
+	mutex sync.RWMutex
 }
 
 func (d *VehicleOccupanciesOditiContext) GetVehicleOccupanciesContext() *VehicleOccupanciesContext {
@@ -47,12 +52,20 @@ func (d *VehicleOccupanciesOditiContext) InitStopPoint(stopPoints map[string]Sto
 	d.voContext.lastVehicleOccupanciesUpdate = time.Now()
 }
 
-func (d *VehicleOccupanciesOditiContext) GetStopId(name string, sens int) (id string) {
+func (d *VehicleOccupanciesOditiContext) InitVehicleJourneys(vehicleJourneys []VehicleJourney) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	d.vehicleJourneys = vehicleJourneys
+	logrus.Info("*** vehicleJourneys size: ", len(d.vehicleJourneys))
+}
+
+func (d *VehicleOccupanciesOditiContext) GetStopId(name string, sens int) (id string, direction int) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 
 	key := name + strconv.Itoa(sens)
-	return (*d.stopPoints)[key].Id
+	return (*d.stopPoints)[key].Id, (*d.stopPoints)[key].Direction
 }
 
 func (d *VehicleOccupanciesOditiContext) InitCourse(courses map[string][]Course) {
@@ -61,15 +74,6 @@ func (d *VehicleOccupanciesOditiContext) InitCourse(courses map[string][]Course)
 
 	d.courses = &courses
 	logrus.Info("*** courses size: ", len(*d.courses))
-	d.voContext.lastVehicleOccupanciesUpdate = time.Now()
-}
-
-func (d *VehicleOccupanciesOditiContext) InitRouteSchedule(routeSchedules []RouteSchedule) {
-	d.mutex.Lock()
-	defer d.mutex.Unlock()
-
-	d.routeSchedules = &routeSchedules
-	logrus.Info("*** routeSchedules size: ", len(*d.routeSchedules))
 	d.voContext.lastVehicleOccupanciesUpdate = time.Now()
 }
 
@@ -87,6 +91,13 @@ func (d *VehicleOccupanciesOditiContext) GetCourses() map[string][]Course {
 	return *d.courses
 }
 
+func (d *VehicleOccupanciesOditiContext) GetVehicleJourneys() []VehicleJourney {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.vehicleJourneys
+}
+
 func (d *VehicleOccupanciesOditiContext) GetCourseFirstTime(prediction Prediction) (date_time time.Time, e error) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
@@ -98,40 +109,28 @@ func (d *VehicleOccupanciesOditiContext) GetCourseFirstTime(prediction Predictio
 	return time.Now(), fmt.Errorf("no corresponding data found")
 }
 
-func (d *VehicleOccupanciesOditiContext) GetVehicleJourneyId(predict Prediction, dataTime time.Time) (vj string) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-	minDiff := math.Inf(1)
+func (d *VehicleOccupanciesOditiContext) GetVehicleJourneyCode(sourceCode string) (vehicleJourneyCode string) {
 	result := ""
-	for _, rs := range *d.routeSchedules {
-		if rs.Departure &&
-			predict.LineCode == rs.LineCode &&
-			predict.Direction == rs.Direction &&
-			math.Abs(rs.DateTime.Sub(dataTime).Seconds()) < minDiff {
-			minDiff = math.Abs(rs.DateTime.Sub(dataTime).Seconds())
-			result = rs.VehicleJourneyId
+	for _, vj := range d.vehicleJourneys {
+		if strings.Contains(vj.VehicleJourneyCode, sourceCode) {
+			result = vj.VehicleJourneyCode
+			break
 		}
 	}
 	return result
 }
 
-func (d *VehicleOccupanciesOditiContext) GetRouteSchedule(vjId, stopId string, direction int) (
-	routeSchedule *RouteSchedule) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-	for _, rs := range *d.routeSchedules {
-		if rs.VehicleJourneyId == vjId && rs.StopId == stopId && rs.Direction == direction {
-			return &rs
+func (d *VehicleOccupanciesOditiContext) GetDepartureDatetime(vehicleJourneyCode, stopCode string) (date time.Time) {
+	for _, vj := range d.vehicleJourneys {
+		if vj.VehicleJourneyCode == vehicleJourneyCode {
+			for _, stopC := range *vj.StopPoints {
+				if stopC.StopPointId == stopCode {
+					return stopC.DepartureTime
+				}
+			}
 		}
 	}
-	return nil
-}
-
-func (d *VehicleOccupanciesOditiContext) GetRouteSchedules() (routeSchedules []RouteSchedule) {
-	d.mutex.RLock()
-	defer d.mutex.RUnlock()
-
-	return *d.routeSchedules
+	return time.Now()
 }
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
@@ -140,12 +139,12 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
 	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
 
+	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
 
-	err := LoadAllForVehicleOccupancies(d, filesURI, navitiaURI, externalURI, navitiaToken,
-		externalToken, connectionTimeout, location)
+	err := LoadAllForVehicleOccupancies(d, navitiaURI, navitiaToken, location)
 	if err != nil {
 		logrus.Errorf("Impossible to load data at startup: %s", err)
 	}
@@ -155,6 +154,7 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 func (d *VehicleOccupanciesOditiContext) RefreshVehicleOccupanciesLoop(externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
 	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location) {
+
 	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
 		logrus.Debug("VehicleOccupancy data refreshing is disabled")
 		return
@@ -162,42 +162,18 @@ func (d *VehicleOccupanciesOditiContext) RefreshVehicleOccupanciesLoop(externalU
 
 	if (d.courses == nil || d.stopPoints == nil) ||
 		(len(*d.courses) == 0 || len(*d.stopPoints) == 0) {
-		logrus.Error("VEHICLE_OCCUPANCIES: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
+		logrus.Error("Vehicle occupancy ODITI: routine Vehicle_occupancies stopped, no stopPoints or courses loaded at start")
 	} else {
 		// Wait 10 seconds before reloading vehicleoccupacy informations
 		time.Sleep(10 * time.Second)
 		for {
-			err := RefreshVehicleOccupancies(d, externalURI, externalToken, connectionTimeout, location)
+			err := RefreshVehicleOccupancies(d, occupancyCleanVO, navitiaURI, navitiaToken, location)
 			if err != nil {
 				logrus.Error("Error while reloading VehicleOccupancy data: ", err)
 			} else {
 				logrus.Debug("vehicle_occupancies data updated")
 			}
 			time.Sleep(loadExternalRefresh)
-		}
-	}
-}
-
-func (d *VehicleOccupanciesOditiContext) RefreshDataFromNavitia(navitiaURI url.URL, navitiaToken string,
-	routeScheduleRefresh, connectionTimeout time.Duration, location *time.Location) {
-
-	if len(navitiaURI.String()) == 0 || routeScheduleRefresh.Seconds() <= 0 {
-		logrus.Debug("RouteSchedule data refreshing is disabled")
-		return
-	}
-
-	if (d.courses == nil || d.stopPoints == nil) ||
-		(len(*d.courses) == 0 || len(*d.stopPoints) == 0) {
-		logrus.Error("VEHICLE_OCCUPANCIES: routine Route_schedule stopped, no stopPoints or courses loaded at start")
-	} else {
-		for {
-			err := LoadRoutesForAllLines(d, navitiaURI, navitiaToken, connectionTimeout, location)
-			if err != nil {
-				logrus.Error("Error while reloading RouteSchedule data: ", err)
-			} else {
-				logrus.Debug("RouteSchedule data updated")
-			}
-			time.Sleep(routeScheduleRefresh)
 		}
 	}
 }
@@ -225,20 +201,19 @@ func (d *VehicleOccupanciesOditiContext) GetRereshTime() string {
 
 /********* PRIVATE FUNCTIONS *********/
 
-func RefreshVehicleOccupancies(context *VehicleOccupanciesOditiContext, predict_url url.URL, predict_token string,
-	connectionTimeout time.Duration, location *time.Location) error {
+func RefreshVehicleOccupancies(context *VehicleOccupanciesOditiContext, occupancyCleanVO time.Duration,
+	navitiaURI url.URL, navitiaToken string, location *time.Location) error {
 	// Continue using last loaded data if loading is deactivated
 	if !context.voContext.LoadOccupancyData() {
 		return nil
 	}
-	if context.routeSchedules == nil {
-		return errors.New("RouteSchedule contains no data")
-	}
+
 	begin := time.Now()
-	predictions, err := LoadPredictions(predict_url, predict_token, connectionTimeout, location)
+	predictions, err := LoadPredictions(context.connector, location)
 	if len(predictions) == 0 {
 		return fmt.Errorf("Predictions contains no data: %s", err)
 	}
+
 	occupanciesWithCharge := CreateOccupanciesFromPredictions(context, predictions)
 
 	context.voContext.UpdateVehicleOccupancies(occupanciesWithCharge)
@@ -246,8 +221,57 @@ func RefreshVehicleOccupancies(context *VehicleOccupanciesOditiContext, predict_
 	return nil
 }
 
+func CreateOccupanciesFromPredictions(context *VehicleOccupanciesOditiContext,
+	predictions []Prediction) map[string]*VehicleOccupancy {
+	occupanciesWithCharge := make(map[string]*VehicleOccupancy)
+	for _, predict := range predictions {
+		vehicleJourneyCode := context.GetVehicleJourneyCode(predict.Course)
+		if len(vehicleJourneyCode) > 0 {
+			// Fetch StopId from manager corresponding to predict.StopName and predict.Direction
+			stopCode, direction := context.GetStopId(predict.StopName, predict.Direction)
+			date := context.GetDepartureDatetime(vehicleJourneyCode, stopCode)
+			poCalc := utils.CalculateOccupancy(predict.Occupancy)
+			vo, err := NewVehicleOccupancy(vehicleJourneyCode, stopCode, direction, date,
+				GetOccupancyStatusForOditi(poCalc))
+
+			if err != nil {
+				continue
+			}
+			key := getKeyVehicleOccupancy()
+			occupanciesWithCharge[key] = vo
+		}
+	}
+
+	return occupanciesWithCharge
+}
+
+func LoadAllForVehicleOccupancies(context *VehicleOccupanciesOditiContext, navitiaURI url.URL, navitiaToken string,
+	location *time.Location) error {
+	// Load referential Stoppoints file
+	stopPoints, err := LoadStopPoints(context.connector.GetFilesUri(), context.connector.GetConnectionTimeout())
+	if err != nil {
+		return err
+	}
+	context.InitStopPoint(stopPoints)
+
+	// Load referential course file
+	courses, err := LoadCourses(context.connector.GetFilesUri(), context.connector.GetConnectionTimeout())
+	if err != nil {
+		return err
+	}
+	context.InitCourse(courses)
+
+	vehicleJourneys, err := LoadVehicleJourneysFromNavitia(context, navitiaURI, navitiaToken, location)
+	if err != nil {
+		return err
+	}
+	context.InitVehicleJourneys(vehicleJourneys)
+
+	return nil
+}
+
 func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]StopPoint, error) {
-	uri.Path = fmt.Sprintf("%s/%s", uri.Path, spFileName)
+	uri.Path = fmt.Sprintf("%s/%s", uri.Path, SpFileName)
 	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
@@ -269,7 +293,7 @@ func LoadStopPoints(uri url.URL, connectionTimeout time.Duration) (map[string]St
 }
 
 func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Course, error) {
-	uri.Path = fmt.Sprintf("%s/%s", uri.Path, courseFileName)
+	uri.Path = fmt.Sprintf("%s/%s", uri.Path, CourseFileName)
 	file, err := utils.GetFile(uri, connectionTimeout)
 
 	if err != nil {
@@ -291,106 +315,23 @@ func LoadCourses(uri url.URL, connectionTimeout time.Duration) (map[string][]Cou
 	return courseLineConsumer.courses, nil
 }
 
-func LoadRoutesForAllLines(context *VehicleOccupanciesOditiContext, navitia_url url.URL, navitia_token string,
-	connectionTimeout time.Duration, location *time.Location) error {
-	// Load Forward RouteSchedules (sens=0) for lines 40 and 45
-	startIndex := 1
-	routeSchedules, err := LoadRoutesWithDirection(
-		startIndex,
-		navitia_url,
-		navitia_token,
-		"forward",
-		connectionTimeout,
-		location)
+func LoadVehicleJourneysFromNavitia(context *VehicleOccupanciesOditiContext, navitiaURI url.URL, navitiaToken string,
+	location *time.Location) ([]VehicleJourney, error) {
+	vjs, err := GetVehiclesJourneysWithLine(LINE_CODE_ODITI_40, navitiaURI, navitiaToken,
+		context.connector.GetConnectionTimeout(), location)
 	if err != nil {
-		return err
+		fmt.Println("LoadVjLine40 Error: ", err.Error())
+		return nil, err
 	}
-	// Load Backward RouteSchedules (sens=1) for lines 40 and 45
-	startIndex = len(routeSchedules) + 1
-	backward, err := LoadRoutesWithDirection(
-		startIndex,
-		navitia_url,
-		navitia_token,
-		"backward",
-		connectionTimeout,
-		location)
+	vjs45, err := GetVehiclesJourneysWithLine(LINE_CODE_ODITI_45, navitiaURI, navitiaToken,
+		context.connector.GetConnectionTimeout(), location)
 	if err != nil {
-		return err
+		fmt.Println("LoadVjLine45 Error: ", err.Error())
+		return nil, err
 	}
+	vjs = append(vjs, vjs45...)
 
-	// Concat two arrays
-	for i := range backward {
-		routeSchedules = append(routeSchedules, backward[i])
-	}
-
-	context.InitRouteSchedule(routeSchedules)
-	return nil
-}
-
-func CreateOccupanciesFromPredictions(context *VehicleOccupanciesOditiContext,
-	predictions []Prediction) map[int]*VehicleOccupancy {
-	// create vehicleOccupancy with "Charge" using StopPoints and Courses in the manager for each element in Prediction
-	occupanciesWithCharge := make(map[int]*VehicleOccupancy)
-	var vehicleJourneyId = ""
-	for _, predict := range predictions {
-		if predict.Order == 0 {
-			firstTime, err := context.GetCourseFirstTime(predict)
-			if err != nil {
-				continue
-			}
-			// Schedule datettime = predict.Date + firstTime
-			dateTime := utils.AddDateAndTime(predict.Date, firstTime)
-			vehicleJourneyId = context.GetVehicleJourneyId(predict, dateTime)
-		}
-
-		if len(vehicleJourneyId) > 0 {
-			// Fetch StopId from manager corresponding to predict.StopName and predict.Direction
-			stopId := context.GetStopId(predict.StopName, predict.Direction)
-			rs := context.GetRouteSchedule(vehicleJourneyId, stopId, predict.Direction)
-			if rs != nil {
-				poCalc := utils.CalculateOccupancy(predict.Occupancy)
-				vo, err := NewVehicleOccupancy(rs.Id, rs.LineCode, rs.VehicleJourneyId, rs.StopId,
-					rs.Direction, rs.DateTime, GetOccupancyStatusForOditi(poCalc), "")
-
-				if err != nil {
-					continue
-				}
-				occupanciesWithCharge[vo.Id] = vo
-			}
-		}
-	}
-	return occupanciesWithCharge
-}
-
-func LoadAllForVehicleOccupancies(context *VehicleOccupanciesOditiContext, files_uri, navitia_url,
-	predict_url url.URL, navitia_token, predict_token string, connectionTimeout time.Duration,
-	location *time.Location) error {
-	// Load referential Stoppoints file
-	stopPoints, err := LoadStopPoints(files_uri, connectionTimeout)
-	if err != nil {
-		return err
-	}
-	context.InitStopPoint(stopPoints)
-
-	// Load referential course file
-	courses, err := LoadCourses(files_uri, connectionTimeout)
-	if err != nil {
-		return err
-	}
-	context.InitCourse(courses)
-
-	// Load all RouteSchedules for line 40 and 45
-	err = LoadRoutesForAllLines(context, navitia_url, navitia_token, connectionTimeout, location)
-	if err != nil {
-		return err
-	}
-
-	// Load predictions for external service and update VehicleOccupancies with charge
-	err = RefreshVehicleOccupancies(context, predict_url, predict_token, connectionTimeout, location)
-	if err != nil {
-		return err
-	}
-	return nil
+	return vjs, nil
 }
 
 /* -----------------------------------------------------------------------------------
@@ -530,37 +471,6 @@ func NewPrediction(p data.PredictionNode, location *time.Location) *Prediction {
 		StopName:  p.StopName,
 		Occupancy: int(p.Charge),
 	}
-}
-
-/* ---------------------------------------------------------
-// Structure and Consumer to creates Route_schedules objects
---------------------------------------------------------- */
-type RouteSchedule struct {
-	Id               int
-	LineCode         string
-	VehicleJourneyId string
-	StopId           string
-	Direction        int
-	Departure        bool
-	DateTime         time.Time
-}
-
-func NewRouteSchedule(lineCode, stopId, vjId, dateTime string, sens, Id int, depart bool,
-	location *time.Location) (*RouteSchedule, error) {
-	date, err := time.ParseInLocation("20060102T150405", dateTime, location)
-	if err != nil {
-		fmt.Println("Error on: ", dateTime)
-		return nil, err
-	}
-	return &RouteSchedule{
-		Id:               Id,
-		LineCode:         lineCode,
-		VehicleJourneyId: vjId,
-		StopId:           stopId,
-		Direction:        sens,
-		Departure:        depart,
-		DateTime:         date,
-	}, nil
 }
 
 /* ----------------------------------------------

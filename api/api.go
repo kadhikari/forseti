@@ -11,7 +11,7 @@ import (
 	"github.com/CanalTP/forseti/internal/freefloatings"
 	"github.com/CanalTP/forseti/internal/manager"
 	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
 	"github.com/CanalTP/forseti/internal/vehiclepositions"
 
 	"github.com/gin-contrib/pprof"

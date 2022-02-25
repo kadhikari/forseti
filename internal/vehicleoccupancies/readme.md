@@ -18,9 +18,10 @@ Input parameters to inform Forseti:
 - `--occupancy-service-uri` The path to external service (Required)
 - `--occupancy-service-token` The token external service (Required)
 - `--occupancy-service-refresh-active` active or deactivates the periodic refresh of data for api
+- `--connector-type` The type of flow (Required)
 
 Exemple:
 
 ```
-./forseti --occupancy-files-uri file:///path/to/extract_courses_and_stop.csv --occupancy-refresh=300s --occupancy-navitia-uri https://path/to/api_navitia --occupancy-navitia-token token_navitia --occupancy-service-uri https://path/to/external_service --occupancy-service-token token_external_service --occupancy-service-refresh-active true
+./forseti --occupancy-files-uri file:///path/to/extract_courses_and_stop.csv --occupancy-refresh=300s --occupancy-navitia-uri https://path/to/api_navitia --occupancy-navitia-token token_navitia --occupancy-service-uri https://path/to/external_service --occupancy-service-token token_external_service --occupancy-service-refresh-active true --connector-type gtfsrt
 ```

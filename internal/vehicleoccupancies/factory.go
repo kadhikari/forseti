@@ -1,4 +1,4 @@
-package vehicleoccupanciesv2
+package vehicleoccupancies
 
 // This module is used to declare the interface used by the different vehicle occupancy contexts
 // and to create them according to their base type.

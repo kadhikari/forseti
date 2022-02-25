@@ -1,4 +1,4 @@
-package vehicleoccupanciesv2
+package vehicleoccupancies
 
 import (
 	"github.com/prometheus/client_golang/prometheus"

@@ -3,6 +3,7 @@ package citiz
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/url"
 	"reflect"
 	"strconv"
@@ -16,17 +17,15 @@ import (
 
 type CitizContext struct {
 	connector *connectors.Connector
-	providers []string // list of providers to get vehicles free-floatings
 	auth      *utils.OAuthResponse
 	user      string // user to get token
 	password  string // password to get token
 }
 
-func (d *CitizContext) InitContext(externalURI url.URL, loadExternalRefresh time.Duration, providers []string,
+func (d *CitizContext) InitContext(filesURI, externalURI url.URL, loadExternalRefresh time.Duration,
 	connectionTimeout time.Duration, userName, password string) {
 
-	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
-	d.providers = providers
+	d.connector = connectors.NewConnector(filesURI, externalURI, "", loadExternalRefresh, connectionTimeout)
 	d.auth = &utils.OAuthResponse{}
 	d.user = userName
 	d.password = password
@@ -72,7 +71,7 @@ func RefreshFreeFloatings(citizContext *CitizContext, context *freefloatings.Fre
 	begin := time.Now()
 	var err []error
 
-	freeFloatings, e := LoadDatafromConnector(citizContext.connector, citizContext.providers)
+	freeFloatings, e := LoadDatafromConnector(citizContext.connector)
 	if e != nil {
 		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		err = e
@@ -86,43 +85,51 @@ func RefreshFreeFloatings(citizContext *CitizContext, context *freefloatings.Fre
 	return err
 }
 
-func LoadDatafromConnector(connector *connectors.Connector,
-	providers []string) ([]freefloatings.FreeFloating, []error) {
+func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.FreeFloating, []error) {
 
 	urlPath := connector.GetUrl()
-	token := "Bearer " + connector.GetToken()
+	token := "bearer " + connector.GetToken()
 	freeFloatings := make([]freefloatings.FreeFloating, 0)
 	var err []error
 
-	for _, provider := range providers {
+	citiz, err_citiz := ReadCitizFile(connector.GetFilesUri())
+	if err_citiz != nil {
+		err = append(err, err_citiz)
+		return freeFloatings, err
+	}
 
-		callUrl := fmt.Sprintf("%s/api/provider/%s/extended-vehicles?refresh=true", urlPath.String(), provider)
+	for _, c := range citiz {
+
+		callUrl := fmt.Sprintf("%sapi/vehicule/available/all/bycoordinates?latitude=%f&longitude=%f&radius=%d",
+			urlPath.String(), c.Latitude, c.Longitude, c.Radius)
 		resp, e := utils.GetHttpClient(callUrl, token, "Authorization", connector.GetConnectionTimeout())
 		if e != nil {
 			freefloatings.FreeFloatingsLoadingErrors.Inc()
 			err = append(err, e)
-			continue
 		}
 
 		e = utils.CheckResponseStatus(resp)
 		if e != nil {
 			freefloatings.FreeFloatingsLoadingErrors.Inc()
-			err = append(err, fmt.Errorf("error with provider %s", provider))
+			err = append(err, fmt.Errorf("error with provider %s", c.City))
 			continue
 		}
 
-		vehicles := &CitizData{}
+		data := &CitizData{}
 		decoder := json.NewDecoder(resp.Body)
-		e = decoder.Decode(vehicles)
+		e = decoder.Decode(data)
 		if e != nil {
 			freefloatings.FreeFloatingsLoadingErrors.Inc()
 			err = append(err, e)
 			continue
 		}
 
-		vehiclesCitiz := LoadVehiclesData(*vehicles)
+		vehiclesCitiz := LoadVehiclesData(*data)
 		freeFloatings = append(freeFloatings, vehiclesCitiz...)
-		logrus.Info("Vehicles loaded from provider ", provider)
+		logrus.Info("Vehicles loaded from provider ", c.City)
+		if len(data.KeyMessage) > 0 {
+			logrus.Info("Message from provider ", data.KeyMessage)
+		}
 	}
 
 	logrus.Debug("*** Size of data Citiz: ", len(freeFloatings))
@@ -132,10 +139,30 @@ func LoadDatafromConnector(connector *connectors.Connector,
 
 func LoadVehiclesData(vehiclesData CitizData) []freefloatings.FreeFloating {
 	vehicles := make([]freefloatings.FreeFloating, 0)
-	for _, ve := range vehiclesData {
+	for _, ve := range vehiclesData.Vehicles {
 		vehicles = append(vehicles, *NewCitiz(ve))
 	}
 	return vehicles
+}
+
+func ReadCitizFile(path url.URL) ([]Citiz, error) {
+	reader, err := utils.GetFileWithFS(path)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonData, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return nil, err
+	}
+
+	data := &AllCitiz{}
+	err = json.Unmarshal(jsonData, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return *data, nil
 }
 
 func tokenExpired(expireIn int) bool {
@@ -143,20 +170,28 @@ func tokenExpired(expireIn int) bool {
 }
 
 // NewCitiz creates a new FreeFloating object from the object Vehicle
-func NewCitiz(ve Vehicles) *freefloatings.FreeFloating {
+func NewCitiz(ve Vehicle) *freefloatings.FreeFloating {
 	return &freefloatings.FreeFloating{
 		PublicId:     ve.LicencePlate,
-		ProviderName: "Citiz",
+		ProviderName: getProviderName(ve.IsFreeFloating),
 		Id:           strconv.Itoa(int(ve.VehiculeId)),
 		Type:         "CAR",
 		Coord:        freefloatings.Coord{Lat: ve.GpsLatitude, Lon: ve.GpsLongitude},
 		Propulsion:   getPropulsion(ve.ElectricEngine),
 		Attributes:   []string{getPropulsion((ve.ElectricEngine))},
-		Distance:     float64(ve.KmTotal),
 		Properties: map[string]string{
 			"category":       ve.Category,
 			"externalRemark": ve.ExternalRemark,
+			"stationId":      strconv.Itoa(int(ve.StationId)),
 		},
+	}
+}
+
+func getProviderName(isFreeFloating bool) string {
+	if isFreeFloating {
+		return "Yea"
+	} else {
+		return "Citiz"
 	}
 }
 
@@ -168,31 +203,36 @@ func getPropulsion(isElectric bool) string {
 	}
 }
 
-// Structure used to load data from Citiz
-type CitizData []Vehicles
-type Vehicles struct {
-	LocationId       int32   `json:"locationId,omitempty"`
-	LocationCityId   int32   `json:"locationCityId,omitempty"`
-	CategoryId       int32   `json:"categoryId,omitempty"`
-	KmTotal          int32   `json:"kmTotal,omitempty"`
-	VehiculeId       int32   `json:"vehiculeId,omitempty"`
-	ProviderId       int32   `json:"providerId,omitempty"`
-	StationId        int32   `json:"stationId,omitempty"`
-	Engine           int32   `json:"engine,omitempty"`
-	FuelLevel        int32   `json:"fuelLevel,omitempty"`
-	IsFreeFloating   bool    `json:"isFreeFloating,omitempty"`
-	ElectricEngine   bool    `json:"electricEngine,omitempty"`
-	IsCharging       bool    `json:"isCharging,omitempty"`
-	LocationName     string  `json:"locationName,omitempty"`
-	LocationCity     string  `json:"locationCity,omitempty"`
-	InternalRemark   string  `json:"internalRemark,omitempty"`
-	AffectationStart string  `json:"affectationStart,omitempty"`
-	AffectationEnd   string  `json:"affectationEnd,omitempty"`
-	Voltage          string  `json:"voltage,omitempty"`
-	Name             string  `json:"name,omitempty"`
-	LicencePlate     string  `json:"licencePlate,omitempty"`
-	ExternalRemark   string  `json:"externalRemark,omitempty"`
-	Category         string  `json:"category,omitempty"`
-	GpsLatitude      float64 `json:"gpsLatitude,omitempty"`
-	GpsLongitude     float64 `json:"gpsLongitude,omitempty"`
+type Vehicle struct {
+	VehiculeId     int32   `json:"vehiculeId,omitempty"`
+	ProviderId     int32   `json:"providerId,omitempty"`
+	FuelLevel      int32   `json:"fuelLevel,omitempty"`
+	StationId      int32   `json:"stationId,omitempty"`
+	Engine         int32   `json:"engine,omitempty"`
+	IsFreeFloating bool    `json:"isFreeFloating,omitempty"`
+	ElectricEngine bool    `json:"electricEngine,omitempty"`
+	IsCharging     bool    `json:"isCharging,omitempty"`
+	Name           string  `json:"name,omitempty"`
+	LicencePlate   string  `json:"licencePlate,omitempty"`
+	ExternalRemark string  `json:"externalRemark,omitempty"`
+	Category       string  `json:"category,omitempty"`
+	Icon           string  `json:"icon,omitempty"`
+	GpsLatitude    float64 `json:"gpsLatitude,omitempty"`
+	GpsLongitude   float64 `json:"gpsLongitude,omitempty"`
+}
+
+type CitizData struct {
+	Vehicles     []Vehicle `json:"results,omitempty"`
+	Status       int32     `json:"status,omitempty"`
+	ErrorMessage string    `json:"errorMessage,omitempty"`
+	Message      string    `json:"message,omitempty"`
+	KeyMessage   string    `json:"keyMessage,omitempty"`
+}
+
+type AllCitiz []Citiz
+type Citiz struct {
+	City      string  `json:"city"`
+	Latitude  float64 `json:"lat"`
+	Longitude float64 `json:"lon"`
+	Radius    int32   `json:"radius"`
 }

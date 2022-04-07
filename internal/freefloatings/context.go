@@ -98,6 +98,11 @@ func (d *FreeFloatingsContext) GetFreeFloatings(param *FreeFloatingRequestParame
 				continue
 			}
 
+			// Select according to provider
+			if len(param.ProviderName) > 0 && strings.ToLower(param.ProviderName) != strings.ToLower(ff.ProviderName) {
+				continue
+			}
+
 			// Keep the wanted object
 			if keep {
 				resp = append(resp, ff)

@@ -77,11 +77,12 @@ func (f FreeFloatingType) String() string {
 }
 
 type FreeFloatingRequestParameter struct {
-	Distance  int
-	Coord     Coord
-	Count     int
-	Types     []FreeFloatingType
-	StartPage int
+	Distance     int
+	Coord        Coord
+	Count        int
+	Types        []FreeFloatingType
+	StartPage    int
+	ProviderName string
 }
 
 func ParseFreeFloatingTypeFromParam(value string) FreeFloatingType {
@@ -131,6 +132,7 @@ func initFreeFloatingRequestParameter(c *gin.Context) (param *FreeFloatingReques
 	p.Distance = utils.StringToInt(distanceStr, 500)
 	startPage := c.DefaultQuery("start_page", "0")
 	p.StartPage = utils.StringToInt(startPage, 0)
+	p.ProviderName = c.DefaultQuery("provider_name", "")
 
 	types := c.Request.URL.Query()["type[]"]
 	UpdateParameterTypes(&p, types)

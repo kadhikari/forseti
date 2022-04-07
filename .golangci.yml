@@ -1,0 +1,5 @@
+linters-settings:
+  misspell:
+    locale: FR
+    ignore-words:
+      - vehicule

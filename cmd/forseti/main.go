@@ -38,14 +38,15 @@ type Config struct {
 	EquipmentsRefresh time.Duration `mapstructure:"equipments-refresh"`
 	EquipmentsURI     url.URL
 
-	FreeFloatingsURIStr    string        `mapstructure:"free-floatings-uri"`
-	FreeFloatingsRefresh   time.Duration `mapstructure:"free-floatings-refresh"`
-	FreeFloatingsURI       url.URL
-	FreeFloatingsToken     string   `mapstructure:"free-floatings-token"`
-	FreeFloatingsType      string   `mapstructure:"free-floatings-type"`
-	FreeFloatingsUserName  string   `mapstructure:"free-floatings-username"`
-	FreeFloatingsPassword  string   `mapstructure:"free-floatings-password"`
-	FreeFloatingsProviders []string `mapstructure:"free-floatings-providers"`
+	FreeFloatingsFilesURIStr string `mapstructure:"free-floatings-files-uri"`
+	FreeFloatingsFilesURI    url.URL
+	FreeFloatingsURIStr      string `mapstructure:"free-floatings-uri"`
+	FreeFloatingsURI         url.URL
+	FreeFloatingsRefresh     time.Duration `mapstructure:"free-floatings-refresh"`
+	FreeFloatingsToken       string        `mapstructure:"free-floatings-token"`
+	FreeFloatingsType        string        `mapstructure:"free-floatings-type"`
+	FreeFloatingsUserName    string        `mapstructure:"free-floatings-username"`
+	FreeFloatingsPassword    string        `mapstructure:"free-floatings-password"`
 
 	OccupancyFilesURIStr   string `mapstructure:"occupancy-files-uri"`
 	OccupancyFilesURI      url.URL
@@ -106,6 +107,7 @@ func GetConfig() (Config, error) {
 	pflag.Duration("equipments-refresh", 30*time.Second, "time between refresh of equipments data")
 
 	//Passing configurations for free-floatings
+	pflag.String("free-floatings-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")
@@ -113,7 +115,6 @@ func GetConfig() (Config, error) {
 	pflag.String("free-floatings-type", "fluctuo", "connector type to load data source")
 	pflag.String("free-floatings-username", "", "username for getting API access tokens")
 	pflag.String("free-floatings-password", "", "password for getting API access tokens")
-	pflag.String("free-floatings-providers", "", "list of providers to get data \nexample: 19,127,392")
 
 	//Passing configurations for vehicle_occupancies
 	pflag.String("occupancy-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -158,8 +159,8 @@ func GetConfig() (Config, error) {
 	}
 
 	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
-		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr, config.OccupancyServiceURIStr,
-		config.PositionsServiceURIStr) {
+		config.FreeFloatingsFilesURIStr, config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr,
+		config.OccupancyServiceURIStr, config.PositionsServiceURIStr) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -172,6 +173,7 @@ func GetConfig() (Config, error) {
 		{config.DeparturesURIStr, &config.DeparturesURI},
 		{config.ParkingsURIStr, &config.ParkingsURI},
 		{config.EquipmentsURIStr, &config.EquipmentsURI},
+		{config.FreeFloatingsFilesURIStr, &config.FreeFloatingsFilesURI},
 		{config.FreeFloatingsURIStr, &config.FreeFloatingsURI},
 		{config.OccupancyFilesURIStr, &config.OccupancyFilesURI},
 		{config.OccupancyNavitiaURIStr, &config.OccupancyNavitiaURI},
@@ -253,7 +255,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	if config.FreeFloatingsType == string(connectors.Connector_CITIZ) {
 		var c = citiz.CitizContext{}
 
-		c.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.FreeFloatingsProviders,
+		c.InitContext(config.FreeFloatingsFilesURI, config.FreeFloatingsURI, config.FreeFloatingsRefresh,
 			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword)
 
 		go c.RefreshFreeFloatingLoop(freeFloatingsContext)

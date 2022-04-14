@@ -77,19 +77,30 @@ func InitVehiclePositionrequestParameter(c *gin.Context) (param *VehiclePosition
 	var longitude, latitude float64
 	var e error
 	p := VehiclePositionRequestParameter{}
+	loc, _ := time.LoadLocation(location)
+	// We accept two date formats in the parameter
+	date, err := time.ParseInLocation("20060102", c.Query("date"), loc)
+	if err != nil {
+		date, err = time.ParseInLocation("2006-01-02", c.Query("date"), loc)
+	}
+	if err != nil {
+		p.Date = time.Now().Truncate(24 * time.Hour)
+	} else {
+		p.Date = date
+	}
 	p.VehicleJourneyCodes = c.Request.URL.Query()["vehicle_journey_code[]"]
+	if len(p.VehicleJourneyCodes) > 0 {
+		return &p, nil
+	}
 
 	distanceStr := c.DefaultQuery("distance", "")
 	p.Distance = utils.StringToInt(distanceStr, 0)
 	coordStr := c.Query("coord")
+
+	// If parameter coord is present we should verify that coord is valid
 	if len(coordStr) > 0 {
 		p.Distance = utils.StringToInt(distanceStr, 500)
-	}
 
-	if p.Distance > 0 && len(p.VehicleJourneyCodes) == 0 {
-		if len(coordStr) == 0 {
-			return nil, fmt.Errorf("Bad request: coord is mandatory")
-		}
 		coord := strings.Split(coordStr, ";")
 		if len(coord) == 2 {
 			longitudeStr := coord[0]
@@ -106,20 +117,12 @@ func InitVehiclePositionrequestParameter(c *gin.Context) (param *VehiclePosition
 			}
 			p.Coord = Coord{Lat: latitude, Lon: longitude}
 		} else {
-			p.Distance = 0
+			err = fmt.Errorf("Bad request: error on coord value")
+			return nil, err
 		}
-	}
 
-	loc, _ := time.LoadLocation(location)
-	// We accept two date formats in the parameter
-	date, err := time.ParseInLocation("20060102", c.Query("date"), loc)
-	if err != nil {
-		date, err = time.ParseInLocation("2006-01-02", c.Query("date"), loc)
-	}
-	if err != nil {
-		p.Date = time.Now().Truncate(24 * time.Hour)
-	} else {
-		p.Date = date
+	} else if p.Distance > 0 {
+		return nil, fmt.Errorf("Bad request: coord is mandatory when distance is present")
 	}
 	return &p, nil
 }

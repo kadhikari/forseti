@@ -6,9 +6,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/connectors"
-	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/connectors"
+	gtfsrtvehiclepositions "github.com/hove-io/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 )

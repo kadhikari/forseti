@@ -48,4 +48,4 @@ jobs:
       - name: slack notification (the job has failed)
         if: failure()
         run: |
-          echo '{"text":":warning: Forseti Github Actions: Create image for branch master failed ! (https://github.com/CanalTP/forseti/actions/workflows/master.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+          echo '{"text":":warning: Forseti Github Actions: Create image for branch master failed ! (https://github.com/hove-io/forseti/actions/workflows/master.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}

@@ -3,7 +3,7 @@ package vehicleoccupancies
 import (
 	"testing"
 
-	"github.com/CanalTP/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

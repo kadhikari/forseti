@@ -10,7 +10,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 const (

@@ -9,10 +9,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/connectors"
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 

@@ -15,14 +15,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/departures"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/freefloatings/fluctuo"
-	"github.com/CanalTP/forseti/internal/manager"
-	"github.com/CanalTP/forseti/internal/parkings"
-	"github.com/CanalTP/forseti/internal/utils"
-	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
+	"github.com/hove-io/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/freefloatings/fluctuo"
+	"github.com/hove-io/forseti/internal/manager"
+	"github.com/hove-io/forseti/internal/parkings"
+	"github.com/hove-io/forseti/internal/utils"
+	vehicleoccupancies "github.com/hove-io/forseti/internal/vehicleoccupancies"
 )
 
 var defaultTimeout time.Duration = time.Second * 10

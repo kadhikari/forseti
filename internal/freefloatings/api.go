@@ -8,7 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 // FreeFloatingsResponse defines the structure returned by the /free_floatings endpoint

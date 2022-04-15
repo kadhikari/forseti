@@ -12,7 +12,7 @@ import (
 	"github.com/pkg/sftp"
 	"golang.org/x/crypto/ssh"
 
-	"github.com/CanalTP/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/data"
 )
 
 var location = "Europe/Paris"

@@ -5,9 +5,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/connectors"
 	"github.com/gin-gonic/gin"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

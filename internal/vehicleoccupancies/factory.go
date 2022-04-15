@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/connectors"
 )
 
 type IVehicleOccupancy interface {

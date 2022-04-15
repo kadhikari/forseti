@@ -1,12 +1,12 @@
 package manager
 
 import (
-	"github.com/CanalTP/forseti/internal/departures"
-	"github.com/CanalTP/forseti/internal/equipments"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/parkings"
-	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
-	"github.com/CanalTP/forseti/internal/vehiclepositions"
+	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/equipments"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/parkings"
+	vehicleoccupancies "github.com/hove-io/forseti/internal/vehicleoccupancies"
+	"github.com/hove-io/forseti/internal/vehiclepositions"
 )
 
 // Data manager for all apis

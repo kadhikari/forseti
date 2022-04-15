@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/data"
 
-	//"github.com/CanalTP/forseti/internal/manager"
-	"github.com/CanalTP/forseti/internal/utils"
+	//"github.com/hove-io/forseti/internal/manager"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

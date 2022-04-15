@@ -6,7 +6,7 @@ import (
 
 	"github.com/sirupsen/logrus"
 
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 func RefreshDeparturesLoop(context *DeparturesContext,

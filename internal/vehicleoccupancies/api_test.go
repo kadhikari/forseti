@@ -10,11 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/data"
-	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
-	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/data"
+	gtfsrtvehiclepositions "github.com/hove-io/forseti/internal/gtfsRt_vehiclepositions"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

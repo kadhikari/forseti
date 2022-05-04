@@ -79,7 +79,8 @@ func Test_GetVehiclePositions(t *testing.T) {
 	// Call Api with no existing vehicle_journey_code
 	gtfsRtContext.CleanListVehiclePositions(1 * time.Minute)
 	pVehiclePositions.vehiclePositions = map[string]*VehiclePosition{
-		"651970": {"651970", date, 45.398613, -71.90111, 0, 0, google_transit.VehiclePosition_OccupancyStatus_name[1], date}}
+		"651970": {"651970", date, 45.398613, -71.90111, 0, 0,
+			google_transit.VehiclePosition_OccupancyStatus_name[1], date, 500}}
 	param = VehiclePositionRequestParameter{VehicleJourneyCodes: []string{"651969"}, Date: date}
 	vehiclePositions, err = gtfsRtContext.GetVehiclePositions(&param)
 	require.Nil(err)

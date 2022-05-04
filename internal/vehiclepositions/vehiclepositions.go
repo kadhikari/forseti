@@ -2,11 +2,13 @@ package vehiclepositions
 
 import (
 	"fmt"
+	"math"
 	"sync"
 	"time"
 
 	"github.com/CanalTP/forseti/google_transit"
 	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
+	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -92,6 +94,16 @@ func (d *VehiclePositions) GetVehiclePositions(param *VehiclePositionRequestPara
 				if vp.DateTime.Before(param.Date) {
 					continue
 				}
+
+				// Calculate distance from coord in the request
+				if param.Distance > 0 && len(param.VehicleJourneyCodes) == 0 {
+					distance := utils.CoordDistance(param.Coord.Lat, param.Coord.Lon, float64(vp.Latitude), float64(vp.Longitude))
+					vp.Distance = math.Round(distance)
+					if int(distance) > param.Distance {
+						continue
+					}
+				}
+
 				positions = append(positions, *vp)
 			}
 		}

@@ -8,7 +8,7 @@ import (
 
 	"github.com/hove-io/forseti/google_transit"
 	gtfsrtvehiclepositions "github.com/hove-io/forseti/internal/gtfsRt_vehiclepositions"
-	"github.com/hove-io/forseti/internal/utils"	
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 

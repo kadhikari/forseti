@@ -80,16 +80,10 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 	strTimestamp := strconv.FormatUint(fm.Header.GetTimestamp(), 10)
 
 	vehicles := make([]VehicleGtfsRt, 0, len(fm.GetEntity()))
-	cpt := 0
 	for _, entity := range fm.GetEntity() {
 		var vehPos *google_transit.VehiclePosition = entity.GetVehicle()
 		var pos *google_transit.Position = vehPos.GetPosition()
 		var trip *google_transit.TripDescriptor = vehPos.GetTrip()
-
-		if pos.GetLatitude() == 0 && pos.GetLongitude() == 0 {
-			cpt += 1
-			continue
-		}
 
 		veh := VehicleGtfsRt{
 			VehicleID: vehPos.GetVehicle().GetId(),
@@ -106,11 +100,6 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 		}
 		vehicles = append(vehicles, veh)
 	}
-
-	if cpt > 0 {
-		logrus.Warn("Count gtfs-rt items ignored ", cpt, ", reason: items without coordinates")
-	}
-
 	gtfsRt := NewGtfsRt(strTimestamp, vehicles)
 	return gtfsRt, nil
 }

@@ -114,7 +114,12 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 	}
 
 	// Add or update vehicle position with vehicle GTFS-RT
+	cpt := 0
 	for _, vehGtfsRT := range gtfsRt.Vehicles {
+		if vehGtfsRT.Latitude == 0 && vehGtfsRT.Longitude == 0 {
+			cpt += 1
+			continue
+		}
 		oldVp := context.vehiclePositions.vehiclePositions[vehGtfsRT.Trip]
 		if oldVp == nil {
 			newVehiclePosition := createVehiclePositionFromDataSource(vehGtfsRT, context.location)
@@ -125,7 +130,9 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 			context.vehiclePositions.UpdateVehiclePosition(vehGtfsRT, context.location)
 		}
 	}
-
+	if cpt > 0 {
+		logrus.Warn("Count gtfs-rt items ignored ", cpt, ", reason: items without coordinates")
+	}
 	VehiclePositionsLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
 }

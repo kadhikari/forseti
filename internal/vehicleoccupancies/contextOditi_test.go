@@ -9,8 +9,6 @@ import (
 	"time"
 
 	"github.com/hove-io/forseti/internal/data"
-
-	//"github.com/hove-io/forseti/internal/manager"
 	"github.com/hove-io/forseti/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

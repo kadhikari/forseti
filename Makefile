@@ -5,7 +5,7 @@ GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
 .PHONY: linter-install
 linter-install: ## Install linter
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.37.1
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.43.0
 
 .PHONY: setup
 setup: ## Install all the build and lint dependencies

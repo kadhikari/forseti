@@ -84,6 +84,10 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 		var vehPos *google_transit.VehiclePosition = entity.GetVehicle()
 		var pos *google_transit.Position = vehPos.GetPosition()
 		var trip *google_transit.TripDescriptor = vehPos.GetTrip()
+		occ := google_transit.Default_VehiclePosition_CarriageDetails_OccupancyStatus
+		if vehPos.OccupancyStatus != nil {
+			occ = vehPos.GetOccupancyStatus()
+		}
 
 		veh := VehicleGtfsRt{
 			VehicleID: vehPos.GetVehicle().GetId(),
@@ -96,7 +100,7 @@ func ParseVehiclesResponse(b []byte) (*GtfsRt, error) {
 			Trip:      trip.GetTripId(),
 			Latitude:  pos.GetLatitude(),
 			Longitude: pos.GetLongitude(),
-			Occupancy: uint32(vehPos.GetOccupancyStatus()),
+			Occupancy: uint32(occ),
 		}
 		vehicles = append(vehicles, veh)
 	}

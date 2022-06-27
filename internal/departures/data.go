@@ -23,7 +23,7 @@ type Departure struct {
 
 // DepartureLineConsumer constructs a departure from a slice of strings
 type DepartureLineConsumer struct {
-	data map[string][]Departure
+	Data map[string][]Departure
 }
 
 func NewDeparture(record []string, location *time.Location) (Departure, error) {
@@ -50,7 +50,7 @@ func NewDeparture(record []string, location *time.Location) (Departure, error) {
 	}, nil
 }
 
-func makeDepartureLineConsumer() *DepartureLineConsumer {
+func MakeDepartureLineConsumer() *DepartureLineConsumer {
 	return &DepartureLineConsumer{make(map[string][]Departure)}
 }
 
@@ -61,13 +61,13 @@ func (p *DepartureLineConsumer) Consume(line []string, loc *time.Location) error
 		return err
 	}
 
-	p.data[departure.Stop] = append(p.data[departure.Stop], departure)
+	p.Data[departure.Stop] = append(p.Data[departure.Stop], departure)
 	return nil
 }
 
 func (p *DepartureLineConsumer) Terminate() {
 	//sort the departures
-	for _, v := range p.data {
+	for _, v := range p.Data {
 		sort.Slice(v, func(i, j int) bool {
 			return v[i].Datetime.Before(v[j].Datetime)
 		})

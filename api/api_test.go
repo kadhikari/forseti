@@ -17,6 +17,7 @@ import (
 
 	"github.com/hove-io/forseti/internal/data"
 	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/departures/sytralrt"
 	"github.com/hove-io/forseti/internal/freefloatings"
 	"github.com/hove-io/forseti/internal/freefloatings/fluctuo"
 	"github.com/hove-io/forseti/internal/manager"
@@ -66,7 +67,9 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 	router.GET("/status", StatusHandler(&manager))
 
-	err = departures.RefreshDepartures(departuresContext, *firstURI, defaultTimeout)
+	sytralContext := &sytralrt.SytralRTContext{}
+	sytralContext.InitContext(*firstURI, defaultTimeout, defaultTimeout)
+	err = sytralrt.RefreshDepartures(sytralContext, departuresContext)
 	assert.Nil(err)
 
 	c.Request = httptest.NewRequest("GET", "/status", nil)

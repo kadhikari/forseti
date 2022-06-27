@@ -5,9 +5,9 @@ import (
 	"io/ioutil"
 	"strconv"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/connectors"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/protobuf/proto"
 )

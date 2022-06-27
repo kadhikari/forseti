@@ -1,4 +1,4 @@
-module github.com/CanalTP/forseti
+module github.com/hove-io/forseti
 
 go 1.15
 

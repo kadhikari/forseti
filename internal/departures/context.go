@@ -3,6 +3,7 @@ package departures
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,6 +12,8 @@ type DeparturesContext struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
 	departuresMutex     sync.RWMutex
+	packageName         string
+	RefreshTime         time.Duration
 }
 
 func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) {
@@ -31,6 +34,7 @@ func (d *DeparturesContext) GetLastDepartureDataUpdate() time.Time {
 func (d *DeparturesContext) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
 	return d.GetDeparturesByStopsAndDirectionType(stopsID, DirectionTypeBoth)
 }
+
 func (d *DeparturesContext) GetDeparturesByStopsAndDirectionType(
 	stopsID []string,
 	directionType DirectionType) ([]Departure, error) {
@@ -57,6 +61,22 @@ func (d *DeparturesContext) GetDeparturesByStopsAndDirectionType(
 		return departures[i].Datetime.Before(departures[j].Datetime)
 	})
 	return departures, nil
+}
+
+func (d *DeparturesContext) GetPackageName() string {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	return d.packageName
+}
+
+func (d *DeparturesContext) SetPackageName(pathPackage string) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	paths := strings.Split(pathPackage, "/")
+	size := len(paths)
+	d.packageName = paths[size-1]
 }
 
 func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {

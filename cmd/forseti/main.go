@@ -10,6 +10,7 @@ import (
 	"github.com/hove-io/forseti/api"
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/departures/sytralrt"
 	"github.com/hove-io/forseti/internal/equipments"
 	"github.com/hove-io/forseti/internal/freefloatings"
 	"github.com/hove-io/forseti/internal/freefloatings/citiz"
@@ -276,9 +277,14 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 	}
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
-	go departures.RefreshDeparturesLoop(departuresContext, config.DeparturesURI,
-		config.DeparturesRefresh, config.ConnectionTimeout)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
+
+	// Enable the SytralRT connector
+	{
+		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
+		sytralContext.InitContext(config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
+		go sytralContext.RefreshDeparturesLoop(departuresContext)
+	}
 }
 
 func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) {

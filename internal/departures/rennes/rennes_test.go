@@ -46,15 +46,13 @@ func TestLoadScheduledDeparturesFromDailyDataFiles(t *testing.T) {
 	// Check the departure defined by the first line
 	{
 		departure := Departure{
-			StopPointId:     "1412",
-			BusLineId:       "0801",
-			Direction:       departures.DirectionTypeBackward,
-			DestinationId:   "284721153",
-			DestinationName: "Kennedy",
-			Time: DepartureTime{
-				Id:            "268506433",
-				ScheduledTime: time.Date(0, 1, 1, 5, 13, 0, 0, loc),
-			},
+			DbInternalLinkId: "284722693",
+			StopPointId:      "1412",
+			BusLineId:        "0801",
+			Direction:        departures.DirectionTypeBackward,
+			DestinationId:    "284721153",
+			DestinationName:  "Kennedy",
+			Time:             time.Date(0, 1, 1, 5, 13, 0, 0, loc),
 		}
 		require.Contains(departuresList, departure)
 	}

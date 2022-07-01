@@ -65,7 +65,7 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 			Type:          "unknown",
 			Direction:     rennesDeparture.DestinationId,
 			DirectionName: rennesDeparture.DestinationName,
-			Datetime:      rennesDeparture.Time.ScheduledTime,
+			Datetime:      rennesDeparture.Time,
 			DirectionType: rennesDeparture.Direction,
 		}
 		// Initilize a new list of departures if necessary
@@ -80,18 +80,14 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 	return result
 }
 
-type DepartureTime struct {
-	Id            string
-	ScheduledTime time.Time
-}
-
 type Departure struct {
-	StopPointId     string
-	BusLineId       string
-	Direction       departures.DirectionType
-	DestinationId   string
-	DestinationName string
-	Time            DepartureTime
+	DbInternalLinkId string
+	StopPointId      string
+	BusLineId        string
+	Direction        departures.DirectionType
+	DestinationId    string
+	DestinationName  string
+	Time             time.Time
 }
 
 func LoadScheduledDeparturesFromDailyDataFiles(uri url.URL, connectionTimeout time.Duration) ([]Departure, error) {
@@ -151,15 +147,13 @@ func LoadScheduledDeparturesFromDailyDataFiles(uri url.URL, connectionTimeout ti
 
 		scheduledDepartures = append(scheduledDepartures,
 			Departure{
-				StopPointId:     stopPoint.ExternalId,
-				BusLineId:       busLine.ExternalId,
-				Direction:       direction,
-				DestinationId:   destinationId,
-				DestinationName: destinationName,
-				Time: DepartureTime{
-					Id:            scheduledTime.Id,
-					ScheduledTime: scheduledTime.Time,
-				},
+				DbInternalLinkId: dbInternalLink.Id,
+				StopPointId:      stopPoint.ExternalId,
+				BusLineId:        busLine.ExternalId,
+				Direction:        direction,
+				DestinationId:    destinationId,
+				DestinationName:  destinationName,
+				Time:             scheduledTime.Time,
 			},
 		)
 	}

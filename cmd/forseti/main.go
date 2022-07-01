@@ -27,10 +27,13 @@ import (
 )
 
 type Config struct {
-	DeparturesURIStr  string        `mapstructure:"departures-uri"`
-	DeparturesRefresh time.Duration `mapstructure:"departures-refresh"`
-	DeparturesURI     url.URL
-	DeparturesType    string `mapstructure:"departures-type"`
+	DeparturesFilesURIStr    string `mapstructure:"departures-files-uri"`
+	DeparturesFilesURI       url.URL
+	DeparturesFilesRefresh   time.Duration `mapstructure:"departures-files-refresh"`
+	DeparturesServiceURIStr  string        `mapstructure:"departures-service-uri"`
+	DeparturesServiceURI     url.URL
+	DeparturesServiceRefresh time.Duration `mapstructure:"departures-service-refresh"`
+	DeparturesType           string        `mapstructure:"departures-type"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -97,11 +100,13 @@ func noneOf(args ...string) bool {
 func GetConfig() (Config, error) {
 	//Passing configurations for departures
 	pflag.String(
-		"departures-uri",
+		"departures-files-uri",
 		"",
 		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt",
 	)
-	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.Duration("departures-files-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.String("departures-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-type", "sytralrt", "connector type to load data source")
 
 	//Passing configurations for parkings
@@ -164,9 +169,14 @@ func GetConfig() (Config, error) {
 		return config, errors.Wrap(err, "Unmarshalling of flag failed")
 	}
 
-	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
-		config.FreeFloatingsFilesURIStr, config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr,
-		config.OccupancyServiceURIStr, config.PositionsServiceURIStr) {
+	if noneOf(
+		config.DeparturesFilesURIStr, config.DeparturesServiceURIStr,
+		config.ParkingsURIStr,
+		config.EquipmentsURIStr,
+		config.FreeFloatingsURIStr, config.FreeFloatingsFilesURIStr,
+		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr,
+		config.OccupancyServiceURIStr, config.PositionsServiceURIStr,
+	) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -176,7 +186,8 @@ func GetConfig() (Config, error) {
 	}
 
 	for _, uri := range []ConfigUri{
-		{config.DeparturesURIStr, &config.DeparturesURI},
+		{config.DeparturesFilesURIStr, &config.DeparturesFilesURI},
+		{config.DeparturesServiceURIStr, &config.DeparturesServiceURI},
 		{config.ParkingsURIStr, &config.ParkingsURI},
 		{config.EquipmentsURIStr, &config.EquipmentsURI},
 		{config.FreeFloatingsFilesURIStr, &config.FreeFloatingsFilesURI},
@@ -277,7 +288,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 }
 
 func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
-	if len(config.DeparturesURI.String()) == 0 || config.DeparturesRefresh.Seconds() <= 0 {
+	if len(config.DeparturesFilesURI.String()) == 0 || config.DeparturesFilesRefresh.Seconds() <= 0 {
 		logrus.Debug("Departures is disabled")
 		return
 	}
@@ -287,12 +298,12 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
-		sytralContext.InitContext(config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
+		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
 	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
 		var rennesContext rennes.RennesContext = rennes.RennesContext{}
-		rennesContext.InitContext(config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
-		_ = rennesContext.InitDepartures(departuresContext)
+		rennesContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
+		go rennesContext.InitializeDeparturesLoop(departuresContext)
 	}
 }
 

@@ -3,6 +3,7 @@ package rennes
 import (
 	"fmt"
 	"net/url"
+	"reflect"
 	"time"
 
 	"github.com/hove-io/forseti/internal/connectors"
@@ -31,29 +32,42 @@ func (d *RennesContext) InitContext(externalURI url.URL, loadExternalRefresh, co
 	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
 }
 
-func (d *RennesContext) InitDepartures(context *departures.DeparturesContext) error {
-	begin := time.Now()
+func (d *RennesContext) InitializeDeparturesLoop(context *departures.DeparturesContext) {
+	context.SetPackageName(reflect.TypeOf(RennesContext{}).PkgPath())
+	context.RefreshTime = d.connector.GetRefreshTime()
 
-	// _, err := utils.GetFile(d.connector.GetFilesUri(), d.connector.GetConnectionTimeout())
-	// if err != nil {
-	// 	departures.DepartureLoadingErrors.Inc()
-	// 	return err
-	// }
+	// Wait 10 seconds before reloading external departures informations
+	time.Sleep(10 * time.Second)
+	for {
+		hasBeenLoaded, err := InitializeDepartures(d, context)
+		if err != nil {
+			logrus.Error("Error while the initialization of the departures data: ", err)
+		} else {
+			logrus.Debug("Departures data are initialized")
+		}
+		if hasBeenLoaded {
+			d.areDeparturesInitialized = true
+			return
+		}
+		time.Sleep(d.connector.GetRefreshTime())
+	}
+
+}
+
+func InitializeDepartures(rennesContext *RennesContext, context *departures.DeparturesContext) (bool, error) {
 
 	loadedDepartures, err := LoadScheduledDeparturesFromDailyDataFiles(
-		d.connector.GetFilesUri(),
-		d.connector.GetConnectionTimeout(),
+		rennesContext.connector.GetFilesUri(),
+		rennesContext.connector.GetConnectionTimeout(),
 	)
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()
-		return err
+		return false, err
 	}
-	_ = loadedDepartures
 	mappedDepartures := mapDeparturesFollowingStopPoint(loadedDepartures)
 
 	context.UpdateDepartures(mappedDepartures)
-	departures.DepartureLoadingDuration.Observe(time.Since(begin).Seconds())
-	return nil
+	return true, nil
 }
 
 func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]departures.Departure {

@@ -10,6 +10,7 @@ import (
 	"github.com/hove-io/forseti/api"
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/departures/rennes"
 	"github.com/hove-io/forseti/internal/departures/sytralrt"
 	"github.com/hove-io/forseti/internal/equipments"
 	"github.com/hove-io/forseti/internal/freefloatings"
@@ -29,6 +30,7 @@ type Config struct {
 	DeparturesURIStr  string        `mapstructure:"departures-uri"`
 	DeparturesRefresh time.Duration `mapstructure:"departures-refresh"`
 	DeparturesURI     url.URL
+	DeparturesType    string `mapstructure:"departures-type"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -94,9 +96,13 @@ func noneOf(args ...string) bool {
 
 func GetConfig() (Config, error) {
 	//Passing configurations for departures
-	pflag.String("departures-uri", "",
-		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt")
+	pflag.String(
+		"departures-uri",
+		"",
+		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt",
+	)
 	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.String("departures-type", "sytralrt", "connector type to load data source")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -278,12 +284,15 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
-
 	// Enable the SytralRT connector
-	{
+	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
 		sytralContext.InitContext(config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
+	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
+		var rennesContext rennes.RennesContext = rennes.RennesContext{}
+		rennesContext.InitContext(config.DeparturesURI, config.DeparturesRefresh, config.ConnectionTimeout)
+		_ = rennesContext.InitDepartures(departuresContext)
 	}
 }
 

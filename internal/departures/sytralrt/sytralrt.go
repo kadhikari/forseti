@@ -1,8 +1,10 @@
 package sytralrt
 
 import (
+	"fmt"
 	"net/url"
 	"reflect"
+	"sort"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -52,7 +54,7 @@ func RefreshDepartures(sytralContext *SytralRTContext, context *departures.Depar
 		return err
 	}
 
-	departureConsumer := departures.MakeDepartureLineConsumer()
+	departureConsumer := makeDepartureLineConsumer()
 	if err = utils.LoadData(file, departureConsumer); err != nil {
 		departures.DepartureLoadingErrors.Inc()
 		return err
@@ -60,4 +62,57 @@ func RefreshDepartures(sytralContext *SytralRTContext, context *departures.Depar
 	context.UpdateDepartures(departureConsumer.Data)
 	departures.DepartureLoadingDuration.Observe(time.Since(begin).Seconds())
 	return nil
+}
+
+// departureLineConsumer constructs a departure from a slice of strings
+type departureLineConsumer struct {
+	Data map[string][]departures.Departure
+}
+
+func newDeparture(record []string, location *time.Location) (departures.Departure, error) {
+	if len(record) < 7 {
+		return departures.Departure{}, fmt.Errorf("missing field in record")
+	}
+	dt, err := time.ParseInLocation("2006-01-02 15:04:05", record[5], location)
+	if err != nil {
+		return departures.Departure{}, err
+	}
+	var directionType departures.DirectionType
+	if len(record) >= 10 {
+		directionType = departures.ParseDirectionType(record[9])
+	}
+
+	return departures.Departure{
+		Stop:          record[0],
+		Line:          record[1],
+		Type:          record[4],
+		Datetime:      dt,
+		Direction:     record[6],
+		DirectionName: record[2],
+		DirectionType: directionType,
+	}, nil
+}
+
+func makeDepartureLineConsumer() *departureLineConsumer {
+	return &departureLineConsumer{make(map[string][]departures.Departure)}
+}
+
+func (p *departureLineConsumer) Consume(line []string, loc *time.Location) error {
+
+	departure, err := newDeparture(line, loc)
+	if err != nil {
+		return err
+	}
+
+	p.Data[departure.Stop] = append(p.Data[departure.Stop], departure)
+	return nil
+}
+
+func (p *departureLineConsumer) Terminate() {
+	//sort the departures
+	for _, v := range p.Data {
+		sort.Slice(v, func(i, j int) bool {
+			return v[i].Datetime.Before(v[j].Datetime)
+		})
+	}
 }

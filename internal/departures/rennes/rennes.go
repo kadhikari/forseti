@@ -76,7 +76,7 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 		appendedDepartures := departures.Departure{
 			Line:          rennesDeparture.BusLineId,
 			Stop:          rennesDeparture.StopPointId,
-			Type:          "unknown",
+			Type:          fmt.Sprint(departures.DepartureTypeTheoretical),
 			Direction:     rennesDeparture.DestinationId,
 			DirectionName: rennesDeparture.DestinationName,
 			Datetime:      rennesDeparture.Time,

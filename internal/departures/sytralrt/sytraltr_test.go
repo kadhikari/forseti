@@ -188,7 +188,7 @@ func TestLoadDepartureData(t *testing.T) {
 	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(t, err)
 
-	consumer := departures.MakeDepartureLineConsumer()
+	consumer := makeDepartureLineConsumer()
 	departures := consumer.Data
 	err = utils.LoadData(reader, consumer)
 	require.Nil(t, err)
@@ -212,7 +212,7 @@ func TestLoadFull(t *testing.T) {
 	reader, err := utils.GetFileWithFS(*uri)
 	require.Nil(t, err)
 
-	consumer := departures.MakeDepartureLineConsumer()
+	consumer := makeDepartureLineConsumer()
 	departures := consumer.Data
 	err = utils.LoadData(reader, consumer)
 	require.Nil(t, err)
@@ -364,7 +364,7 @@ func TestRefreshDataError(t *testing.T) {
 		reader, err := utils.GetFile(*misssingFieldURI, defaultTimeout)
 		require.Nil(t, err)
 
-		err = utils.LoadData(reader, departures.MakeDepartureLineConsumer())
+		err = utils.LoadData(reader, makeDepartureLineConsumer())
 		require.Error(t, err)
 
 		{
@@ -402,7 +402,7 @@ func TestRefreshDataError(t *testing.T) {
 	{
 		reader, err := utils.GetFile(*invalidDateURI, defaultTimeout)
 		require.Nil(t, err)
-		err = utils.LoadData(reader, departures.MakeDepartureLineConsumer())
+		err = utils.LoadData(reader, makeDepartureLineConsumer())
 		require.Error(t, err)
 		{
 			syntralContext := &SytralRTContext{}
@@ -424,7 +424,7 @@ func TestNewDeparture(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	d, err := departures.NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3"}, location)
+	d, err := newDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3"}, location)
 	require.Nil(err)
 
 	assert.Equal("1", d.Stop)
@@ -445,7 +445,7 @@ func TestNewDepartureWithDirectionType(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	d, err := departures.NewDeparture(
+	d, err := newDeparture(
 		[]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "ALL"},
 		location,
 	)
@@ -461,7 +461,7 @@ func TestNewDepartureWithDirectionType(t *testing.T) {
 	//Date(year int, month Month, day, hour, min, sec, nsec int, loc *Location)
 	assert.Equal(time.Date(2018, 9, 17, 20, 28, 0, 0, location), d.Datetime)
 
-	d, err = departures.NewDeparture(
+	d, err = newDeparture(
 		[]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00", "3", "vjid", "said", "RET"},
 		location,
 	)
@@ -483,7 +483,7 @@ func TestNewDepartureMissingField(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	_, err = departures.NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00"}, location)
+	_, err = newDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28:00"}, location)
 	require.Error(err)
 }
 
@@ -492,10 +492,10 @@ func TestNewDepartureInvalidDate(t *testing.T) {
 	location, err := time.LoadLocation("Europe/Paris")
 	require.Nil(err)
 
-	_, err = departures.NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28", "3"}, location)
+	_, err = newDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 20:28", "3"}, location)
 	require.Error(err)
 
-	_, err = departures.NewDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 25:28:00", "3"}, location)
+	_, err = newDeparture([]string{"1", "2", "dest", "", "E", "2018-09-17 25:28:00", "3"}, location)
 	require.Error(err)
 }
 

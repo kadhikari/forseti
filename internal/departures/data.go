@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"sort"
 	"time"
 )
 
@@ -19,59 +18,6 @@ type Departure struct {
 	DirectionType DirectionType `json:"direction_type,omitempty"`
 	//VJ            string
 	//Route         string
-}
-
-// DepartureLineConsumer constructs a departure from a slice of strings
-type DepartureLineConsumer struct {
-	Data map[string][]Departure
-}
-
-func NewDeparture(record []string, location *time.Location) (Departure, error) {
-	if len(record) < 7 {
-		return Departure{}, fmt.Errorf("Missing field in record")
-	}
-	dt, err := time.ParseInLocation("2006-01-02 15:04:05", record[5], location)
-	if err != nil {
-		return Departure{}, err
-	}
-	var directionType DirectionType
-	if len(record) >= 10 {
-		directionType = ParseDirectionType(record[9])
-	}
-
-	return Departure{
-		Stop:          record[0],
-		Line:          record[1],
-		Type:          record[4],
-		Datetime:      dt,
-		Direction:     record[6],
-		DirectionName: record[2],
-		DirectionType: directionType,
-	}, nil
-}
-
-func MakeDepartureLineConsumer() *DepartureLineConsumer {
-	return &DepartureLineConsumer{make(map[string][]Departure)}
-}
-
-func (p *DepartureLineConsumer) Consume(line []string, loc *time.Location) error {
-
-	departure, err := NewDeparture(line, loc)
-	if err != nil {
-		return err
-	}
-
-	p.Data[departure.Stop] = append(p.Data[departure.Stop], departure)
-	return nil
-}
-
-func (p *DepartureLineConsumer) Terminate() {
-	//sort the departures
-	for _, v := range p.Data {
-		sort.Slice(v, func(i, j int) bool {
-			return v[i].Datetime.Before(v[j].Datetime)
-		})
-	}
 }
 
 type DirectionType int

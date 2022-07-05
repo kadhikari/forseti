@@ -4,11 +4,14 @@ import (
 	"fmt"
 	"net/url"
 	"reflect"
+	"sync"
 	"time"
 
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
 	rennes_destinations "github.com/hove-io/forseti/internal/departures/rennes/destinations"
+	rennes_estimatedstoptimes "github.com/hove-io/forseti/internal/departures/rennes/estimatedstoptimes"
+	rennes_lastupdate "github.com/hove-io/forseti/internal/departures/rennes/lastupdate"
 	rennes_lines "github.com/hove-io/forseti/internal/departures/rennes/lines"
 	rennes_routes "github.com/hove-io/forseti/internal/departures/rennes/routes"
 	rennes_routestoppoints "github.com/hove-io/forseti/internal/departures/rennes/routestoppoints"
@@ -17,75 +20,155 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+const header string = "Api-Keokey"
+
 type RennesContext struct {
-	connector                *connectors.Connector
-	areDeparturesInitialized bool
-	processingDate           time.Time
+	connector      *connectors.Connector
+	processingDate *time.Time
+	departures     map[string]Departure
+	lastUpdate     *time.Time
+	mutex          sync.RWMutex
+}
+
+func (d *RennesContext) getConnector() *connectors.Connector {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.connector
+}
+
+func (d *RennesContext) setConnector(connector *connectors.Connector) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	d.connector = connector
+}
+
+func (d *RennesContext) setDepartures(departures map[string]Departure) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.departures = departures
+}
+
+func (d *RennesContext) getProcessingDate() *time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.processingDate
+}
+
+func (d *RennesContext) setProcessingDate(processingDate *time.Time) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.processingDate = processingDate
+}
+
+func (d *RennesContext) getLastUpdate() *time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.lastUpdate
+}
+
+func (d *RennesContext) setLastUpdate(lastUpdate *time.Time) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.lastUpdate = lastUpdate
+}
+
+func (d *RennesContext) haveTheoreticalDeparturesBeenLoaded() bool {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.departures != nil
 }
 
 func (d *RennesContext) InitContext(
-	externalURI url.URL,
-	loadExternalRefresh,
+	departuresFilesUrl url.URL,
+	departuresFilesRefresh time.Duration,
+	departuresServiceUrl url.URL,
+	departuresToken string,
 	connectionTimeout time.Duration,
-	processingDate time.Time,
+	processingDate *time.Time,
 ) {
 
-	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
+	if len(departuresFilesUrl.String()) == 0 || departuresFilesRefresh.Seconds() <= 0 ||
+		len(departuresServiceUrl.String()) == 0 ||
+		len(departuresToken) <= 0 ||
+		connectionTimeout.Seconds() <= 0 {
 		logrus.Debug("Departures data refreshing is disabled")
 		return
 	}
-	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
-	d.processingDate = processingDate
-	d.areDeparturesInitialized = false
+
+	{
+		d.setConnector(connectors.NewConnector(
+			departuresFilesUrl,
+			departuresServiceUrl,
+			departuresToken,
+			departuresFilesRefresh,
+			connectionTimeout,
+		))
+
+		d.setProcessingDate(processingDate)
+		d.setLastUpdate(nil)
+		d.setDepartures(nil)
+	}
 }
 
-func (d *RennesContext) InitializeDeparturesLoop(context *departures.DeparturesContext) {
+func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesContext) {
 	context.SetPackageName(reflect.TypeOf(RennesContext{}).PkgPath())
 	context.RefreshTime = d.connector.GetRefreshTime()
 
 	// Wait 10 seconds before reloading external departures informations
-	time.Sleep(10 * time.Second)
+	time.Sleep(2 * time.Second)
 	for {
-		hasBeenLoaded, err := InitializeDepartures(d, context)
-		if err != nil {
-			logrus.Error("Error while the initialization of the departures data: ", err)
+		var loadedDepartures map[string][]departures.Departure = nil
+		if !d.haveTheoreticalDeparturesBeenLoaded() {
+			theoreticalDepartures, err := loadTheoreticalDepartures(d)
+			if err != nil {
+				logrus.Error("Error while the initialization of the theoretical departures: ", err)
+			} else {
+				logrus.Info("Theoretical departures are initialized")
+			}
+			if theoreticalDepartures != nil {
+				d.setDepartures(theoreticalDepartures)
+				d.setLastUpdate(nil)
+				loadedDepartures = mapDeparturesByStopPointId(theoreticalDepartures)
+			}
 		} else {
-			logrus.Debug("Departures data are initialized")
-		}
-		if hasBeenLoaded {
-			d.areDeparturesInitialized = true
+			estimatedDepartures, newLastUpdate, err := tryToLoadEstimatedDepartures(d)
+			if err != nil {
+				logrus.Error("Error while the updating of the estimated departures: ", err)
 
-			return
+			} else if estimatedDepartures != nil && newLastUpdate != nil {
+				logrus.Infof("Estimated departures are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
+				d.setDepartures(estimatedDepartures)
+				d.setLastUpdate(newLastUpdate)
+				loadedDepartures = mapDeparturesByStopPointId(estimatedDepartures)
+			}
+		}
+		if loadedDepartures != nil {
+			context.UpdateDepartures(loadedDepartures)
 		}
 		time.Sleep(d.connector.GetRefreshTime())
 	}
 
 }
 
-func InitializeDepartures(rennesContext *RennesContext, context *departures.DeparturesContext) (bool, error) {
-
-	loadedDepartures, err := LoadScheduledDeparturesFromDailyDataFiles(
-		rennesContext.connector.GetFilesUri(),
-		rennesContext.connector.GetConnectionTimeout(),
-		&rennesContext.processingDate,
-	)
-	if err != nil {
-		departures.DepartureLoadingErrors.Inc()
-		return false, err
-	}
-	mappedDepartures := mapDeparturesFollowingStopPoint(loadedDepartures)
-
-	context.UpdateDepartures(mappedDepartures)
-	return true, nil
+type Departure struct {
+	StopTimeId       string
+	RouteStopPointId string
+	StopPointId      string
+	LineId           string
+	Direction        departures.DirectionType
+	DestinationId    string
+	DestinationName  string
+	Time             time.Time
+	Type             departures.DepartureType
 }
 
-func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]departures.Departure {
+func mapDeparturesByStopPointId(rennesDepartures map[string]Departure) map[string][]departures.Departure {
 	result := make(map[string][]departures.Departure, 0)
 	for _, rennesDeparture := range rennesDepartures {
 		appendedDepartures := departures.Departure{
 			Line:          rennesDeparture.LineId,
 			Stop:          rennesDeparture.StopPointId,
-			Type:          fmt.Sprint(departures.DepartureTypeTheoretical),
+			Type:          fmt.Sprint(rennesDeparture.Type),
 			Direction:     rennesDeparture.DestinationId,
 			DirectionName: rennesDeparture.DestinationName,
 			Datetime:      rennesDeparture.Time,
@@ -103,21 +186,26 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 	return result
 }
 
-type Departure struct {
-	RouteStopPointId string
-	StopPointId      string
-	LineId           string
-	Direction        departures.DirectionType
-	DestinationId    string
-	DestinationName  string
-	Time             time.Time
+func loadTheoreticalDepartures(
+	rennesContext *RennesContext,
+) (map[string]Departure, error) {
+
+	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(
+		rennesContext.getConnector().GetFilesUri(),
+		rennesContext.getConnector().GetConnectionTimeout(),
+		rennesContext.getProcessingDate(),
+	)
+	if err != nil {
+		return nil, err
+	}
+	return theoreticalDepartures, nil
 }
 
-func LoadScheduledDeparturesFromDailyDataFiles(
+func loadTheoreticalDeparturesFromDailyDataFiles(
 	uri url.URL,
 	connectionTimeout time.Duration,
 	processingDate *time.Time,
-) ([]Departure, error) {
+) (map[string]Departure, error) {
 
 	var stopPoints map[string]rennes_stoppoints.StopPoint
 	var lines map[string]rennes_lines.Line
@@ -155,7 +243,7 @@ func LoadScheduledDeparturesFromDailyDataFiles(
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the route stop points: %v", err)
 	}
 
-	scheduledDepartures := make([]Departure, 0, len(stopTimes))
+	theoreticalDepartures := make(map[string]Departure, 0)
 	for _, stopTime := range stopTimes {
 		routeStopPoint := routeStopPoints[stopTime.RouteStopPointId]
 
@@ -172,18 +260,94 @@ func LoadScheduledDeparturesFromDailyDataFiles(
 		destinationName := destinations[destinationId].Name
 		stopPoint := stopPoints[routeStopPoint.StopPointId]
 
-		scheduledDepartures = append(scheduledDepartures,
-			Departure{
-				RouteStopPointId: routeStopPoint.Id,
-				StopPointId:      stopPoint.ExternalId,
-				LineId:           line.ExternalId,
-				Direction:        direction,
-				DestinationId:    destinationId,
-				DestinationName:  destinationName,
-				Time:             stopTime.Time,
-			},
-		)
+		theoreticalDepartures[stopTime.Id] = Departure{
+			StopTimeId:       stopTime.Id,
+			RouteStopPointId: routeStopPoint.Id,
+			StopPointId:      stopPoint.ExternalId,
+			LineId:           line.ExternalId,
+			Direction:        direction,
+			DestinationId:    destinationId,
+			DestinationName:  destinationName,
+			Time:             stopTime.Time,
+			Type:             departures.DepartureTypeTheoretical,
+		}
 	}
 
-	return scheduledDepartures, nil
+	return theoreticalDepartures, nil
+}
+
+func tryToLoadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure, *time.Time, error) {
+	loadedLastUpdate, err := rennes_lastupdate.LoadLastUpdate(
+		rennesContext.getConnector().GetUrl(),
+		header,
+		rennesContext.getConnector().GetToken(),
+		rennesContext.getConnector().GetConnectionTimeout(),
+		rennesContext.getProcessingDate(),
+	)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error while the loading of the last-update: %v", err)
+	}
+
+	currentLastUpdate := rennesContext.getLastUpdate()
+
+	if currentLastUpdate == nil || loadedLastUpdate.After(*currentLastUpdate) {
+		var logMessage string
+		if currentLastUpdate == nil {
+			logMessage = fmt.Sprintf(
+				"Update of the estimated departures, last-update: %s ...",
+				loadedLastUpdate.Format(time.RFC3339),
+			)
+		} else {
+			logMessage = fmt.Sprintf(
+				"Update of the estimated departures, last-update: %s -> %s ...",
+				currentLastUpdate.Format(time.RFC3339),
+				loadedLastUpdate.Format(time.RFC3339),
+			)
+		}
+		logrus.Info(logMessage)
+		estimatedDepartures, err := loadEstimatedDepartures(rennesContext)
+		if err != nil {
+			return nil, nil, fmt.Errorf("error while the loading of the estimated stop times: %v", err)
+		}
+		return estimatedDepartures, loadedLastUpdate, nil
+
+	} else {
+		logrus.Infof(
+			"No newer estimated departures available, last-update: %v",
+			currentLastUpdate.Format(time.RFC3339),
+		)
+	}
+	return nil, nil, nil
+}
+
+func loadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure, error) {
+
+	var estimatedStopTimes map[string]rennes_stoptimes.StopTime
+	estimatedStopTimes, err := rennes_estimatedstoptimes.LoadEstimatedStopTimes(
+		rennesContext.connector.GetUrl(),
+		header,
+		rennesContext.getConnector().GetToken(),
+		rennesContext.getConnector().GetConnectionTimeout(),
+		rennesContext.getProcessingDate(),
+	)
+	if err != nil {
+		departures.DepartureLoadingErrors.Inc()
+		return nil, err
+	}
+
+	departuresCopy := make(map[string]Departure, 0)
+	for key, value := range rennesContext.departures {
+		departuresCopy[key] = value
+	}
+
+	for stopTimeId, estimatedStopTime := range estimatedStopTimes {
+		// Update the estimated time of the departure
+		if departure, ok := departuresCopy[stopTimeId]; ok {
+			departure.Time = estimatedStopTime.Time
+			departure.Type = departures.DepartureTypeEstimated
+			departuresCopy[stopTimeId] = departure
+		}
+	}
+	return departuresCopy, nil
+
 }

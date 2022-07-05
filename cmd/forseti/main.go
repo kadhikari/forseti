@@ -33,6 +33,7 @@ type Config struct {
 	DeparturesServiceURIStr  string        `mapstructure:"departures-service-uri"`
 	DeparturesServiceURI     url.URL
 	DeparturesServiceRefresh time.Duration `mapstructure:"departures-service-refresh"`
+	DeparturesToken          string        `mapstructure:"departures-token"`
 	DeparturesType           string        `mapstructure:"departures-type"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
@@ -99,15 +100,12 @@ func noneOf(args ...string) bool {
 
 func GetConfig() (Config, error) {
 	//Passing configurations for departures
-	pflag.String(
-		"departures-files-uri",
-		"",
-		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt",
-	)
+	pflag.String("departures-type", "sytralrt", "connector type to load data source")
+	pflag.String("departures-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("departures-files-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
-	pflag.String("departures-type", "sytralrt", "connector type to load data source")
+	pflag.String("departures-token", "", "token for free floating source")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -288,15 +286,13 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 }
 
 func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
-	if len(config.DeparturesFilesURI.String()) == 0 || config.DeparturesFilesRefresh.Seconds() <= 0 {
-		logrus.Debug("Departures is disabled")
-		return
-	}
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
+
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
+
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
 		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
@@ -308,10 +304,12 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 		rennesContext.InitContext(
 			config.DeparturesFilesURI,
 			config.DeparturesFilesRefresh,
+			config.DeparturesServiceURI,
+			config.DeparturesToken,
 			config.ConnectionTimeout,
-			processingDate,
+			&processingDate,
 		)
-		go rennesContext.InitializeDeparturesLoop(departuresContext)
+		go rennesContext.RefereshDeparturesLoop(departuresContext)
 	}
 }
 

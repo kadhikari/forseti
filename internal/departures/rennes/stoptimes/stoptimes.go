@@ -2,6 +2,7 @@ package stoptimes
 
 import (
 	"fmt"
+	"io"
 	"net/url"
 	"time"
 
@@ -80,6 +81,16 @@ func LoadStopTimes(
 		return nil, err
 	}
 
+	return LoadStopTimesUsingReader(file, connectionTimeout, processingDate)
+
+}
+
+func LoadStopTimesUsingReader(
+	reader io.Reader,
+	connectionTimeout time.Duration,
+	processingDate *time.Time,
+) (map[string]StopTime, error) {
+
 	loadDataOptions := utils.LoadDataOptions{
 		Delimiter:     ';',
 		NbFields:      stopTimesCsvNumOfFields,
@@ -87,7 +98,7 @@ func LoadStopTimes(
 	}
 
 	stopTimesConsumer := makeStopTimeCsvLineConsumer()
-	err = utils.LoadDataWithOptions(file, stopTimesConsumer, loadDataOptions)
+	err := utils.LoadDataWithOptions(reader, stopTimesConsumer, loadDataOptions)
 	if err != nil {
 		return nil, err
 	}

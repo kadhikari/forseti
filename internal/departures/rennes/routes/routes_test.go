@@ -42,7 +42,7 @@ func TestLoadRoutes(t *testing.T) {
 	// Check the values read from the first line of the CSV
 	{
 		const EXPECTED_ROUTE_ID string = "284722688"
-		const EXPECTED_BUS_LINE_INTERNAL_ID string = "248"
+		const EXPECTED_LINE_INTERNAL_ID string = "248"
 		const EXPECTED_DIRECTION departures.DirectionType = departures.DirectionTypeBackward
 		const EXPECTED_DESTNATION_ID string = "284721153"
 
@@ -50,10 +50,10 @@ func TestLoadRoutes(t *testing.T) {
 		assert.Equal(
 			loadedRoutes[EXPECTED_ROUTE_ID],
 			Route{
-				Id:                EXPECTED_ROUTE_ID,
-				BusLineInternalId: EXPECTED_BUS_LINE_INTERNAL_ID,
-				Direction:         EXPECTED_DIRECTION,
-				DestinationId:     EXPECTED_DESTNATION_ID,
+				Id:             EXPECTED_ROUTE_ID,
+				LineInternalId: EXPECTED_LINE_INTERNAL_ID,
+				Direction:      EXPECTED_DIRECTION,
+				DestinationId:  EXPECTED_DESTNATION_ID,
 			},
 		)
 	}
@@ -61,7 +61,7 @@ func TestLoadRoutes(t *testing.T) {
 	// Check the values read from the last line of the CSV
 	{
 		const EXPECTED_ROUTE_ID string = "268502016"
-		const EXPECTED_BUS_LINE_INTERNAL_ID string = "1"
+		const EXPECTED_LINE_INTERNAL_ID string = "1"
 		const EXPECTED_DIRECTION departures.DirectionType = departures.DirectionTypeForward
 		const EXPECTED_DESTNATION_ID string = "268500995"
 
@@ -69,10 +69,10 @@ func TestLoadRoutes(t *testing.T) {
 		assert.Equal(
 			loadedRoutes[EXPECTED_ROUTE_ID],
 			Route{
-				Id:                EXPECTED_ROUTE_ID,
-				BusLineInternalId: EXPECTED_BUS_LINE_INTERNAL_ID,
-				Direction:         EXPECTED_DIRECTION,
-				DestinationId:     EXPECTED_DESTNATION_ID,
+				Id:             EXPECTED_ROUTE_ID,
+				LineInternalId: EXPECTED_LINE_INTERNAL_ID,
+				Direction:      EXPECTED_DIRECTION,
+				DestinationId:  EXPECTED_DESTNATION_ID,
 			},
 		)
 	}

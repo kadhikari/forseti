@@ -1,4 +1,4 @@
-package scheduledtimes
+package stoptimes
 
 import (
 	"fmt"
@@ -25,8 +25,8 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestLoadScheduledStopPoints(t *testing.T) {
-	const EXPECTED_NUM_OF_SCHEDULED_STOP_POINTS int = 109_817
+func TestLoadStopTimes(t *testing.T) {
+	const EXPECTED_NUM_OF_STOP_TIMES int = 109_817
 	var PROCESSING_DATE time.Time
 	var PROCESSING_LOCATION *time.Location
 	PROCESSING_LOCATION, _ = time.LoadLocation("Europe/Paris")
@@ -37,9 +37,9 @@ func TestLoadScheduledStopPoints(t *testing.T) {
 	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referentiel", fixtureDir))
 	require.Nil(err)
 
-	loadedScheduledStopPoints, err := LoadScheduledTimes(*uri, defaultTimeout, &PROCESSING_DATE)
+	loadedStopTimes, err := LoadStopTimes(*uri, defaultTimeout, &PROCESSING_DATE)
 	require.Nil(err)
-	assert.Len(loadedScheduledStopPoints, EXPECTED_NUM_OF_SCHEDULED_STOP_POINTS)
+	assert.Len(loadedStopTimes, EXPECTED_NUM_OF_STOP_TIMES)
 
 	// Check the values read from the first line of the CSV
 	{
@@ -51,15 +51,15 @@ func TestLoadScheduledStopPoints(t *testing.T) {
 			12, 56, 0, 0,
 			PROCESSING_DATE.Location(),
 		)
-		const EXPECTED_DB_INTERNAL_LINK_ID string = "274605064"
+		const EXPECTED_ROUTE_STOP_POINT_ID string = "274605064"
 
-		assert.Contains(loadedScheduledStopPoints, EXPECTED_ID)
+		assert.Contains(loadedStopTimes, EXPECTED_ID)
 		assert.Equal(
-			loadedScheduledStopPoints[EXPECTED_ID],
-			ScheduledTime{
+			loadedStopTimes[EXPECTED_ID],
+			StopTime{
 				Id:               EXPECTED_ID,
 				Time:             EXPECTED_TIME,
-				DbInternalLinkId: EXPECTED_DB_INTERNAL_LINK_ID,
+				RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
 			},
 		)
 	}
@@ -72,15 +72,15 @@ func TestLoadScheduledStopPoints(t *testing.T) {
 			4, 46, 1, 0,
 			PROCESSING_DATE.Location(),
 		)
-		const EXPECTED_DB_INTERNAL_LINK_ID string = "274137857"
+		const EXPECTED_ROUTE_STOP_POINT_ID string = "274137857"
 
-		assert.Contains(loadedScheduledStopPoints, EXPECTED_ID)
+		assert.Contains(loadedStopTimes, EXPECTED_ID)
 		assert.Equal(
-			loadedScheduledStopPoints[EXPECTED_ID],
-			ScheduledTime{
+			loadedStopTimes[EXPECTED_ID],
+			StopTime{
 				Id:               EXPECTED_ID,
 				Time:             EXPECTED_TIME,
-				DbInternalLinkId: EXPECTED_DB_INTERNAL_LINK_ID,
+				RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
 			},
 		)
 	}

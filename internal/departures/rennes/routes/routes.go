@@ -16,10 +16,10 @@ const routesCsvNumOfFields int = 5
 // Structure and Consumer to creates Routes objects based on a line read from a CSV
 ----------------------------------------------------------------------------------- */
 type Route struct {
-	Id                string // ID of the route
-	BusLineInternalId string
-	Direction         departures.DirectionType
-	DestinationId     string
+	Id             string // ID of the route
+	LineInternalId string
+	Direction      departures.DirectionType
+	DestinationId  string
 }
 
 func newRoute(record []string) (*Route, error) {
@@ -38,10 +38,10 @@ func newRoute(record []string) (*Route, error) {
 	}
 
 	return &Route{
-		Id:                record[0],
-		BusLineInternalId: record[3],
-		Direction:         direction,
-		DestinationId:     record[4],
+		Id:             record[0],
+		LineInternalId: record[3],
+		Direction:      direction,
+		DestinationId:  record[4],
 	}, nil
 }
 

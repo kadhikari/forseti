@@ -48,9 +48,9 @@ func TestLoadScheduledDeparturesFromDailyDataFiles(t *testing.T) {
 	// Check the departure defined by the first line
 	{
 		departure := Departure{
-			DbInternalLinkId: "284722693",
+			RouteStopPointId: "284722693",
 			StopPointId:      "1412",
-			BusLineId:        "0801",
+			LineId:           "0801",
 			Direction:        departures.DirectionTypeBackward,
 			DestinationId:    "284721153",
 			DestinationName:  "Kennedy",

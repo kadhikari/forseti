@@ -1,4 +1,4 @@
-package dbinternallinks
+package routestoppoints
 
 import (
 	"fmt"
@@ -25,18 +25,18 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestLoadDbInternalLinks(t *testing.T) {
+func TestLoadRouteStopPoints(t *testing.T) {
 
-	const EXPECTED_NUM_OF_DB_INTERNAL_LINKS int = 12_508
+	const EXPECTED_NUM_OF_ROUTE_STOP_POINTS int = 12_508
 
 	assert := assert.New(t)
 	require := require.New(t)
 	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referentiel", fixtureDir))
 	require.Nil(err)
 
-	loadedDbInternalLinks, err := LoadDbInternalLinks(*uri, defaultTimeout)
+	loadedRoutesStopPoints, err := LoadRouteStopPoints(*uri, defaultTimeout)
 	require.Nil(err)
-	assert.Len(loadedDbInternalLinks, EXPECTED_NUM_OF_DB_INTERNAL_LINKS)
+	assert.Len(loadedRoutesStopPoints, EXPECTED_NUM_OF_ROUTE_STOP_POINTS)
 
 	// Check the values read from the first line of the CSV
 	{
@@ -45,10 +45,10 @@ func TestLoadDbInternalLinks(t *testing.T) {
 		const EXPECTED_ROUTES_ID string = "284722688"
 		const EXPECTED_STOP_POINT_ORDER int = 4251
 
-		assert.Contains(loadedDbInternalLinks, EXPECTED_ID)
+		assert.Contains(loadedRoutesStopPoints, EXPECTED_ID)
 		assert.Equal(
-			loadedDbInternalLinks[EXPECTED_ID],
-			DbInternalLink{
+			loadedRoutesStopPoints[EXPECTED_ID],
+			RouteStopPoint{
 				Id:             EXPECTED_ID,
 				StopPointId:    EXPECTED_STOP_POINT_ID,
 				RouteId:        EXPECTED_ROUTES_ID,
@@ -64,10 +64,10 @@ func TestLoadDbInternalLinks(t *testing.T) {
 		const EXPECTED_ROUTES_ID string = "268501248"
 		const EXPECTED_STOP_POINT_ORDER int = 0
 
-		assert.Contains(loadedDbInternalLinks, EXPECTED_ID)
+		assert.Contains(loadedRoutesStopPoints, EXPECTED_ID)
 		assert.Equal(
-			loadedDbInternalLinks[EXPECTED_ID],
-			DbInternalLink{
+			loadedRoutesStopPoints[EXPECTED_ID],
+			RouteStopPoint{
 				Id:             EXPECTED_ID,
 				StopPointId:    EXPECTED_STOP_POINT_ID,
 				RouteId:        EXPECTED_ROUTES_ID,

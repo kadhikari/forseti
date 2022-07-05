@@ -8,12 +8,12 @@ import (
 
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
-	rennes_buslines "github.com/hove-io/forseti/internal/departures/rennes/buslines"
-	rennes_dbinternallinks "github.com/hove-io/forseti/internal/departures/rennes/dbinternallinks"
 	rennes_destinations "github.com/hove-io/forseti/internal/departures/rennes/destinations"
+	rennes_lines "github.com/hove-io/forseti/internal/departures/rennes/lines"
 	rennes_routes "github.com/hove-io/forseti/internal/departures/rennes/routes"
-	rennes_scheduledtimes "github.com/hove-io/forseti/internal/departures/rennes/scheduledtimes"
+	rennes_routestoppoints "github.com/hove-io/forseti/internal/departures/rennes/routestoppoints"
 	rennes_stoppoints "github.com/hove-io/forseti/internal/departures/rennes/stoppoints"
+	rennes_stoptimes "github.com/hove-io/forseti/internal/departures/rennes/stoptimes"
 	"github.com/sirupsen/logrus"
 )
 
@@ -83,7 +83,7 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 	result := make(map[string][]departures.Departure, 0)
 	for _, rennesDeparture := range rennesDepartures {
 		appendedDepartures := departures.Departure{
-			Line:          rennesDeparture.BusLineId,
+			Line:          rennesDeparture.LineId,
 			Stop:          rennesDeparture.StopPointId,
 			Type:          fmt.Sprint(departures.DepartureTypeTheoretical),
 			Direction:     rennesDeparture.DestinationId,
@@ -104,9 +104,9 @@ func mapDeparturesFollowingStopPoint(rennesDepartures []Departure) map[string][]
 }
 
 type Departure struct {
-	DbInternalLinkId string
+	RouteStopPointId string
 	StopPointId      string
-	BusLineId        string
+	LineId           string
 	Direction        departures.DirectionType
 	DestinationId    string
 	DestinationName  string
@@ -120,19 +120,19 @@ func LoadScheduledDeparturesFromDailyDataFiles(
 ) ([]Departure, error) {
 
 	var stopPoints map[string]rennes_stoppoints.StopPoint
-	var busLines map[string]rennes_buslines.BusLine
+	var lines map[string]rennes_lines.Line
 	var routes map[string]rennes_routes.Route
 	var destinations map[string]rennes_destinations.Destination
-	var dbInternalLinks map[string]rennes_dbinternallinks.DbInternalLink
+	var routeStopPoints map[string]rennes_routestoppoints.RouteStopPoint
 
 	stopPoints, err := rennes_stoppoints.LoadStopPoints(uri, connectionTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the stop points: %v", err)
 	}
 
-	busLines, err = rennes_buslines.LoadBusLines(uri, connectionTimeout)
+	lines, err = rennes_lines.LoadLines(uri, connectionTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the bus lines: %v", err)
+		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the lines: %v", err)
 	}
 
 	routes, err = rennes_routes.LoadRoutes(uri, connectionTimeout)
@@ -145,42 +145,42 @@ func LoadScheduledDeparturesFromDailyDataFiles(
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the destinations: %v", err)
 	}
 
-	scheduledTimes, err := rennes_scheduledtimes.LoadScheduledTimes(uri, connectionTimeout, processingDate)
+	stopTimes, err := rennes_stoptimes.LoadStopTimes(uri, connectionTimeout, processingDate)
 	if err != nil {
-		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the scheduled times: %v", err)
+		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the stop times: %v", err)
 	}
 
-	dbInternalLinks, err = rennes_dbinternallinks.LoadDbInternalLinks(uri, connectionTimeout)
+	routeStopPoints, err = rennes_routestoppoints.LoadRouteStopPoints(uri, connectionTimeout)
 	if err != nil {
-		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the DB links: %v", err)
+		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the route stop points: %v", err)
 	}
 
-	scheduledDepartures := make([]Departure, 0, len(scheduledTimes))
-	for _, scheduledTime := range scheduledTimes {
-		dbInternalLink := dbInternalLinks[scheduledTime.DbInternalLinkId]
+	scheduledDepartures := make([]Departure, 0, len(stopTimes))
+	for _, stopTime := range stopTimes {
+		routeStopPoint := routeStopPoints[stopTime.RouteStopPointId]
 
-		var busLine rennes_buslines.BusLine
+		var line rennes_lines.Line
 		var direction departures.DirectionType
 		var destinationId string
-		if route, isLoaded := routes[dbInternalLink.RouteId]; isLoaded {
-			busLine = busLines[route.BusLineInternalId]
+		if route, isLoaded := routes[routeStopPoint.RouteId]; isLoaded {
+			line = lines[route.LineInternalId]
 			direction = route.Direction
 			destinationId = route.DestinationId
 		} else {
 			continue
 		}
 		destinationName := destinations[destinationId].Name
-		stopPoint := stopPoints[dbInternalLink.StopPointId]
+		stopPoint := stopPoints[routeStopPoint.StopPointId]
 
 		scheduledDepartures = append(scheduledDepartures,
 			Departure{
-				DbInternalLinkId: dbInternalLink.Id,
+				RouteStopPointId: routeStopPoint.Id,
 				StopPointId:      stopPoint.ExternalId,
-				BusLineId:        busLine.ExternalId,
+				LineId:           line.ExternalId,
 				Direction:        direction,
 				DestinationId:    destinationId,
 				DestinationName:  destinationName,
-				Time:             scheduledTime.Time,
+				Time:             stopTime.Time,
 			},
 		)
 	}

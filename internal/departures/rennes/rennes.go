@@ -20,16 +20,23 @@ import (
 type RennesContext struct {
 	connector                *connectors.Connector
 	areDeparturesInitialized bool
+	processingDate           time.Time
 }
 
-func (d *RennesContext) InitContext(externalURI url.URL, loadExternalRefresh, connectionTimeout time.Duration) {
+func (d *RennesContext) InitContext(
+	externalURI url.URL,
+	loadExternalRefresh,
+	connectionTimeout time.Duration,
+	processingDate time.Time,
+) {
 
 	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
 		logrus.Debug("Departures data refreshing is disabled")
 		return
 	}
-	d.areDeparturesInitialized = false
 	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
+	d.processingDate = processingDate
+	d.areDeparturesInitialized = false
 }
 
 func (d *RennesContext) InitializeDeparturesLoop(context *departures.DeparturesContext) {
@@ -47,6 +54,7 @@ func (d *RennesContext) InitializeDeparturesLoop(context *departures.DeparturesC
 		}
 		if hasBeenLoaded {
 			d.areDeparturesInitialized = true
+
 			return
 		}
 		time.Sleep(d.connector.GetRefreshTime())
@@ -59,6 +67,7 @@ func InitializeDepartures(rennesContext *RennesContext, context *departures.Depa
 	loadedDepartures, err := LoadScheduledDeparturesFromDailyDataFiles(
 		rennesContext.connector.GetFilesUri(),
 		rennesContext.connector.GetConnectionTimeout(),
+		&rennesContext.processingDate,
 	)
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()
@@ -104,7 +113,11 @@ type Departure struct {
 	Time             time.Time
 }
 
-func LoadScheduledDeparturesFromDailyDataFiles(uri url.URL, connectionTimeout time.Duration) ([]Departure, error) {
+func LoadScheduledDeparturesFromDailyDataFiles(
+	uri url.URL,
+	connectionTimeout time.Duration,
+	processingDate *time.Time,
+) ([]Departure, error) {
 
 	var stopPoints map[string]rennes_stoppoints.StopPoint
 	var busLines map[string]rennes_buslines.BusLine
@@ -132,7 +145,7 @@ func LoadScheduledDeparturesFromDailyDataFiles(uri url.URL, connectionTimeout ti
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the destinations: %v", err)
 	}
 
-	scheduledTimes, err := rennes_scheduledtimes.LoadScheduledTimes(uri, connectionTimeout)
+	scheduledTimes, err := rennes_scheduledtimes.LoadScheduledTimes(uri, connectionTimeout, processingDate)
 	if err != nil {
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the scheduled times: %v", err)
 	}

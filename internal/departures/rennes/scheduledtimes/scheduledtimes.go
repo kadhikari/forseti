@@ -67,7 +67,11 @@ func (c *scheduledTimeCsvLineConsumer) Consume(csvLine []string, loc *time.Locat
 func (c *scheduledTimeCsvLineConsumer) Terminate() {
 }
 
-func LoadScheduledTimes(uri url.URL, connectionTimeout time.Duration) (map[string]ScheduledTime, error) {
+func LoadScheduledTimes(
+	uri url.URL,
+	connectionTimeout time.Duration,
+	processingDate *time.Time,
+) (map[string]ScheduledTime, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, ScheduledTimesFileName)
 	file, err := utils.GetFile(uri, connectionTimeout)
 
@@ -86,6 +90,22 @@ func LoadScheduledTimes(uri url.URL, connectionTimeout time.Duration) (map[strin
 	err = utils.LoadDataWithOptions(file, scheduledTimesConsumer, loadDataOptions)
 	if err != nil {
 		return nil, err
+	}
+
+	// Update the data of each stop time
+	for id, scheduledTime := range scheduledTimesConsumer.scheduledTimes {
+		t := time.Date(
+			processingDate.Year(),
+			processingDate.Month(),
+			processingDate.Day(),
+			scheduledTime.Time.Hour(),
+			scheduledTime.Time.Minute(),
+			scheduledTime.Time.Second(),
+			scheduledTime.Time.Nanosecond(),
+			processingDate.Location(),
+		)
+		scheduledTime.Time = t
+		scheduledTimesConsumer.scheduledTimes[id] = scheduledTime
 	}
 	return scheduledTimesConsumer.scheduledTimes, nil
 }

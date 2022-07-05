@@ -302,7 +302,15 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
 	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
 		var rennesContext rennes.RennesContext = rennes.RennesContext{}
-		rennesContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
+		location, _ := time.LoadLocation(config.TimeZoneLocation)
+		utcNow := time.Now().In(time.UTC)
+		processingDate := utcNow.In(location)
+		rennesContext.InitContext(
+			config.DeparturesFilesURI,
+			config.DeparturesFilesRefresh,
+			config.ConnectionTimeout,
+			processingDate,
+		)
 		go rennesContext.InitializeDeparturesLoop(departuresContext)
 	}
 }

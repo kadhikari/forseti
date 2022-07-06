@@ -9,10 +9,12 @@ import (
 type ConnectorType string
 
 const (
-	Connector_GRFS_RT ConnectorType = "gtfsrt"
-	Connector_ODITI   ConnectorType = "oditi"
-	Connector_FLUCTUO ConnectorType = "fluctuo"
-	Connector_CITIZ   ConnectorType = "citiz"
+	Connector_GRFS_RT  ConnectorType = "gtfsrt"
+	Connector_ODITI    ConnectorType = "oditi"
+	Connector_FLUCTUO  ConnectorType = "fluctuo"
+	Connector_CITIZ    ConnectorType = "citiz"
+	Connector_SYTRALRT ConnectorType = "sytralrt"
+	Connector_RENNES   ConnectorType = "rennes"
 )
 
 type Connector struct {

@@ -83,3 +83,21 @@ func ParseDirectionTypeFromNavitia(value string) (DirectionType, error) {
 
 	}
 }
+
+type DepartureType int
+
+const (
+	DepartureTypeTheoretical DepartureType = iota
+	DepartureTypeEstimated
+)
+
+func (d DepartureType) String() string {
+	var result string
+	switch d {
+	case DepartureTypeTheoretical:
+		result = "T"
+	default:
+		result = "E"
+	}
+	return result
+}

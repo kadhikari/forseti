@@ -22,6 +22,8 @@ import (
 
 const header string = "Api-Keokey"
 
+const FilterDeltaDuration time.Duration = 2 * time.Minute
+
 type RennesContext struct {
 	connector      *connectors.Connector
 	processingDate *time.Time
@@ -129,6 +131,7 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 				d.setDepartures(theoreticalDepartures)
 				d.setLastUpdate(nil)
 				loadedDepartures = mapDeparturesByStopPointId(theoreticalDepartures)
+				loadedDepartures = filterTooOldDepartures(loadedDepartures)
 			}
 		} else {
 			estimatedDepartures, newLastUpdate, err := tryToLoadEstimatedDepartures(d)
@@ -140,6 +143,7 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 				d.setDepartures(estimatedDepartures)
 				d.setLastUpdate(newLastUpdate)
 				loadedDepartures = mapDeparturesByStopPointId(estimatedDepartures)
+				loadedDepartures = filterTooOldDepartures(loadedDepartures)
 			}
 		}
 		if loadedDepartures != nil {
@@ -184,6 +188,21 @@ func mapDeparturesByStopPointId(rennesDepartures map[string]Departure) map[strin
 		)
 	}
 	return result
+}
+
+func filterTooOldDepartures(mappedDepartures map[string][]departures.Departure) map[string][]departures.Departure {
+	var lowerBound time.Time = time.Now().UTC().Add(-FilterDeltaDuration)
+	mappedAndFilteredDepartures := make(map[string][]departures.Departure, len(mappedDepartures))
+	for stopPointId, departureList := range mappedDepartures {
+		filteredDepartureList := make([]departures.Departure, 0)
+		for _, d := range departureList {
+			if !d.Datetime.Before(lowerBound) {
+				filteredDepartureList = append(filteredDepartureList, d)
+			}
+		}
+		mappedAndFilteredDepartures[stopPointId] = filteredDepartureList
+	}
+	return mappedAndFilteredDepartures
 }
 
 func loadTheoreticalDepartures(

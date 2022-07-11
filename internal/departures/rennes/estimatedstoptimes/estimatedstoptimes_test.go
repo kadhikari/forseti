@@ -45,7 +45,7 @@ func TestExtractCsvStringFromJson(t *testing.T) {
 	require.True(strings.HasSuffix(csvString, "268435927;15:30:24;268534785;268435509\n"))
 }
 
-func TestLoadEstimatedStopTimes(t *testing.T) {
+func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 	const EXPECTED_NUM_OF_ESTIMATED_STOP_TIMES int = 8_777
 
 	EUROPE_PARIS_LOCATION, _ := time.LoadLocation("Europe/Paris")
@@ -87,10 +87,17 @@ func TestLoadEstimatedStopTimes(t *testing.T) {
 
 		assert := assert.New(t)
 		require := require.New(t)
-		uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/webservice", fixtureDir))
+		uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/webservice/%s", fixtureDir, estimatedStopTimesFileName))
 		require.Nil(err)
 
-		loadedEstimatedStopTimes, err := LoadEstimatedStopTimes(*uri, defaultTimeout, &localProcessingDate)
+		fileBytes, err := ioutil.ReadFile(uri.Path)
+		require.Nil(err)
+
+		loadedEstimatedStopTimes, err := parseEstimatedStopTimesFromFile(
+			fileBytes,
+			defaultTimeout,
+			&localProcessingDate,
+		)
 		require.Nil(err)
 		assert.Len(loadedEstimatedStopTimes, EXPECTED_NUM_OF_ESTIMATED_STOP_TIMES)
 

@@ -25,7 +25,6 @@ func LoadEstimatedStopTimes(
 ) (map[string]stoptimes.StopTime, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, estimatedStopTimesFileName)
 	response, err := utils.GetHttpClient(uri.String(), token, header, connectionTimeout)
-
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()
 		return nil, err
@@ -36,8 +35,16 @@ func LoadEstimatedStopTimes(
 		departures.DepartureLoadingErrors.Inc()
 		return nil, err
 	}
+	return parseEstimatedStopTimesFromFile(inputBytes, connectionTimeout, processingDate)
+}
 
-	propertyFile, err := extractCsvStringFromJson(inputBytes)
+func parseEstimatedStopTimesFromFile(
+	fileBytes []byte,
+	connectionTimeout time.Duration,
+	processingDate *time.Time,
+) (map[string]stoptimes.StopTime, error) {
+
+	propertyFile, err := extractCsvStringFromJson(fileBytes)
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()
 		return nil, err

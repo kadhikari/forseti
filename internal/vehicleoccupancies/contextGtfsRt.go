@@ -67,7 +67,15 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
 	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
 
-	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
+	const unusedDuration time.Duration = time.Duration(-1)
+	d.connector = connectors.NewConnector(
+		filesURI,
+		externalURI,
+		externalToken,
+		loadExternalRefresh,
+		unusedDuration,
+		connectionTimeout,
+	)
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)

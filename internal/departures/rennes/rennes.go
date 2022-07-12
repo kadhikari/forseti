@@ -84,42 +84,44 @@ func (d *RennesContext) InitContext(
 	departuresFilesUrl url.URL,
 	departuresFilesRefresh time.Duration,
 	departuresServiceUrl url.URL,
+	departuresServiceRefresh time.Duration,
 	departuresToken string,
 	connectionTimeout time.Duration,
 	processingDate *time.Time,
 ) {
 
 	if len(departuresFilesUrl.String()) == 0 || departuresFilesRefresh.Seconds() <= 0 ||
-		len(departuresServiceUrl.String()) == 0 ||
+		len(departuresServiceUrl.String()) == 0 || departuresServiceRefresh.Seconds() <= 0 ||
 		len(departuresToken) <= 0 ||
 		connectionTimeout.Seconds() <= 0 {
 		logrus.Debug("Departures data refreshing is disabled")
 		return
 	}
 
-	{
-		d.setConnector(connectors.NewConnector(
-			departuresFilesUrl,
-			departuresServiceUrl,
-			departuresToken,
-			departuresFilesRefresh,
-			connectionTimeout,
-		))
+	d.setConnector(connectors.NewConnector(
+		departuresFilesUrl,
+		departuresServiceUrl,
+		departuresToken,
+		departuresFilesRefresh,
+		departuresServiceRefresh,
+		connectionTimeout,
+	))
 
-		d.setProcessingDate(processingDate)
-		d.setLastUpdate(nil)
-		d.setDepartures(nil)
-	}
+	d.setProcessingDate(processingDate)
+	d.setLastUpdate(nil)
+	d.setDepartures(nil)
 }
 
 func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesContext) {
 	context.SetPackageName(reflect.TypeOf(RennesContext{}).PkgPath())
-	context.RefreshTime = d.connector.GetRefreshTime()
+	context.SetFilesRefeshTime(d.connector.GetFilesRefreshTime())
+	context.SetWsRefeshTime(d.connector.GetWsRefreshTime())
 
 	// Wait 10 seconds before reloading external departures informations
 	time.Sleep(2 * time.Second)
 	for {
 		var loadedDepartures map[string][]departures.Departure = nil
+		var refreshTime time.Duration = time.Duration(-1)
 		if !d.haveTheoreticalDeparturesBeenLoaded() {
 			theoreticalDepartures, err := loadTheoreticalDepartures(d)
 			if err != nil {
@@ -132,6 +134,7 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 				d.setLastUpdate(nil)
 				loadedDepartures = mapDeparturesByStopPointId(theoreticalDepartures)
 				loadedDepartures = filterTooOldDepartures(loadedDepartures)
+				refreshTime = context.GetFilesRefeshTime()
 			}
 		} else {
 			estimatedDepartures, newLastUpdate, err := tryToLoadEstimatedDepartures(d)
@@ -145,11 +148,12 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 				loadedDepartures = mapDeparturesByStopPointId(estimatedDepartures)
 				loadedDepartures = filterTooOldDepartures(loadedDepartures)
 			}
+			refreshTime = context.GetWsRefeshTime()
 		}
 		if loadedDepartures != nil {
 			context.UpdateDepartures(loadedDepartures)
 		}
-		time.Sleep(d.connector.GetRefreshTime())
+		time.Sleep(refreshTime)
 	}
 
 }

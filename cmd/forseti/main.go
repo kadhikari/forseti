@@ -102,10 +102,10 @@ func GetConfig() (Config, error) {
 	//Passing configurations for departures
 	pflag.String("departures-type", "sytralrt", "connector type to load data source")
 	pflag.String("departures-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
-	pflag.Duration("departures-files-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.Duration("departures-files-refresh", 300*time.Second, "time between refresh of departures data")
 	pflag.String("departures-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
-	pflag.String("departures-token", "", "token for free floating source")
+	pflag.String("departures-token", "", "token for departures service source")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -305,6 +305,7 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 			config.DeparturesFilesURI,
 			config.DeparturesFilesRefresh,
 			config.DeparturesServiceURI,
+			config.DeparturesServiceRefresh,
 			config.DeparturesToken,
 			config.ConnectionTimeout,
 			&processingDate,

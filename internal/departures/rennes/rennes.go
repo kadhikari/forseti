@@ -121,7 +121,7 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 	time.Sleep(2 * time.Second)
 	for {
 		var loadedDepartures map[string][]departures.Departure = nil
-		var refreshTime time.Duration = time.Duration(-1)
+		var refreshTime time.Duration
 		if !d.haveTheoreticalDeparturesBeenLoaded() {
 			theoreticalDepartures, err := loadTheoreticalDepartures(d)
 			if err != nil {

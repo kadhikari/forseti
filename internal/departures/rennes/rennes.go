@@ -134,6 +134,8 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 				d.setLastUpdate(nil)
 				loadedDepartures = mapDeparturesByStopPointId(theoreticalDepartures)
 				loadedDepartures = filterTooOldDepartures(loadedDepartures)
+				refreshTime = time.Duration(0) // skip the refresh time
+			} else {
 				refreshTime = context.GetFilesRefeshTime()
 			}
 		} else {
@@ -155,7 +157,6 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 		}
 		time.Sleep(refreshTime)
 	}
-
 }
 
 type Departure struct {

@@ -286,6 +286,13 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 }
 
 func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
+
+	// This argument is mandatory for all departures connectors
+	if len(config.DeparturesFilesURI.String()) == 0 {
+		logrus.Debug("Departures is disabled")
+		return
+	}
+
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)

@@ -29,7 +29,7 @@ SERVICE SYTRALRT
 SERVICE RENNES
 ``` bash
 ./forseti --departures-type=rennes \
---departures-files-uri file:///forseti/fixtures/extract_edylic.txt --departures-files-refresh=300s \
+--departures-files-uri file:///forseti/fixtures/data_rennes/referential --departures-files-refresh=300s \
 --departures-service-uri https://path/to/external_service --departures-service-refresh=20s \
 --departures-token=12345
 ```

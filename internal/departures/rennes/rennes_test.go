@@ -34,7 +34,7 @@ func TestLoadTheoreticalDeparturesFromDailyDataFiles(t *testing.T) {
 	var PROCESSING_DATE time.Time = time.Date(2012, 2, 29, 0, 0, 0, 0, LOCATION)
 
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referentiel", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
 	require.Nil(err)
 
 	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(*uri, defaultTimeout, &PROCESSING_DATE)

@@ -31,7 +31,7 @@ func TestLoadStopPoints(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referentiel", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
 	require.Nil(err)
 
 	loadedStopPoints, err := LoadStopPoints(*uri, defaultTimeout)

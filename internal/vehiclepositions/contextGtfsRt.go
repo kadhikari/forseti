@@ -48,8 +48,16 @@ func (d *GtfsRtContext) GetVehiclePositions(param *VehiclePositionRequestParamet
 
 func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken string, loadExternalRefresh,
 	positionsCleanVP, connectionTimeout time.Duration, location *time.Location, reloadActive bool) {
+	const unusedDuration time.Duration = time.Duration(-1)
 
-	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
+	d.connector = connectors.NewConnector(
+		filesURI,
+		externalURI,
+		externalToken,
+		loadExternalRefresh,
+		unusedDuration,
+		connectionTimeout,
+	)
 	d.vehiclePositions = &VehiclePositions{}
 	d.location = location
 	d.cleanVp = positionsCleanVP
@@ -67,7 +75,7 @@ func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
 		} else {
 			logrus.Info("Vehicle_positions data updated, list size: ", len(d.vehiclePositions.vehiclePositions))
 		}
-		time.Sleep(d.connector.GetRefreshTime())
+		time.Sleep(d.connector.GetFilesRefreshTime())
 	}
 }
 
@@ -84,7 +92,7 @@ func (d *GtfsRtContext) LoadPositionsData() bool {
 }
 
 func (d *GtfsRtContext) GetRereshTime() string {
-	return d.connector.GetRefreshTime().String()
+	return d.connector.GetFilesRefreshTime().String()
 }
 
 /********* PRIVATE FUNCTIONS *********/

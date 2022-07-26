@@ -18,19 +18,29 @@ type SytralRTContext struct {
 	connector *connectors.Connector
 }
 
-func (d *SytralRTContext) InitContext(externalURI url.URL, loadExternalRefresh,
-	connectionTimeout time.Duration) {
-
+func (d *SytralRTContext) InitContext(
+	externalURI url.URL,
+	loadExternalRefresh,
+	connectionTimeout time.Duration,
+) {
+	const unusedDuration time.Duration = time.Duration(-1)
 	if len(externalURI.String()) == 0 || loadExternalRefresh.Seconds() <= 0 {
 		logrus.Debug("Departures data refreshing is disabled")
 		return
 	}
-	d.connector = connectors.NewConnector(externalURI, externalURI, "", loadExternalRefresh, connectionTimeout)
+	d.connector = connectors.NewConnector(
+		externalURI,
+		externalURI,
+		"",
+		loadExternalRefresh,
+		unusedDuration,
+		connectionTimeout,
+	)
 }
 
 func (d *SytralRTContext) RefreshDeparturesLoop(context *departures.DeparturesContext) {
 	context.SetPackageName(reflect.TypeOf(SytralRTContext{}).PkgPath())
-	context.RefreshTime = d.connector.GetRefreshTime()
+	context.SetFilesRefeshTime(d.connector.GetFilesRefreshTime())
 
 	// Wait 10 seconds before reloading external departures informations
 	time.Sleep(10 * time.Second)
@@ -41,7 +51,7 @@ func (d *SytralRTContext) RefreshDeparturesLoop(context *departures.DeparturesCo
 		} else {
 			logrus.Debug("Departures data updated")
 		}
-		time.Sleep(d.connector.GetRefreshTime())
+		time.Sleep(d.connector.GetFilesRefreshTime())
 	}
 }
 

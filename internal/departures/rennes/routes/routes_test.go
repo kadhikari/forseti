@@ -32,7 +32,7 @@ func TestLoadRoutes(t *testing.T) {
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referentiel", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
 	require.Nil(err)
 
 	loadedRoutes, err := LoadRoutes(*uri, defaultTimeout)

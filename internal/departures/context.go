@@ -13,7 +13,8 @@ type DeparturesContext struct {
 	lastDepartureUpdate time.Time
 	departuresMutex     sync.RWMutex
 	packageName         string
-	RefreshTime         time.Duration
+	filesRefreshTime    time.Duration
+	wsRefreshTime       time.Duration
 }
 
 func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) {
@@ -77,6 +78,34 @@ func (d *DeparturesContext) SetPackageName(pathPackage string) {
 	paths := strings.Split(pathPackage, "/")
 	size := len(paths)
 	d.packageName = paths[size-1]
+}
+
+func (d *DeparturesContext) GetFilesRefeshTime() time.Duration {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	return d.filesRefreshTime
+}
+
+func (d *DeparturesContext) SetFilesRefeshTime(filesRefreshTime time.Duration) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	d.filesRefreshTime = filesRefreshTime
+}
+
+func (d *DeparturesContext) GetWsRefeshTime() time.Duration {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	return d.wsRefreshTime
+}
+
+func (d *DeparturesContext) SetWsRefeshTime(wsRefreshTime time.Duration) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	d.wsRefreshTime = wsRefreshTime
 }
 
 func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {

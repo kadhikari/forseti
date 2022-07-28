@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -35,6 +36,7 @@ type Config struct {
 	DeparturesServiceRefresh time.Duration `mapstructure:"departures-service-refresh"`
 	DeparturesToken          string        `mapstructure:"departures-token"`
 	DeparturesType           string        `mapstructure:"departures-type"`
+	DeparturesServiceSwitch  string        `mapstructure:"departures-service-switch"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -106,6 +108,7 @@ func GetConfig() (Config, error) {
 	pflag.String("departures-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-token", "", "token for departures service source")
+	pflag.String("departures-service-switch", "03:30:00", "Service switch time (format: HH:MM:SS)")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -226,7 +229,19 @@ func main() {
 	FreeFloating(manager, &config, router)
 
 	// With departures
-	Departures(manager, &config, router)
+	fmt.Printf("location: %v\n", location)
+	var departuresServiceSwitchTime time.Time
+	{
+		t, _ := time.ParseInLocation(
+			"15:04:05", config.DeparturesServiceSwitch, location)
+		departuresServiceSwitchTime = time.Date(
+			0, 1, 1,
+			t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+			location,
+		)
+	}
+	fmt.Printf("serviceSwitchTime: %v\n", departuresServiceSwitchTime)
+	Departures(manager, &config, router, location, &departuresServiceSwitchTime)
 
 	// With parkings
 	Parkings(manager, &config, router)
@@ -285,7 +300,13 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	}
 }
 
-func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
+func Departures(
+	manager *manager.DataManager,
+	config *Config,
+	router *gin.Engine,
+	location *time.Location,
+	serviceSwitchTime *time.Time,
+) {
 
 	// This argument is mandatory for all departures connectors
 	if len(config.DeparturesFilesURI.String()) == 0 {
@@ -305,9 +326,6 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
 	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
 		var rennesContext rennes.RennesContext = rennes.RennesContext{}
-		location, _ := time.LoadLocation(config.TimeZoneLocation)
-		utcNow := time.Now().In(time.UTC)
-		processingDate := utcNow.In(location)
 		rennesContext.InitContext(
 			config.DeparturesFilesURI,
 			config.DeparturesFilesRefresh,
@@ -315,7 +333,8 @@ func Departures(manager *manager.DataManager, config *Config, router *gin.Engine
 			config.DeparturesServiceRefresh,
 			config.DeparturesToken,
 			config.ConnectionTimeout,
-			&processingDate,
+			location,
+			serviceSwitchTime,
 		)
 		go rennesContext.RefereshDeparturesLoop(departuresContext)
 	}

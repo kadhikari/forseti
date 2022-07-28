@@ -12,6 +12,8 @@ import (
 
 const StopTimesFileName string = "horaires.hor"
 const stopTimesCsvNumOfFields int = 4
+const ProcessingEndTimeHour int = 1
+const ProcessingEndTimeMinute int = 30
 
 /* ---------------------------------------------------------------------------------------
 // Structure and Consumer to creates StopTime objects based on a line read from a CSV
@@ -46,6 +48,58 @@ func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
 	}, nil
 }
 
+func IsBelongedToNextDay(
+	t *time.Time,
+	dailyServiceSwitchTime *time.Time,
+) (bool, error) {
+	if t.Location() != dailyServiceSwitchTime.Location() {
+		err := fmt.Errorf("cannot compare times, locations must be same")
+		return false, err
+	}
+	// Edge case if daily service switch time is at midnight
+	isAtMidnight := t.Hour() == 0 &&
+		t.Minute() == 0 &&
+		t.Second() == 0 &&
+		t.Nanosecond() == 0
+	if isAtMidnight {
+		return false, nil
+	}
+	isBefore := t.Hour() < dailyServiceSwitchTime.Hour() ||
+		(t.Hour() == dailyServiceSwitchTime.Hour() &&
+			t.Minute() < dailyServiceSwitchTime.Minute()) ||
+		(t.Hour() == dailyServiceSwitchTime.Hour() &&
+			t.Minute() == dailyServiceSwitchTime.Minute() &&
+			t.Second() < dailyServiceSwitchTime.Second()) ||
+		(t.Hour() == dailyServiceSwitchTime.Hour() &&
+			t.Minute() == dailyServiceSwitchTime.Minute() &&
+			t.Second() == dailyServiceSwitchTime.Second() &&
+			t.Nanosecond() < dailyServiceSwitchTime.Nanosecond())
+	return isBefore, nil
+}
+
+func (s *StopTime) computeActualStopTime(
+	dailyServiceStartTime *time.Time,
+) time.Time {
+	actualStopTime := time.Date(
+		dailyServiceStartTime.Year(),
+		dailyServiceStartTime.Month(),
+		dailyServiceStartTime.Day(),
+		s.Time.Hour(),
+		s.Time.Minute(),
+		s.Time.Second(),
+		s.Time.Nanosecond(),
+		dailyServiceStartTime.Location(),
+	)
+	if isNextDay, _ := IsBelongedToNextDay(&actualStopTime, dailyServiceStartTime); isNextDay {
+		actualStopTime = actualStopTime.AddDate(
+			0, /* year */
+			0, /* month */
+			1, /* day */
+		)
+	}
+	return actualStopTime
+}
+
 type stopTimeCsvLineConsumer struct {
 	stopTimes map[string]StopTime
 }
@@ -71,7 +125,7 @@ func (c *stopTimeCsvLineConsumer) Terminate() {
 func LoadStopTimes(
 	uri url.URL,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	dailyServiceStartTime *time.Time,
 ) (map[string]StopTime, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, StopTimesFileName)
 	file, err := utils.GetFile(uri, connectionTimeout)
@@ -81,14 +135,14 @@ func LoadStopTimes(
 		return nil, err
 	}
 
-	return LoadStopTimesUsingReader(file, connectionTimeout, processingDate)
+	return LoadStopTimesUsingReader(file, connectionTimeout, dailyServiceStartTime)
 
 }
 
 func LoadStopTimesUsingReader(
 	reader io.Reader,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	dailyServiceStartTime *time.Time,
 ) (map[string]StopTime, error) {
 
 	loadDataOptions := utils.LoadDataOptions{
@@ -105,17 +159,10 @@ func LoadStopTimesUsingReader(
 
 	// Update the data of each stop time
 	for id, stopTime := range stopTimesConsumer.stopTimes {
-		t := time.Date(
-			processingDate.Year(),
-			processingDate.Month(),
-			processingDate.Day(),
-			stopTime.Time.Hour(),
-			stopTime.Time.Minute(),
-			stopTime.Time.Second(),
-			stopTime.Time.Nanosecond(),
-			processingDate.Location(),
+		actualStopTime := stopTime.computeActualStopTime(
+			dailyServiceStartTime,
 		)
-		stopTime.Time = t
+		stopTime.Time = actualStopTime
 		stopTimesConsumer.stopTimes[id] = stopTime
 	}
 	return stopTimesConsumer.stopTimes, nil

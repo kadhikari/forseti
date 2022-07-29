@@ -46,6 +46,39 @@ func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
 	}, nil
 }
 
+func CombineDateAndTimeInLocation(
+	datePart *time.Time,
+	timePart *time.Time,
+	location *time.Location,
+) (time.Time, error) {
+	const DATE_LAYOUT string = "2006-01-02"
+	const TIME_LAYOUT string = "15:04:05.999999999"
+	const DATETIME_LAYOUT string = DATE_LAYOUT + "T" + TIME_LAYOUT
+	datePartStr := datePart.Format(DATE_LAYOUT)
+	timePartStr := timePart.Format(TIME_LAYOUT)
+	datetimeStr := datePartStr + "T" + timePartStr
+
+	return time.ParseInLocation(DATETIME_LAYOUT, datetimeStr, location)
+}
+
+func (s *StopTime) computeActualStopTime(
+	dailyServiceStartTime *time.Time,
+) time.Time {
+	actualStopTime, _ := CombineDateAndTimeInLocation(
+		dailyServiceStartTime,
+		&s.Time,
+		dailyServiceStartTime.Location(),
+	)
+	if actualStopTime.Before(*dailyServiceStartTime) {
+		actualStopTime = actualStopTime.AddDate(
+			0, /* year */
+			0, /* month */
+			1, /* day */
+		)
+	}
+	return actualStopTime
+}
+
 type stopTimeCsvLineConsumer struct {
 	stopTimes map[string]StopTime
 }
@@ -71,7 +104,7 @@ func (c *stopTimeCsvLineConsumer) Terminate() {
 func LoadStopTimes(
 	uri url.URL,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	dailyServiceStartTime *time.Time,
 ) (map[string]StopTime, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, StopTimesFileName)
 	file, err := utils.GetFile(uri, connectionTimeout)
@@ -81,14 +114,14 @@ func LoadStopTimes(
 		return nil, err
 	}
 
-	return LoadStopTimesUsingReader(file, connectionTimeout, processingDate)
+	return LoadStopTimesUsingReader(file, connectionTimeout, dailyServiceStartTime)
 
 }
 
 func LoadStopTimesUsingReader(
 	reader io.Reader,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	dailyServiceStartTime *time.Time,
 ) (map[string]StopTime, error) {
 
 	loadDataOptions := utils.LoadDataOptions{
@@ -105,17 +138,10 @@ func LoadStopTimesUsingReader(
 
 	// Update the data of each stop time
 	for id, stopTime := range stopTimesConsumer.stopTimes {
-		t := time.Date(
-			processingDate.Year(),
-			processingDate.Month(),
-			processingDate.Day(),
-			stopTime.Time.Hour(),
-			stopTime.Time.Minute(),
-			stopTime.Time.Second(),
-			stopTime.Time.Nanosecond(),
-			processingDate.Location(),
+		actualStopTime := stopTime.computeActualStopTime(
+			dailyServiceStartTime,
 		)
-		stopTime.Time = t
+		stopTime.Time = actualStopTime
 		stopTimesConsumer.stopTimes[id] = stopTime
 	}
 	return stopTimesConsumer.stopTimes, nil

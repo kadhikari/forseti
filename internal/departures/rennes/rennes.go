@@ -24,12 +24,43 @@ const header string = "Api-Keokey"
 
 const FilterDeltaDuration time.Duration = 2 * time.Minute
 
+func getActualProcessingDate(
+	location *time.Location,
+	serviceSwitchTime *time.Time) time.Time {
+	localNowTime := time.Now().In(location)
+	localServiceStartTime, _ := rennes_stoptimes.CombineDateAndTimeInLocation(
+		&localNowTime,
+		serviceSwitchTime,
+		location,
+	)
+	if localNowTime.Before(localServiceStartTime) {
+		localNowTime = localNowTime.AddDate(
+			0,  /* year */
+			0,  /* month */
+			-1, /* day */
+		)
+	}
+	// set the processing date to midnight
+	return time.Date(
+		localNowTime.Year(),
+		localNowTime.Month(),
+		localNowTime.Day(),
+		0, /* hour */
+		0, /* minute */
+		0, /* second */
+		0, /* nanosecond */
+		localNowTime.Location(),
+	)
+}
+
 type RennesContext struct {
-	connector      *connectors.Connector
-	processingDate *time.Time
-	departures     map[string]Departure
-	lastUpdate     *time.Time
-	mutex          sync.RWMutex
+	connector         *connectors.Connector
+	processingDate    *time.Time
+	location          *time.Location
+	serviceSwitchTime *time.Time
+	departures        map[string]Departure
+	lastUpdate        *time.Time
+	mutex             sync.RWMutex
 }
 
 func (d *RennesContext) getConnector() *connectors.Connector {
@@ -62,6 +93,47 @@ func (d *RennesContext) setProcessingDate(processingDate *time.Time) {
 	d.processingDate = processingDate
 }
 
+func (d *RennesContext) getLocation() *time.Location {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.location
+}
+
+func (d *RennesContext) setLocation(location *time.Location) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.location = location
+}
+
+func (d *RennesContext) getServiceSwitchTime() *time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.serviceSwitchTime
+}
+
+func (d *RennesContext) setServiceSwitchTime(serviceSwitchTime *time.Time) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.serviceSwitchTime = serviceSwitchTime
+}
+
+func (d *RennesContext) computeDailyServiceStartTime() time.Time {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+
+	serviceStartTime := time.Date(
+		d.processingDate.Year(),
+		d.processingDate.Month(),
+		d.processingDate.Day(),
+		d.serviceSwitchTime.Hour(),
+		d.serviceSwitchTime.Minute(),
+		d.serviceSwitchTime.Second(),
+		d.serviceSwitchTime.Nanosecond(),
+		d.location,
+	)
+	return serviceStartTime
+}
+
 func (d *RennesContext) getLastUpdate() *time.Time {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
@@ -87,7 +159,8 @@ func (d *RennesContext) InitContext(
 	departuresServiceRefresh time.Duration,
 	departuresToken string,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	location *time.Location,
+	serviceSwitchTime *time.Time,
 ) {
 
 	if len(departuresFilesUrl.String()) == 0 || departuresFilesRefresh.Seconds() <= 0 ||
@@ -107,9 +180,29 @@ func (d *RennesContext) InitContext(
 		connectionTimeout,
 	))
 
-	d.setProcessingDate(processingDate)
+	actualProcessingDate := getActualProcessingDate(
+		location,
+		serviceSwitchTime,
+	)
+
+	d.setLocation(location)
+	d.setServiceSwitchTime(serviceSwitchTime)
+	d.UpdateProcessingDateAndCleanDeparturesList(&actualProcessingDate, nil)
+}
+
+func (d *RennesContext) UpdateProcessingDateAndCleanDeparturesList(
+	processingDate *time.Time,
+	context *departures.DeparturesContext,
+) {
 	d.setLastUpdate(nil)
 	d.setDepartures(nil)
+	d.setProcessingDate(processingDate)
+	if context != nil {
+		context.DropDepartures()
+	}
+	dailyServiceStartTime := d.computeDailyServiceStartTime()
+	logrus.Infof("The depatures list is reset, the processing date is: %v", processingDate)
+	logrus.Infof("The depatures list is reset, the daily service start time is: %v", dailyServiceStartTime)
 }
 
 func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesContext) {
@@ -118,10 +211,21 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 	context.SetWsRefeshTime(d.connector.GetWsRefreshTime())
 
 	// Wait 10 seconds before reloading external departures informations
-	time.Sleep(2 * time.Second)
+	time.Sleep(10 * time.Second)
 	for {
 		var loadedDepartures map[string][]departures.Departure = nil
 		var refreshTime time.Duration
+		// Clean the departures list if necessary
+		{
+			currentProcessingDate := *d.getProcessingDate()
+			actualProcessingDate := getActualProcessingDate(
+				d.getLocation(), d.getServiceSwitchTime(),
+			)
+			if actualProcessingDate != currentProcessingDate {
+				d.UpdateProcessingDateAndCleanDeparturesList(&actualProcessingDate, context)
+			}
+		}
+
 		if !d.haveTheoreticalDeparturesBeenLoaded() {
 			theoreticalDepartures, err := loadTheoreticalDepartures(d)
 			if err != nil {
@@ -214,10 +318,12 @@ func loadTheoreticalDepartures(
 	rennesContext *RennesContext,
 ) (map[string]Departure, error) {
 
+	dailyServiceStartTime := rennesContext.computeDailyServiceStartTime()
+
 	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(
 		rennesContext.getConnector().GetFilesUri(),
 		rennesContext.getConnector().GetConnectionTimeout(),
-		rennesContext.getProcessingDate(),
+		&dailyServiceStartTime,
 	)
 	if err != nil {
 		return nil, err
@@ -228,7 +334,7 @@ func loadTheoreticalDepartures(
 func loadTheoreticalDeparturesFromDailyDataFiles(
 	uri url.URL,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	dailyServiceStartTime *time.Time,
 ) (map[string]Departure, error) {
 
 	var stopPoints map[string]rennes_stoppoints.StopPoint
@@ -257,7 +363,7 @@ func loadTheoreticalDeparturesFromDailyDataFiles(
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the destinations: %v", err)
 	}
 
-	stopTimes, err := rennes_stoptimes.LoadStopTimes(uri, connectionTimeout, processingDate)
+	stopTimes, err := rennes_stoptimes.LoadStopTimes(uri, connectionTimeout, dailyServiceStartTime)
 	if err != nil {
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the stop times: %v", err)
 	}
@@ -347,12 +453,13 @@ func tryToLoadEstimatedDepartures(rennesContext *RennesContext) (map[string]Depa
 func loadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure, error) {
 
 	var estimatedStopTimes map[string]rennes_stoptimes.StopTime
+	dailyServiceStartTime := rennesContext.computeDailyServiceStartTime()
 	estimatedStopTimes, err := rennes_estimatedstoptimes.LoadEstimatedStopTimes(
 		rennesContext.connector.GetUrl(),
 		header,
 		rennesContext.getConnector().GetToken(),
 		rennesContext.getConnector().GetConnectionTimeout(),
-		rennesContext.getProcessingDate(),
+		&dailyServiceStartTime,
 	)
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()

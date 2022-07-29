@@ -52,38 +52,38 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 	AMERICA_NEWYORK_LOCATION, _ := time.LoadLocation("America/New_York")
 
 	var tests = []struct {
-		localProcessingDate time.Time
-		localTimeFirstLine  time.Time
-		localTimeLastLine   time.Time
-		utcTimeFirstLine    time.Time
-		urcTimeLastLine     time.Time
+		localDailyServiceStartTime time.Time
+		localTimeFirstLine         time.Time
+		localTimeLastLine          time.Time
+		utcTimeFirstLine           time.Time
+		urcTimeLastLine            time.Time
 	}{
 		{ // UTC
-			localProcessingDate: time.Date(2012, time.February, 29, 0, 0, 0, 0, time.UTC),
-			localTimeFirstLine:  time.Date(2012, time.February, 29, 16, 36, 0, 0, time.UTC),
-			localTimeLastLine:   time.Date(2012, time.February, 29, 15, 30, 24, 0, time.UTC),
-			utcTimeFirstLine:    time.Date(2012, time.February, 29, 16, 36, 0, 0, time.UTC),
-			urcTimeLastLine:     time.Date(2012, time.February, 29, 15, 30, 24, 0, time.UTC),
+			localDailyServiceStartTime: time.Date(2012, time.February, 29, 0, 0, 0, 0, time.UTC),
+			localTimeFirstLine:         time.Date(2012, time.February, 29, 16, 36, 0, 0, time.UTC),
+			localTimeLastLine:          time.Date(2012, time.February, 29, 15, 30, 24, 0, time.UTC),
+			utcTimeFirstLine:           time.Date(2012, time.February, 29, 16, 36, 0, 0, time.UTC),
+			urcTimeLastLine:            time.Date(2012, time.February, 29, 15, 30, 24, 0, time.UTC),
 		},
 		{ // Europe/Paris
-			localProcessingDate: time.Date(2012, time.February, 29, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			localTimeFirstLine:  time.Date(2012, time.February, 29, 16, 36, 0, 0, EUROPE_PARIS_LOCATION),
-			localTimeLastLine:   time.Date(2012, time.February, 29, 15, 30, 24, 0, EUROPE_PARIS_LOCATION),
-			utcTimeFirstLine:    time.Date(2012, time.February, 29, 15, 36, 0, 0, time.UTC),
-			urcTimeLastLine:     time.Date(2012, time.February, 29, 14, 30, 24, 0, time.UTC),
+			localDailyServiceStartTime: time.Date(2012, time.February, 29, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
+			localTimeFirstLine:         time.Date(2012, time.February, 29, 16, 36, 0, 0, EUROPE_PARIS_LOCATION),
+			localTimeLastLine:          time.Date(2012, time.February, 29, 15, 30, 24, 0, EUROPE_PARIS_LOCATION),
+			utcTimeFirstLine:           time.Date(2012, time.February, 29, 15, 36, 0, 0, time.UTC),
+			urcTimeLastLine:            time.Date(2012, time.February, 29, 14, 30, 24, 0, time.UTC),
 		},
 		{ // America/New_York
-			localProcessingDate: time.Date(2012, time.February, 29, 0, 0, 0, 0, AMERICA_NEWYORK_LOCATION),
-			localTimeFirstLine:  time.Date(2012, time.February, 29, 16, 36, 0, 0, AMERICA_NEWYORK_LOCATION),
-			localTimeLastLine:   time.Date(2012, time.February, 29, 15, 30, 24, 0, AMERICA_NEWYORK_LOCATION),
-			utcTimeFirstLine:    time.Date(2012, time.February, 29, 21, 36, 0, 0, time.UTC),
-			urcTimeLastLine:     time.Date(2012, time.February, 29, 20, 30, 24, 0, time.UTC),
+			localDailyServiceStartTime: time.Date(2012, time.February, 29, 0, 0, 0, 0, AMERICA_NEWYORK_LOCATION),
+			localTimeFirstLine:         time.Date(2012, time.February, 29, 16, 36, 0, 0, AMERICA_NEWYORK_LOCATION),
+			localTimeLastLine:          time.Date(2012, time.February, 29, 15, 30, 24, 0, AMERICA_NEWYORK_LOCATION),
+			utcTimeFirstLine:           time.Date(2012, time.February, 29, 21, 36, 0, 0, time.UTC),
+			urcTimeLastLine:            time.Date(2012, time.February, 29, 20, 30, 24, 0, time.UTC),
 		},
 	}
 
 	for _, test := range tests {
 
-		localProcessingDate := test.localProcessingDate
+		localDailyServiceStartTime := test.localDailyServiceStartTime
 
 		assert := assert.New(t)
 		require := require.New(t)
@@ -96,7 +96,7 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 		loadedEstimatedStopTimes, err := parseEstimatedStopTimesFromFile(
 			fileBytes,
 			defaultTimeout,
-			&localProcessingDate,
+			&localDailyServiceStartTime,
 		)
 		require.Nil(err)
 		assert.Len(loadedEstimatedStopTimes, EXPECTED_NUM_OF_ESTIMATED_STOP_TIMES)

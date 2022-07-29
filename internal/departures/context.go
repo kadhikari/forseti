@@ -25,6 +25,11 @@ func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) 
 	d.lastDepartureUpdate = time.Now()
 }
 
+func (d *DeparturesContext) DropDepartures() {
+	emptyMap := make(map[string][]Departure)
+	d.UpdateDepartures(emptyMap)
+}
+
 func (d *DeparturesContext) GetLastDepartureDataUpdate() time.Time {
 	d.departuresMutex.RLock()
 	defer d.departuresMutex.RUnlock()

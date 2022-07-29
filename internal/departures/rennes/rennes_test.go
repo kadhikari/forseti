@@ -31,13 +31,17 @@ func TestLoadTheoreticalDeparturesFromDailyDataFiles(t *testing.T) {
 
 	var LOCATION *time.Location
 	LOCATION, _ = time.LoadLocation("Europe/Paris")
-	var PROCESSING_DATE time.Time = time.Date(2012, 2, 29, 0, 0, 0, 0, LOCATION)
+	var DAILY_SERVICE_START_TIME time.Time = time.Date(2012, 2, 29, 0, 0, 0, 0, LOCATION)
 
 	require := require.New(t)
 	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
 	require.Nil(err)
 
-	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(*uri, defaultTimeout, &PROCESSING_DATE)
+	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(
+		*uri,
+		defaultTimeout,
+		&DAILY_SERVICE_START_TIME,
+	)
 	require.Nil(err)
 	require.NotNil(theoreticalDepartures)
 	require.Len(theoreticalDepartures, EXPECTED_NUM_OF_THEORETICAL_DEPARTURES)
@@ -54,9 +58,9 @@ func TestLoadTheoreticalDeparturesFromDailyDataFiles(t *testing.T) {
 			DestinationId:    "284721153",
 			DestinationName:  "Kennedy",
 			Time: time.Date(
-				PROCESSING_DATE.Year(), PROCESSING_DATE.Month(), PROCESSING_DATE.Day(),
+				DAILY_SERVICE_START_TIME.Year(), DAILY_SERVICE_START_TIME.Month(), DAILY_SERVICE_START_TIME.Day(),
 				5, 13, 0, 0,
-				PROCESSING_DATE.Location(),
+				DAILY_SERVICE_START_TIME.Location(),
 			),
 		}
 		require.Contains(theoreticalDepartures, EXPECTED_STOP_TIME_ID)

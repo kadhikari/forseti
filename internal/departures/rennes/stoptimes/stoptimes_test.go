@@ -204,16 +204,16 @@ func TestComputeActualStopTime(t *testing.T) {
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDDAY,
 			expectedActualStopTime: time.Date(2022, time.June, 16, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 		},
-		// {
-		// 	name: "0 nanosecond after service start time (midnight)",
-		// 	stopTime: StopTime{
-		// 		Id:               "UNUSED_ID",
-		// 		Time:             time.Date(0, time.January, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-		// 		RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-		// 	},
-		// 	dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDNIGHT,
-		// 	expectedActualStopTime: time.Date(2022, time.June, 15, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-		// },
+		{
+			name: "0 nanosecond after service start time (midnight)",
+			stopTime: StopTime{
+				Id:               "UNUSED_ID",
+				Time:             time.Date(0, time.January, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
+				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
+			},
+			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDNIGHT,
+			expectedActualStopTime: time.Date(2022, time.June, 15, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
+		},
 		{
 			name: "1 nanosecond after service start time (midnight)",
 			stopTime: StopTime{

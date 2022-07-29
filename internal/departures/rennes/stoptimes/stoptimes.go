@@ -46,49 +46,30 @@ func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
 	}, nil
 }
 
-func IsBelongedToNextDay(
-	t *time.Time,
-	dailyServiceSwitchTime *time.Time,
-) (bool, error) {
-	if t.Location() != dailyServiceSwitchTime.Location() {
-		err := fmt.Errorf("cannot compare times, locations must be same")
-		return false, err
-	}
-	// Edge case if daily service switch time is at midnight
-	isAtMidnight := t.Hour() == 0 &&
-		t.Minute() == 0 &&
-		t.Second() == 0 &&
-		t.Nanosecond() == 0
-	if isAtMidnight {
-		return false, nil
-	}
-	isBefore := t.Hour() < dailyServiceSwitchTime.Hour() ||
-		(t.Hour() == dailyServiceSwitchTime.Hour() &&
-			t.Minute() < dailyServiceSwitchTime.Minute()) ||
-		(t.Hour() == dailyServiceSwitchTime.Hour() &&
-			t.Minute() == dailyServiceSwitchTime.Minute() &&
-			t.Second() < dailyServiceSwitchTime.Second()) ||
-		(t.Hour() == dailyServiceSwitchTime.Hour() &&
-			t.Minute() == dailyServiceSwitchTime.Minute() &&
-			t.Second() == dailyServiceSwitchTime.Second() &&
-			t.Nanosecond() < dailyServiceSwitchTime.Nanosecond())
-	return isBefore, nil
+func CombineDateAndTimeInLocation(
+	datePart *time.Time,
+	timePart *time.Time,
+	location *time.Location,
+) (time.Time, error) {
+	const DATE_LAYOUT string = "2006-01-02"
+	const TIME_LAYOUT string = "15:04:05.999999999"
+	const DATETIME_LAYOUT string = DATE_LAYOUT + "T" + TIME_LAYOUT
+	datePartStr := datePart.Format(DATE_LAYOUT)
+	timePartStr := timePart.Format(TIME_LAYOUT)
+	datetimeStr := datePartStr + "T" + timePartStr
+
+	return time.ParseInLocation(DATETIME_LAYOUT, datetimeStr, location)
 }
 
 func (s *StopTime) computeActualStopTime(
 	dailyServiceStartTime *time.Time,
 ) time.Time {
-	actualStopTime := time.Date(
-		dailyServiceStartTime.Year(),
-		dailyServiceStartTime.Month(),
-		dailyServiceStartTime.Day(),
-		s.Time.Hour(),
-		s.Time.Minute(),
-		s.Time.Second(),
-		s.Time.Nanosecond(),
+	actualStopTime, _ := CombineDateAndTimeInLocation(
+		dailyServiceStartTime,
+		&s.Time,
 		dailyServiceStartTime.Location(),
 	)
-	if isNextDay, _ := IsBelongedToNextDay(&actualStopTime, dailyServiceStartTime); isNextDay {
+	if actualStopTime.Before(*dailyServiceStartTime) {
 		actualStopTime = actualStopTime.AddDate(
 			0, /* year */
 			0, /* month */

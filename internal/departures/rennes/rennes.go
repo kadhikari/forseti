@@ -27,11 +27,14 @@ const FilterDeltaDuration time.Duration = 2 * time.Minute
 func getActualProcessingDate(
 	location *time.Location,
 	serviceSwitchTime *time.Time) time.Time {
-	processingDate := time.Now().In(location)
-	if nowIsNextDay, _ := rennes_stoptimes.IsBelongedToNextDay(
-		&processingDate,
-		serviceSwitchTime); nowIsNextDay {
-		processingDate = processingDate.AddDate(
+	localNowTime := time.Now().In(location)
+	localServiceStartTime, _ := rennes_stoptimes.CombineDateAndTimeInLocation(
+		&localNowTime,
+		serviceSwitchTime,
+		location,
+	)
+	if localNowTime.Before(localServiceStartTime) {
+		localNowTime = localNowTime.AddDate(
 			0,  /* year */
 			0,  /* month */
 			-1, /* day */
@@ -39,14 +42,14 @@ func getActualProcessingDate(
 	}
 	// set the processing date to midnight
 	return time.Date(
-		processingDate.Year(),
-		processingDate.Month(),
-		processingDate.Day(),
+		localNowTime.Year(),
+		localNowTime.Month(),
+		localNowTime.Day(),
 		0, /* hour */
 		0, /* minute */
 		0, /* second */
 		0, /* nanosecond */
-		processingDate.Location(),
+		localNowTime.Location(),
 	)
 }
 
@@ -181,6 +184,7 @@ func (d *RennesContext) InitContext(
 		location,
 		serviceSwitchTime,
 	)
+
 	d.setLocation(location)
 	d.setServiceSwitchTime(serviceSwitchTime)
 	d.UpdateProcessingDateAndCleanDeparturesList(&actualProcessingDate, nil)

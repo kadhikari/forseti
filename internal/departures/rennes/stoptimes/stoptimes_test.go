@@ -117,122 +117,33 @@ func TestLoadStopTimes(t *testing.T) {
 	}
 }
 
-func TestIsBelongedToPreviousDay(t *testing.T) {
+func TestCombineDateAndTimeInLocation(t *testing.T) {
 
 	EUROPE_PARIS_LOCATION, _ := time.LoadLocation("Europe/Paris")
 
 	var tests = []struct {
-		name                   string
-		t                      time.Time
-		dailyServiceSwitchTime time.Time
-		errorIsExpected        bool
-		expectedResult         bool
+		name            string
+		datePart        time.Time
+		timePart        time.Time
+		location        *time.Location
+		errorIsExpected bool
+		expectedResult  time.Time
 	}{
-		// At same time
 		{
-			name:                   "same time than 12:00:00 ",
-			t:                      time.Date(2022, 2, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
+			name:            "test#1",
+			datePart:        time.Date(2022, time.February, 1, 0, 0, 0, 0, time.UTC),
+			timePart:        time.Date(0, 1, 1, 12, 58, 59, 999_999_999, time.UTC),
+			location:        time.UTC,
+			errorIsExpected: false,
+			expectedResult:  time.Date(2022, time.February, 1, 12, 58, 59, 999_999_999, time.UTC),
 		},
 		{
-			name:                   "one nanosecond after 12:00:00",
-			t:                      time.Date(2022, 2, 1, 12, 0, 0, 1, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one nanosecond before 12:00:00",
-			t:                      time.Date(2022, 2, 1, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         true,
-		},
-		{
-			name:                   "one second after 12:00:00",
-			t:                      time.Date(2022, 2, 1, 12, 0, 1, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one second before 12:00:00",
-			t:                      time.Date(2022, 2, 1, 11, 59, 59, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         true,
-		},
-		{
-			name:                   "one minute after 12:00:00",
-			t:                      time.Date(2022, 2, 1, 12, 1, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one minute before 12:00:00",
-			t:                      time.Date(2022, 2, 1, 11, 59, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         true,
-		},
-		{
-			name:                   "one hour after 12:00:00",
-			t:                      time.Date(2022, 2, 1, 13, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one hour before 12:00:00",
-			t:                      time.Date(2022, 2, 1, 11, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         true,
-		},
-		{
-			name:                   "same time than 00:00:00 ",
-			t:                      time.Date(2022, 2, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one nanosecond after 00:00:00 ",
-			t:                      time.Date(2022, 2, 1, 0, 0, 0, 1, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one nanosecond before 00:00:00 ",
-			t:                      time.Date(2022, 2, 1, 23, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "same time than 23:59:59:999999999",
-			t:                      time.Date(2022, 2, 1, 23, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 23, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one nanosecond after 23:59:59:999999999 ",
-			t:                      time.Date(2022, 2, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 23, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         false,
-		},
-		{
-			name:                   "one nanosecond before 23:59:59:999999999  ",
-			t:                      time.Date(2022, 2, 1, 23, 59, 59, 999_999_998, EUROPE_PARIS_LOCATION),
-			dailyServiceSwitchTime: time.Date(0, 1, 1, 23, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-			errorIsExpected:        false,
-			expectedResult:         true,
+			name:            "test#2",
+			datePart:        time.Date(2022, time.February, 1, 0, 0, 0, 0, time.UTC),
+			timePart:        time.Date(0, 1, 1, 12, 58, 59, 999_999_999, time.UTC),
+			location:        EUROPE_PARIS_LOCATION,
+			errorIsExpected: false,
+			expectedResult:  time.Date(2022, time.February, 1, 12, 58, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 		},
 	}
 
@@ -240,10 +151,15 @@ func TestIsBelongedToPreviousDay(t *testing.T) {
 
 	assert := assert.New(t)
 	for _, test := range tests {
-		errMessage := fmt.Sprintf("the unit test '%s' failed", test.name)
-		gotResult, gotError := IsBelongedToNextDay(&test.t, &test.dailyServiceSwitchTime)
+		errMessage := fmt.Sprintf("the unit test '%s' has failed", test.name)
+		gotResult, gotError := CombineDateAndTimeInLocation(
+			&test.datePart,
+			&test.timePart,
+			test.location)
 		assert.Equal(gotError != nil, test.errorIsExpected, errMessage)
-		assert.Equal(gotResult, test.expectedResult, errMessage)
+		if gotError != nil {
+			assert.Equal(gotResult, test.expectedResult, errMessage)
+		}
 	}
 }
 

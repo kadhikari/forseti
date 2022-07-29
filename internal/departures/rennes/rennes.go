@@ -206,6 +206,8 @@ func (d *RennesContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 	context.SetFilesRefeshTime(d.connector.GetFilesRefreshTime())
 	context.SetWsRefeshTime(d.connector.GetWsRefreshTime())
 
+	// Wait 10 seconds before reloading external departures informations
+	time.Sleep(10 * time.Second)
 	for {
 		var loadedDepartures map[string][]departures.Departure = nil
 		var refreshTime time.Duration

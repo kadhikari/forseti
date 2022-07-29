@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -229,7 +228,6 @@ func main() {
 	FreeFloating(manager, &config, router)
 
 	// With departures
-	fmt.Printf("location: %v\n", location)
 	var departuresServiceSwitchTime time.Time
 	{
 		t, _ := time.ParseInLocation(
@@ -240,7 +238,6 @@ func main() {
 			location,
 		)
 	}
-	fmt.Printf("serviceSwitchTime: %v\n", departuresServiceSwitchTime)
 	Departures(manager, &config, router, location, &departuresServiceSwitchTime)
 
 	// With parkings

@@ -12,8 +12,6 @@ import (
 
 const StopTimesFileName string = "horaires.hor"
 const stopTimesCsvNumOfFields int = 4
-const ProcessingEndTimeHour int = 1
-const ProcessingEndTimeMinute int = 30
 
 /* ---------------------------------------------------------------------------------------
 // Structure and Consumer to creates StopTime objects based on a line read from a CSV

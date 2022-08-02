@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

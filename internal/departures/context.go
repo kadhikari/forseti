@@ -3,6 +3,7 @@ package departures
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 )
@@ -11,6 +12,9 @@ type DeparturesContext struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
 	departuresMutex     sync.RWMutex
+	packageName         string
+	filesRefreshTime    time.Duration
+	wsRefreshTime       time.Duration
 }
 
 func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) {
@@ -19,6 +23,11 @@ func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) 
 
 	d.departures = &departures
 	d.lastDepartureUpdate = time.Now()
+}
+
+func (d *DeparturesContext) DropDepartures() {
+	emptyMap := make(map[string][]Departure)
+	d.UpdateDepartures(emptyMap)
 }
 
 func (d *DeparturesContext) GetLastDepartureDataUpdate() time.Time {
@@ -31,6 +40,7 @@ func (d *DeparturesContext) GetLastDepartureDataUpdate() time.Time {
 func (d *DeparturesContext) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
 	return d.GetDeparturesByStopsAndDirectionType(stopsID, DirectionTypeBoth)
 }
+
 func (d *DeparturesContext) GetDeparturesByStopsAndDirectionType(
 	stopsID []string,
 	directionType DirectionType) ([]Departure, error) {
@@ -57,6 +67,50 @@ func (d *DeparturesContext) GetDeparturesByStopsAndDirectionType(
 		return departures[i].Datetime.Before(departures[j].Datetime)
 	})
 	return departures, nil
+}
+
+func (d *DeparturesContext) GetPackageName() string {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	return d.packageName
+}
+
+func (d *DeparturesContext) SetPackageName(pathPackage string) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	paths := strings.Split(pathPackage, "/")
+	size := len(paths)
+	d.packageName = paths[size-1]
+}
+
+func (d *DeparturesContext) GetFilesRefeshTime() time.Duration {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	return d.filesRefreshTime
+}
+
+func (d *DeparturesContext) SetFilesRefeshTime(filesRefreshTime time.Duration) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	d.filesRefreshTime = filesRefreshTime
+}
+
+func (d *DeparturesContext) GetWsRefeshTime() time.Duration {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	return d.wsRefreshTime
+}
+
+func (d *DeparturesContext) SetWsRefeshTime(wsRefreshTime time.Duration) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	d.wsRefreshTime = wsRefreshTime
 }
 
 func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {

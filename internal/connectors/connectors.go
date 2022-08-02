@@ -9,10 +9,12 @@ import (
 type ConnectorType string
 
 const (
-	Connector_GRFS_RT ConnectorType = "gtfsrt"
-	Connector_ODITI   ConnectorType = "oditi"
-	Connector_FLUCTUO ConnectorType = "fluctuo"
-	Connector_CITIZ   ConnectorType = "citiz"
+	Connector_GRFS_RT  ConnectorType = "gtfsrt"
+	Connector_ODITI    ConnectorType = "oditi"
+	Connector_FLUCTUO  ConnectorType = "fluctuo"
+	Connector_CITIZ    ConnectorType = "citiz"
+	Connector_SYTRALRT ConnectorType = "sytralrt"
+	Connector_RENNES   ConnectorType = "rennes"
 )
 
 type Connector struct {
@@ -20,7 +22,8 @@ type Connector struct {
 	url               url.URL
 	token             string
 	header            string
-	refreshTime       time.Duration
+	filesRefreshTime  time.Duration
+	wsRefreshTime     time.Duration
 	connectionTimeout time.Duration
 	mutex             sync.Mutex
 }
@@ -61,19 +64,32 @@ func (d *Connector) GetConnectionTimeout() time.Duration {
 	return d.connectionTimeout
 }
 
-func (d *Connector) GetRefreshTime() time.Duration {
+func (d *Connector) GetFilesRefreshTime() time.Duration {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
-	return d.refreshTime
+	return d.filesRefreshTime
 }
 
-func NewConnector(filesURI, url url.URL, token string, refresh,
-	connectionTimeout time.Duration) *Connector {
+func (d *Connector) GetWsRefreshTime() time.Duration {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.wsRefreshTime
+}
+
+func NewConnector(
+	filesURI url.URL,
+	url url.URL,
+	token string,
+	filesRefresh time.Duration,
+	wsRefresh time.Duration,
+	connectionTimeout time.Duration,
+) *Connector {
 	return &Connector{
 		filesUri:          filesURI,
 		url:               url,
 		token:             token,
-		refreshTime:       refresh,
+		filesRefreshTime:  filesRefresh,
+		wsRefreshTime:     wsRefresh,
 		connectionTimeout: connectionTimeout,
 	}
 }

@@ -5,7 +5,7 @@ GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
 .PHONY: linter-install
 linter-install: ## Install linter
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.37.1
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(shell go env GOPATH)/bin v1.46.2
 
 .PHONY: setup
 setup: ## Install all the build and lint dependencies
@@ -40,7 +40,7 @@ ci: lint test ## Run all the tests and code checks
 .PHONY: build
 build: ## Build a version
 	protoc --go_out=. --go_opt=M$(GTFS_PROTO)=/google_transit/ ./$(GTFS_PROTO)
-	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/CanalTP/forseti.ForsetiVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
+	CGO_ENABLED=0 go build -ldflags '-extldflags "-static"' -ldflags "-X github.com/hove-io/forseti.ForsetiVersion=$(VERSION)" -tags=jsoniter -v ./cmd/...
 
 .PHONY: clean
 clean: ## Remove temporary files

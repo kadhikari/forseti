@@ -9,10 +9,10 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/connectors"
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -20,10 +20,23 @@ type FluctuoContext struct {
 	connector *connectors.Connector
 }
 
-func (d *FluctuoContext) InitContext(externalURI url.URL, loadExternalRefresh time.Duration, token string,
-	connectionTimeout time.Duration) {
+func (d *FluctuoContext) InitContext(
+	externalURI url.URL,
+	loadExternalRefresh time.Duration,
+	token string,
+	connectionTimeout time.Duration,
+) {
 
-	d.connector = connectors.NewConnector(externalURI, externalURI, token, loadExternalRefresh, connectionTimeout)
+	const unusedDuration time.Duration = time.Duration(-1)
+
+	d.connector = connectors.NewConnector(
+		externalURI,
+		externalURI,
+		token,
+		loadExternalRefresh,
+		unusedDuration,
+		connectionTimeout,
+	)
 }
 
 func LoadFreeFloatingsData(data *data.Data) ([]freefloatings.FreeFloating, error) {
@@ -38,7 +51,7 @@ func LoadFreeFloatingsData(data *data.Data) ([]freefloatings.FreeFloating, error
 func (d *FluctuoContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloatingsContext) {
 
 	context.SetPackageName(reflect.TypeOf(FluctuoContext{}).PkgPath())
-	context.RefreshTime = d.connector.GetRefreshTime()
+	context.RefreshTime = d.connector.GetFilesRefreshTime()
 
 	// Wait 10 seconds before reloading external freefloating informations
 	time.Sleep(10 * time.Second)
@@ -49,7 +62,7 @@ func (d *FluctuoContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloa
 		} else {
 			logrus.Debug("Free_floating data updated")
 		}
-		time.Sleep(d.connector.GetRefreshTime())
+		time.Sleep(d.connector.GetFilesRefreshTime())
 	}
 }
 

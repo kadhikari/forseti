@@ -1,13 +1,13 @@
-![build passing](https://img.shields.io/github/workflow/status/CanalTP/forseti/Create%20and%20publish%20release%20image?logo=github)
-[![GitHub tag](https://img.shields.io/github/tag/CanalTP/forseti.svg)](https://github.com/CanalTP/forseti/tag)
-[![codecov](https://codecov.io/gh/CanalTP/forseti/branch/master/graph/badge.svg?token=9YFIEZ9ZVM)](https://codecov.io/gh/CanalTP/forseti)
+![build passing](https://img.shields.io/github/workflow/status/hove-io/forseti/Create%20and%20publish%20release%20image?logo=github)
+[![GitHub tag](https://img.shields.io/github/tag/hove-io/forseti.svg)](https://github.com/hove-io/forseti/tag)
+[![codecov](https://codecov.io/gh/hove-io/forseti/branch/master/graph/badge.svg?token=9YFIEZ9ZVM)](https://codecov.io/gh/hove-io/forseti)
 
 # Forseti
 
 ## Introduction
 
 Forseti is the god of justice and **reconciliation** in [Norse mythology](https://en.wikipedia.org/wiki/Forseti).
-We use it like this for the [navitia project](https://github.com/CanalTP/navitia). It aims to give jormungandr with **realtime data** provided by external services.<br>
+We use it like this for the [navitia project](https://github.com/hove-io/navitia). It aims to give jormungandr with **realtime data** provided by external services.<br>
 The complexity of reading is masked by this one to provide a simple output webservice. Several methods is used to catch the realtime data :
 
 - Read files on a Ftp server (Xml, json, csv, etc...)
@@ -26,11 +26,11 @@ The API list is as follows :
 
 - `/status` exposes general information about the webservice
 - `/metrics` exposes metrics in the prometheus text format
-- [`/departures`](https://github.com/canaltp/forseti/blob/master/internal/departures/readme.md) returns the next departures for a stop (parameter `stop_id`). [doc](https://github.com/canaltp/forseti/blob/master/internal/departures/readme.md)
+- [`/departures`](https://github.com/hove-io/forseti/blob/master/internal/departures/readme.md) returns the next departures for a stop (parameter `stop_id`). [doc](https://github.com/hove-io/forseti/blob/master/internal/departures/readme.md)
 - `/parkings/P+R` returns real time parkings data. (with an optional list parameter of `ids[]`)
-- [/equipments](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md) returns informations on Equipments in StopAreas. [doc](https://github.com/canaltp/forseti/blob/master/internal/equipments/readme.md)
+- [/equipments](https://github.com/hove-io/forseti/blob/master/internal/equipments/readme.md) returns informations on Equipments in StopAreas. [doc](https://github.com/hove-io/forseti/blob/master/internal/equipments/readme.md)
 - `/free_floatings?coord=2.37715%3B48.846781` returns informations on freefloatings  within a certain radius as a crow flies from the point
-- [/vehicle_occupancies](https://github.com/canaltp/forseti/blob/master/internal/vehicleoccupancies/readme.md) returns occupany of a vehicles at a stop. [doc](https://github.com/canaltp/forseti/blob/master/internal/vehicleoccupancies/readme.md)
+- [/vehicle_occupancies](https://github.com/hove-io/forseti/blob/master/internal/vehicleoccupancies/readme.md) returns occupany of a vehicles at a stop. [doc](https://github.com/hove-io/forseti/blob/master/internal/vehicleoccupancies/readme.md)
 
 For each service, a goroutine is created to handle the refresh of the data by downloading them every refresh-interval (default: 30s) and load them. Once these data have been loaded there is swap of pointer being done so that every new requests will get the new dataset.
 

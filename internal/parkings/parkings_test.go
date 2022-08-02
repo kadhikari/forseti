@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 var fixtureDir string

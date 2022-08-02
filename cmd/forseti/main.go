@@ -6,19 +6,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CanalTP/forseti/api"
-	"github.com/CanalTP/forseti/internal/connectors"
-	"github.com/CanalTP/forseti/internal/departures"
-	"github.com/CanalTP/forseti/internal/equipments"
-	"github.com/CanalTP/forseti/internal/freefloatings"
-	"github.com/CanalTP/forseti/internal/freefloatings/citiz"
-	"github.com/CanalTP/forseti/internal/freefloatings/fluctuo"
-	"github.com/CanalTP/forseti/internal/manager"
-	"github.com/CanalTP/forseti/internal/parkings"
-	vehicleoccupancies "github.com/CanalTP/forseti/internal/vehicleoccupancies"
-	"github.com/CanalTP/forseti/internal/vehiclepositions"
-
 	"github.com/gin-gonic/gin"
+	"github.com/hove-io/forseti/api"
+	"github.com/hove-io/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/departures"
+	"github.com/hove-io/forseti/internal/departures/rennes"
+	"github.com/hove-io/forseti/internal/departures/sytralrt"
+	"github.com/hove-io/forseti/internal/equipments"
+	"github.com/hove-io/forseti/internal/freefloatings"
+	"github.com/hove-io/forseti/internal/freefloatings/citiz"
+	"github.com/hove-io/forseti/internal/freefloatings/fluctuo"
+	"github.com/hove-io/forseti/internal/manager"
+	"github.com/hove-io/forseti/internal/parkings"
+	"github.com/hove-io/forseti/internal/vehicleoccupancies"
+	"github.com/hove-io/forseti/internal/vehiclepositions"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/pflag"
@@ -26,9 +27,15 @@ import (
 )
 
 type Config struct {
-	DeparturesURIStr  string        `mapstructure:"departures-uri"`
-	DeparturesRefresh time.Duration `mapstructure:"departures-refresh"`
-	DeparturesURI     url.URL
+	DeparturesFilesURIStr    string `mapstructure:"departures-files-uri"`
+	DeparturesFilesURI       url.URL
+	DeparturesFilesRefresh   time.Duration `mapstructure:"departures-files-refresh"`
+	DeparturesServiceURIStr  string        `mapstructure:"departures-service-uri"`
+	DeparturesServiceURI     url.URL
+	DeparturesServiceRefresh time.Duration `mapstructure:"departures-service-refresh"`
+	DeparturesToken          string        `mapstructure:"departures-token"`
+	DeparturesType           string        `mapstructure:"departures-type"`
+	DeparturesServiceSwitch  string        `mapstructure:"departures-service-switch"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -94,9 +101,13 @@ func noneOf(args ...string) bool {
 
 func GetConfig() (Config, error) {
 	//Passing configurations for departures
-	pflag.String("departures-uri", "",
-		"format: [scheme:][//[userinfo@]host][/]path \nexample: sftp://forseti:pass@172.17.0.3:22/extract_edylic.txt")
-	pflag.Duration("departures-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.String("departures-type", "sytralrt", "connector type to load data source")
+	pflag.String("departures-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.Duration("departures-files-refresh", 300*time.Second, "time between refresh of departures data")
+	pflag.String("departures-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
+	pflag.String("departures-token", "", "token for departures service source")
+	pflag.String("departures-service-switch", "03:30:00", "Service switch time (format: HH:MM:SS)")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -158,9 +169,14 @@ func GetConfig() (Config, error) {
 		return config, errors.Wrap(err, "Unmarshalling of flag failed")
 	}
 
-	if noneOf(config.DeparturesURIStr, config.ParkingsURIStr, config.EquipmentsURIStr, config.FreeFloatingsURIStr,
-		config.FreeFloatingsFilesURIStr, config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr,
-		config.OccupancyServiceURIStr, config.PositionsServiceURIStr) {
+	if noneOf(
+		config.DeparturesFilesURIStr, config.DeparturesServiceURIStr,
+		config.ParkingsURIStr,
+		config.EquipmentsURIStr,
+		config.FreeFloatingsURIStr, config.FreeFloatingsFilesURIStr,
+		config.OccupancyFilesURIStr, config.OccupancyNavitiaURIStr,
+		config.OccupancyServiceURIStr, config.PositionsServiceURIStr,
+	) {
 		return config, errors.New("no data provided at all. Please provide at lease one type of data")
 	}
 
@@ -170,7 +186,8 @@ func GetConfig() (Config, error) {
 	}
 
 	for _, uri := range []ConfigUri{
-		{config.DeparturesURIStr, &config.DeparturesURI},
+		{config.DeparturesFilesURIStr, &config.DeparturesFilesURI},
+		{config.DeparturesServiceURIStr, &config.DeparturesServiceURI},
 		{config.ParkingsURIStr, &config.ParkingsURI},
 		{config.EquipmentsURIStr, &config.EquipmentsURI},
 		{config.FreeFloatingsFilesURIStr, &config.FreeFloatingsFilesURI},
@@ -211,7 +228,17 @@ func main() {
 	FreeFloating(manager, &config, router)
 
 	// With departures
-	Departures(manager, &config, router)
+	var departuresServiceSwitchTime time.Time
+	{
+		t, _ := time.ParseInLocation(
+			"15:04:05", config.DeparturesServiceSwitch, location)
+		departuresServiceSwitchTime = time.Date(
+			0, 1, 1,
+			t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+			location,
+		)
+	}
+	Departures(manager, &config, router, location, &departuresServiceSwitchTime)
 
 	// With parkings
 	Parkings(manager, &config, router)
@@ -270,16 +297,44 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 	}
 }
 
-func Departures(manager *manager.DataManager, config *Config, router *gin.Engine) {
-	if len(config.DeparturesURI.String()) == 0 || config.DeparturesRefresh.Seconds() <= 0 {
+func Departures(
+	manager *manager.DataManager,
+	config *Config,
+	router *gin.Engine,
+	location *time.Location,
+	serviceSwitchTime *time.Time,
+) {
+
+	// This argument is mandatory for all departures connectors
+	if len(config.DeparturesFilesURI.String()) == 0 {
 		logrus.Debug("Departures is disabled")
 		return
 	}
+
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
-	go departures.RefreshDeparturesLoop(departuresContext, config.DeparturesURI,
-		config.DeparturesRefresh, config.ConnectionTimeout)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
+
+	// Enable the SytralRT connector
+	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
+
+		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
+		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
+		go sytralContext.RefreshDeparturesLoop(departuresContext)
+	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
+		var rennesContext rennes.RennesContext = rennes.RennesContext{}
+		rennesContext.InitContext(
+			config.DeparturesFilesURI,
+			config.DeparturesFilesRefresh,
+			config.DeparturesServiceURI,
+			config.DeparturesServiceRefresh,
+			config.DeparturesToken,
+			config.ConnectionTimeout,
+			location,
+			serviceSwitchTime,
+		)
+		go rennesContext.RefereshDeparturesLoop(departuresContext)
+	}
 }
 
 func Parkings(manager *manager.DataManager, config *Config, router *gin.Engine) {

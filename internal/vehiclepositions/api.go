@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 var location = "Europe/Paris"

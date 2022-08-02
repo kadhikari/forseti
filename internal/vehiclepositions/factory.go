@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"time"
 
-	"github.com/CanalTP/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/connectors"
 )
 
 // This module is used to declare the interface used by the different vehicle location contexts

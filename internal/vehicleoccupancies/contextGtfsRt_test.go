@@ -8,9 +8,9 @@ import (
 
 	"reflect"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/connectors"
-	gtfsrtvehiclepositions "github.com/CanalTP/forseti/internal/gtfsRt_vehiclepositions"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/connectors"
+	gtfsrtvehiclepositions "github.com/hove-io/forseti/internal/gtfsRt_vehiclepositions"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +49,7 @@ func Test_InitContext(t *testing.T) {
 	assert.Equal(gtfsRtContext.connector.GetFilesUri(), *uriFile)
 	assert.Equal(gtfsRtContext.connector.GetUrl(), *urlExternal)
 	assert.Equal(gtfsRtContext.connector.GetToken(), "tokenExternal_123456789")
-	assert.Equal(gtfsRtContext.connector.GetRefreshTime(), time.Duration(300))
+	assert.Equal(gtfsRtContext.connector.GetFilesRefreshTime(), time.Duration(300))
 	assert.Equal(gtfsRtContext.connector.GetConnectionTimeout(), time.Duration(200))
 	assert.NotNil(gtfsRtContext.voContext)
 	assert.NotNil(gtfsRtContext.voContext.loadOccupancyData, false)

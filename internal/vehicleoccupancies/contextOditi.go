@@ -8,10 +8,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/CanalTP/forseti/google_transit"
-	"github.com/CanalTP/forseti/internal/connectors"
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/google_transit"
+	"github.com/hove-io/forseti/internal/connectors"
+	"github.com/hove-io/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/utils"
 	"github.com/sirupsen/logrus"
 )
 
@@ -138,8 +138,16 @@ func (d *VehicleOccupanciesOditiContext) GetDepartureDatetime(vehicleJourneyCode
 func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.URL,
 	externalToken string, navitiaURI url.URL, navitiaToken string, loadExternalRefresh, occupancyCleanVJ,
 	occupancyCleanVO, connectionTimeout time.Duration, location *time.Location, occupancyActive bool) {
+	const unusedDuration time.Duration = time.Duration(-1)
 
-	d.connector = connectors.NewConnector(filesURI, externalURI, externalToken, loadExternalRefresh, connectionTimeout)
+	d.connector = connectors.NewConnector(
+		filesURI,
+		externalURI,
+		externalToken,
+		loadExternalRefresh,
+		unusedDuration,
+		connectionTimeout,
+	)
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)

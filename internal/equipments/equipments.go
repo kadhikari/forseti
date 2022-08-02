@@ -12,8 +12,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"golang.org/x/text/encoding/charmap"
 
-	"github.com/CanalTP/forseti/internal/data"
-	"github.com/CanalTP/forseti/internal/utils"
+	"github.com/hove-io/forseti/internal/data"
+	"github.com/hove-io/forseti/internal/utils"
 )
 
 var location = "Europe/Paris"

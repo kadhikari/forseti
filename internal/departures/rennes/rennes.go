@@ -70,9 +70,15 @@ func (d *RennesContext) getConnector() *connectors.Connector {
 }
 
 func (d *RennesContext) setConnector(connector *connectors.Connector) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.connector = connector
+}
+
+func (d *RennesContext) getDepartures() map[string]Departure {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
-	d.connector = connector
+	return d.departures
 }
 
 func (d *RennesContext) setDepartures(departures map[string]Departure) {
@@ -467,7 +473,7 @@ func loadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure
 	}
 
 	departuresCopy := make(map[string]Departure, 0)
-	for key, value := range rennesContext.departures {
+	for key, value := range rennesContext.getDepartures() {
 		departuresCopy[key] = value
 	}
 

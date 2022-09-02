@@ -347,7 +347,7 @@ func loadTheoreticalDeparturesFromDailyDataFiles(
 	var lines map[string]rennes_lines.Line
 	var routes map[string]rennes_routes.Route
 	var destinations map[string]rennes_destinations.Destination
-	var routeStopPoints map[string]rennes_routestoppoints.RouteStopPoint
+	var unsortedRouteStopPoints map[string]rennes_routestoppoints.RouteStopPoint
 
 	stopPoints, err := rennes_stoppoints.LoadStopPoints(uri, connectionTimeout)
 	if err != nil {
@@ -374,14 +374,18 @@ func loadTheoreticalDeparturesFromDailyDataFiles(
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the stop times: %v", err)
 	}
 
-	routeStopPoints, err = rennes_routestoppoints.LoadRouteStopPoints(uri, connectionTimeout)
+	unsortedRouteStopPoints, err = rennes_routestoppoints.LoadRouteStopPoints(uri, connectionTimeout)
 	if err != nil {
 		return nil, fmt.Errorf("an unexpected error occurred while the loadings of the route stop points: %v", err)
 	}
 
+	sortedRouteStopPoints := rennes_routestoppoints.SortRouteStopPointsByOrder(
+		unsortedRouteStopPoints,
+	)
+
 	theoreticalDepartures := make(map[string]Departure, 0)
 	for _, stopTime := range stopTimes {
-		routeStopPoint := routeStopPoints[stopTime.RouteStopPointId]
+		routeStopPoint := unsortedRouteStopPoints[stopTime.RouteStopPointId]
 
 		var line rennes_lines.Line
 		var direction departures.DirectionType
@@ -393,8 +397,19 @@ func loadTheoreticalDeparturesFromDailyDataFiles(
 		} else {
 			continue
 		}
+		var lastStopPointExternalId string
+		{
+			lastStopPointInternalId, err := rennes_routestoppoints.GetLastStopPointInternalId(
+				sortedRouteStopPoints,
+				routeStopPoint.RouteId,
+			)
+			if err != nil {
+				continue
+			}
+			lastStopPointExternalId = stopPoints[lastStopPointInternalId].ExternalId
+		}
 		destinationName := destinations[destinationId].Name
-		stopPoint := stopPoints[routeStopPoint.StopPointId]
+		stopPoint := stopPoints[routeStopPoint.StopPointInternalId]
 
 		theoreticalDepartures[stopTime.Id] = Departure{
 			StopTimeId:       stopTime.Id,
@@ -402,7 +417,7 @@ func loadTheoreticalDeparturesFromDailyDataFiles(
 			StopPointId:      stopPoint.ExternalId,
 			LineId:           line.ExternalId,
 			Direction:        direction,
-			DestinationId:    destinationId,
+			DestinationId:    lastStopPointExternalId,
 			DestinationName:  destinationName,
 			Time:             stopTime.Time,
 			Type:             departures.DepartureTypeTheoretical,

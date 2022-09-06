@@ -55,7 +55,7 @@ func TestLoadTheoreticalDeparturesFromDailyDataFiles(t *testing.T) {
 			StopPointId:      "1412",
 			LineId:           "0801",
 			Direction:        departures.DirectionTypeBackward,
-			DestinationId:    "284721153",
+			DestinationId:    "1412",
 			DestinationName:  "Kennedy",
 			Time: time.Date(
 				DAILY_SERVICE_START_TIME.Year(), DAILY_SERVICE_START_TIME.Month(), DAILY_SERVICE_START_TIME.Day(),

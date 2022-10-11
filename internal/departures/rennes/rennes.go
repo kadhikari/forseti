@@ -433,7 +433,7 @@ func tryToLoadEstimatedDepartures(rennesContext *RennesContext) (map[string]Depa
 		header,
 		rennesContext.getConnector().GetToken(),
 		rennesContext.getConnector().GetConnectionTimeout(),
-		rennesContext.getProcessingDate(),
+		rennesContext.getLocation(),
 	)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error while the loading of the last-update: %v", err)

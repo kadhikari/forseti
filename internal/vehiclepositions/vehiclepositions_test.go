@@ -40,7 +40,7 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 		Longitude: -72.0000, Occupancy: 0}
 
 	// Update vehiclePosition with no map cehiclelocations
-	vehiclePositions.UpdateVehiclePosition(changeGtfsRt, location)
+	vehiclePositions.UpdateVehiclePositionGtfsRt(changeGtfsRt, location)
 	require.Nil(vehiclePositions.vehiclePositions)
 
 	// Create vehiclePosition from existing data
@@ -51,7 +51,7 @@ func Test_UpdateVehiclePosition(t *testing.T) {
 	assert.Equal(len(vehiclePositions.vehiclePositions), 1)
 
 	// Update vehiclePosition with existing data
-	vehiclePositions.UpdateVehiclePosition(changeGtfsRt, location)
+	vehiclePositions.UpdateVehiclePositionGtfsRt(changeGtfsRt, location)
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Latitude, float32(46.0000))
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Longitude, float32(-72.0000))
 	assert.Equal(vehiclePositions.vehiclePositions[changeGtfsRt.Trip].Bearing, float32(254))

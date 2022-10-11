@@ -11,14 +11,18 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var fixtureDir string
+const SECONDS_PER_HOUR int = 3_600
 
-const defaultTimeout time.Duration = time.Second * 10
+var LOCATION *time.Location = time.FixedZone("", 2*SECONDS_PER_HOUR)
+
+var FIXTURE_DIR_PATH string
+
+const DEFAULT_TIMEOUT time.Duration = time.Second * 10
 
 func TestMain(m *testing.M) {
 
-	fixtureDir = os.Getenv("FIXTUREDIR")
-	if fixtureDir == "" {
+	FIXTURE_DIR_PATH = os.Getenv("FIXTUREDIR")
+	if FIXTURE_DIR_PATH == "" {
 		panic("$FIXTUREDIR isn't set")
 	}
 
@@ -28,18 +32,15 @@ func TestMain(m *testing.M) {
 func TestLoadTheoreticalDeparturesFromDailyDataFiles(t *testing.T) {
 
 	const EXPECTED_NUM_OF_THEORETICAL_DEPARTURES int = 109_817
-
-	var LOCATION *time.Location
-	LOCATION, _ = time.LoadLocation("Europe/Paris")
 	var DAILY_SERVICE_START_TIME time.Time = time.Date(2012, 2, 29, 0, 0, 0, 0, LOCATION)
 
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", FIXTURE_DIR_PATH))
 	require.Nil(err)
 
 	theoreticalDepartures, err := loadTheoreticalDeparturesFromDailyDataFiles(
 		*uri,
-		defaultTimeout,
+		DEFAULT_TIMEOUT,
 		&DAILY_SERVICE_START_TIME,
 	)
 	require.Nil(err)

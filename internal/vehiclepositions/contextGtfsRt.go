@@ -46,21 +46,31 @@ func (d *GtfsRtContext) GetVehiclePositions(param *VehiclePositionRequestParamet
 
 /********* INTERFACE METHODS IMPLEMENTS *********/
 
-func (d *GtfsRtContext) InitContext(filesURI, externalURI url.URL, externalToken string, loadExternalRefresh,
-	positionsCleanVP, connectionTimeout time.Duration, location *time.Location, reloadActive bool) {
-	const unusedDuration time.Duration = time.Duration(-1)
-
+func (d *GtfsRtContext) InitContext(
+	filesUrl url.URL,
+	filesRefreshDuration time.Duration,
+	externalServiceUrl url.URL,
+	externalServiceToken string,
+	externalServiceRefreshDuration time.Duration,
+	navitiaUrl url.URL,
+	navitiaToken string,
+	navitiaCoverageName string,
+	connectionTimeout time.Duration,
+	positionCleanVP time.Duration,
+	location *time.Location,
+	reloadActive bool,
+) {
 	d.connector = connectors.NewConnector(
-		filesURI,
-		externalURI,
-		externalToken,
-		loadExternalRefresh,
-		unusedDuration,
+		filesUrl,
+		externalServiceUrl,
+		externalServiceToken,
+		filesRefreshDuration,
+		externalServiceRefreshDuration,
 		connectionTimeout,
 	)
 	d.vehiclePositions = &VehiclePositions{}
 	d.location = location
-	d.cleanVp = positionsCleanVP
+	d.cleanVp = positionCleanVP
 	d.vehiclePositions.ManageVehiclePositionsStatus(reloadActive)
 }
 
@@ -93,6 +103,10 @@ func (d *GtfsRtContext) LoadPositionsData() bool {
 
 func (d *GtfsRtContext) GetRereshTime() string {
 	return d.connector.GetFilesRefreshTime().String()
+}
+
+func (d *GtfsRtContext) GetConnectorType() connectors.ConnectorType {
+	return connectors.Connector_GRFS_RT
 }
 
 /********* PRIVATE FUNCTIONS *********/
@@ -135,7 +149,7 @@ func refreshVehiclePositions(context *GtfsRtContext, connector *connectors.Conne
 				context.vehiclePositions.AddVehiclePosition(newVehiclePosition)
 			}
 		} else {
-			context.vehiclePositions.UpdateVehiclePosition(vehGtfsRT, context.location)
+			context.vehiclePositions.UpdateVehiclePositionGtfsRt(vehGtfsRT, context.location)
 		}
 	}
 	if cpt > 0 {

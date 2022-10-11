@@ -18,6 +18,8 @@ var fixtureDir string
 
 const defaultTimeout time.Duration = time.Second * 10
 
+type CourseId = stoptimes.CourseId
+
 func TestMain(m *testing.M) {
 
 	fixtureDir = os.Getenv("FIXTUREDIR")
@@ -105,6 +107,7 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 		{
 			const EXPECTED_ID string = "268546728"
 			const EXPECTED_ROUTE_STOP_POINT_ID string = "274605070"
+			const EXPECTED_COURSE_ID CourseId = CourseId("268441392")
 
 			assert.Contains(loadedEstimatedStopTimes, EXPECTED_ID)
 			assert.Equal(
@@ -113,6 +116,7 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 					Id:               EXPECTED_ID,
 					Time:             test.localTimeFirstLine,
 					RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
+					CourseId:         EXPECTED_COURSE_ID,
 				},
 			)
 			{
@@ -125,6 +129,7 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 		{
 			const EXPECTED_ID string = "268435927"
 			const EXPECTED_ROUTE_STOP_POINT_ID string = "268534785"
+			const EXPECTED_COURSE_ID CourseId = CourseId("268435509")
 
 			assert.Contains(loadedEstimatedStopTimes, EXPECTED_ID)
 			assert.Equal(
@@ -133,6 +138,7 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 					Id:               EXPECTED_ID,
 					Time:             test.localTimeLastLine,
 					RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
+					CourseId:         EXPECTED_COURSE_ID,
 				},
 			)
 			{

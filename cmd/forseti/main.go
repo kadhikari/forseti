@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/url"
 	"os"
 	"strings"
@@ -67,19 +68,21 @@ type Config struct {
 	OccupancyCleanVJ       time.Duration `mapstructure:"occupancy-clean-vj"`
 	OccupancyCleanVO       time.Duration `mapstructure:"occupancy-clean-vo"`
 	RouteScheduleRefresh   time.Duration `mapstructure:"routeschedule-refresh"`
-	TimeZoneLocation       string        `mapstructure:"timezone-location"`
+	TimeZoneLocationStr    string        `mapstructure:"timezone-location"`
+	TimeZoneLocation       *time.Location
 
-	PositionsFilesURIStr string `mapstructure:"positions-files-uri"`
-	PositionsFilesURI    url.URL
-	//PositionsNavitiaURIStr string `mapstructure:"positions-navitia-uri"`
-	//PositionsNavitiaURI    url.URL
-	PositionsServiceURIStr string `mapstructure:"positions-service-uri"`
-	PositionsServiceURI    url.URL
-	//PositionsNavitiaToken  string        `mapstructure:"positions-navitia-token"`
-	PositionsServiceToken string        `mapstructure:"positions-service-token"`
-	PositionsRefresh      time.Duration `mapstructure:"positions-refresh"`
-	//PositionsCleanVJ       time.Duration `mapstructure:"positions-clean-vj"`
-	PositionsCleanVP time.Duration `mapstructure:"positions-clean-vp"`
+	PositionsFilesURIStr     string `mapstructure:"positions-files-uri"`
+	PositionsFilesURI        url.URL
+	PositionsFilesRefresh    time.Duration `mapstructure:"positions-files-refresh"`
+	PositionsServiceURIStr   string        `mapstructure:"positions-service-uri"`
+	PositionsServiceURI      url.URL
+	PositionsServiceToken    string        `mapstructure:"positions-service-token"`
+	PositionsServiceRefresh  time.Duration `mapstructure:"positions-service-refresh"`
+	PositionsCleanVP         time.Duration `mapstructure:"positions-clean-vp"`
+	PositionsNavitiaURIStr   string        `mapstructure:"positions-navitia-uri"`
+	PositionsNavitiaURI      url.URL
+	PositionsNavitiaCoverage string `mapstructure:"positions-navitia-coverage"`
+	PositionsNavitiaToken    string `mapstructure:"positions-navitia-token"`
 
 	LogLevel            string        `mapstructure:"log-level"`
 	ConnectionTimeout   time.Duration `mapstructure:"connection-timeout"`
@@ -141,11 +144,18 @@ func GetConfig() (Config, error) {
 
 	//Passing configurations for vehicle_positions
 	pflag.String("positions-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.Duration(
+		"positions-files-refresh", 5*time.Minute,
+		"time between refresh of positions (only used by the connector rennes)",
+	)
 	pflag.String("positions-service-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("positions-service-token", "", "token for positions source")
-	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
-	pflag.Duration("positions-refresh", 5*time.Minute, "time between refresh of positions")
+	pflag.Duration("positions-service-refresh", 5*time.Minute, "time between refresh of positions")
+	pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("positions-navitia-token", "", "token for the navitia source")
+	pflag.String("positions-navitia-coverage", "", "name of a naviia coverage")
 	pflag.Duration("positions-clean-vp", 2*time.Hour, "time between clean list of vehiclePositions")
+	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
 
 	//Passing configurations for vehicle_occupancies and vehicle_positions
 	pflag.String("timezone-location", "Europe/Paris", "timezone location")
@@ -195,7 +205,9 @@ func GetConfig() (Config, error) {
 		{config.OccupancyFilesURIStr, &config.OccupancyFilesURI},
 		{config.OccupancyNavitiaURIStr, &config.OccupancyNavitiaURI},
 		{config.OccupancyServiceURIStr, &config.OccupancyServiceURI},
+		{config.PositionsFilesURIStr, &config.PositionsFilesURI},
 		{config.PositionsServiceURIStr, &config.PositionsServiceURI},
+		{config.PositionsNavitiaURIStr, &config.PositionsNavitiaURI},
 	} {
 		if url, err := url.Parse(uri.configURIStr); err != nil {
 			logrus.Errorf("Unable to parse data url: %s", uri.configURIStr)
@@ -204,7 +216,38 @@ func GetConfig() (Config, error) {
 		}
 	}
 
+	// Parse the timezone location
+	{
+		timeZoneLocation, err := time.LoadLocation(config.TimeZoneLocationStr)
+		if err != nil {
+			err = fmt.Errorf("Unable to parse the time zone location: %s", config.TimeZoneLocationStr)
+			return config, err
+		}
+		config.TimeZoneLocation = timeZoneLocation
+	}
+
 	return config, nil
+}
+
+func parseServiceSwitchTime(serviceSwitchTimeStr string, location *time.Location) (time.Time, error) {
+	t, err := time.ParseInLocation(
+		"15:04:05",
+		serviceSwitchTimeStr,
+		location,
+	)
+	if err != nil {
+		invlidTime := time.Date(
+			0, time.January, 1,
+			0, 0, 0, 000_000_000,
+			time.UTC,
+		)
+		return invlidTime, fmt.Errorf("error parse service switch time: %v", err)
+	}
+	return time.Date(
+		0, time.January, 1,
+		t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
+		location,
+	), nil
 }
 
 func main() {
@@ -216,7 +259,7 @@ func main() {
 	initLog(config.JSONLog, config.LogLevel)
 	manager := &manager.DataManager{}
 
-	location, _ := time.LoadLocation(config.TimeZoneLocation)
+	location := config.TimeZoneLocation
 
 	// create API router
 	router := api.SetupRouter(manager, nil)
@@ -230,13 +273,13 @@ func main() {
 	// With departures
 	var departuresServiceSwitchTime time.Time
 	{
-		t, _ := time.ParseInLocation(
-			"15:04:05", config.DeparturesServiceSwitch, location)
-		departuresServiceSwitchTime = time.Date(
-			0, 1, 1,
-			t.Hour(), t.Minute(), t.Second(), t.Nanosecond(),
-			location,
-		)
+		var err error
+		departuresServiceSwitchTime, err = parseServiceSwitchTime(config.DeparturesServiceSwitch, location)
+		if err != nil {
+			if err != nil {
+				logrus.Fatalf("%v", err)
+			}
+		}
 	}
 	Departures(manager, &config, router, location, &departuresServiceSwitchTime)
 
@@ -247,7 +290,7 @@ func main() {
 	VehicleOccupancies(manager, &config, router, location)
 
 	// With vehicle positions
-	VehiclePositions(manager, &config, router, location)
+	VehiclePositions(manager, &config, router)
 
 	// start router
 	err = router.Run()
@@ -403,7 +446,11 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 	}
 }
 
-func VehiclePositions(manager *manager.DataManager, config *Config, router *gin.Engine, location *time.Location) {
+func VehiclePositions(
+	manager *manager.DataManager,
+	config *Config,
+	router *gin.Engine,
+) {
 	if len(config.PositionsServiceURI.String()) == 0 {
 		logrus.Debug("Vehicle positions is disabled")
 		return
@@ -418,6 +465,12 @@ func VehiclePositions(manager *manager.DataManager, config *Config, router *gin.
 			logrus.Error(err)
 			return
 		}
+	} else if config.Connector == string(connectors.Connector_RENNES) {
+		vehiclePositionsContext, err = vehiclepositions.ConnectorFactory(string(connectors.Connector_RENNES))
+		if err != nil {
+			logrus.Error(err)
+			return
+		}
 	} else {
 		logrus.Error("Wrong connector type passed")
 		return
@@ -425,9 +478,20 @@ func VehiclePositions(manager *manager.DataManager, config *Config, router *gin.
 
 	manager.SetVehiclePositionsContext(vehiclePositionsContext)
 
-	vehiclePositionsContext.InitContext(config.PositionsFilesURI, config.PositionsServiceURI,
-		config.PositionsServiceToken, config.PositionsRefresh, config.PositionsCleanVP, config.ConnectionTimeout,
-		location, config.PositionsActive)
+	vehiclePositionsContext.InitContext(
+		config.PositionsFilesURI,
+		config.PositionsFilesRefresh,
+		config.PositionsServiceURI,
+		config.PositionsServiceToken,
+		config.PositionsServiceRefresh,
+		config.PositionsNavitiaURI,
+		config.PositionsNavitiaToken,
+		config.PositionsNavitiaCoverage,
+		config.PositionsCleanVP,
+		config.ConnectionTimeout,
+		config.TimeZoneLocation,
+		config.PositionsActive,
+	)
 	go vehiclePositionsContext.RefreshVehiclePositionsLoop()
 
 	vehiclepositions.AddVehiclePositionsEntryPoint(router, vehiclePositionsContext)

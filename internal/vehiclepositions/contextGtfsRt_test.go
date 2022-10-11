@@ -119,7 +119,20 @@ func Test_InitContext(t *testing.T) {
 	require.Nil(err)
 	urlExternal, err := url.Parse("http://gtfs-rt/test.pb")
 	require.Nil(err)
-	gtfsRtContext.InitContext(*uriFile, *urlExternal, "tokenExternal_123456789", 300, 5000, 200, location, false)
+	gtfsRtContext.InitContext(
+		*uriFile,
+		time.Duration(300),
+		*urlExternal,
+		"tokenExternal_123456789",
+		time.Duration(300),
+		url.URL{},
+		"",
+		"",
+		time.Duration(200),
+		time.Duration(5000),
+		location,
+		false,
+	)
 	assert.Equal(gtfsRtContext.connector.GetFilesUri(), *uriFile)
 	assert.Equal(gtfsRtContext.connector.GetUrl(), *urlExternal)
 	assert.Equal(gtfsRtContext.connector.GetToken(), "tokenExternal_123456789")

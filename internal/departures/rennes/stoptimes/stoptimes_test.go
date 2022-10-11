@@ -78,6 +78,7 @@ func TestLoadStopTimes(t *testing.T) {
 		{
 			const EXPECTED_ID string = "268548470"
 			const EXPECTED_ROUTE_STOP_POINT_ID string = "274605064"
+			const EXPECTED_COURSE_ID CourseId = CourseId("268441495")
 
 			assert.Contains(loadedStopTimes, EXPECTED_ID)
 			assert.Equal(
@@ -86,6 +87,7 @@ func TestLoadStopTimes(t *testing.T) {
 					Id:               EXPECTED_ID,
 					Time:             test.localTimeFirstLine,
 					RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
+					CourseId:         EXPECTED_COURSE_ID,
 				},
 			)
 			{
@@ -99,6 +101,7 @@ func TestLoadStopTimes(t *testing.T) {
 		{
 			const EXPECTED_ID string = "268435458"
 			const EXPECTED_ROUTE_STOP_POINT_ID string = "274137857"
+			const EXPECTED_COURSE_ID CourseId = CourseId("268435457")
 
 			assert.Contains(loadedStopTimes, EXPECTED_ID)
 			assert.Equal(
@@ -107,6 +110,7 @@ func TestLoadStopTimes(t *testing.T) {
 					Id:               EXPECTED_ID,
 					Time:             test.localTimeLastLine,
 					RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
+					CourseId:         EXPECTED_COURSE_ID,
 				},
 			)
 			{

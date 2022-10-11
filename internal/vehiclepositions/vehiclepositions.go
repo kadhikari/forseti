@@ -59,7 +59,7 @@ func (d *VehiclePositions) AddVehiclePosition(vehiclelocation *VehiclePosition) 
 	d.lastVehiclePositionsUpdate = time.Now().UTC()
 }
 
-func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
+func (d *VehiclePositions) UpdateVehiclePositionGtfsRt(vehicleGtfsRt gtfsrtvehiclepositions.VehicleGtfsRt,
 	location *time.Location) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
@@ -75,6 +75,17 @@ func (d *VehiclePositions) UpdateVehiclePosition(vehicleGtfsRt gtfsrtvehicleposi
 		google_transit.VehiclePosition_OccupancyStatus_name[int32(vehicleGtfsRt.Occupancy)]
 	d.vehiclePositions[vehicleGtfsRt.Trip].FeedCreatedAt = time.Unix(int64(vehicleGtfsRt.Time), 0).UTC()
 	d.lastVehiclePositionsUpdate = time.Now()
+}
+
+func (d *VehiclePositions) UpdateVehiclePositionRennes(
+	vehiclePositions map[string]*VehiclePosition,
+	lastUpdate time.Time,
+) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	d.vehiclePositions = vehiclePositions
+	d.lastVehiclePositionsUpdate = lastUpdate.UTC()
 }
 
 func (d *VehiclePositions) GetVehiclePositions(param *VehiclePositionRequestParameter) (

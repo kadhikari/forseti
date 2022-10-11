@@ -26,10 +26,10 @@ func TestMain(m *testing.M) {
 
 func TestLoadRouteStopPoints(t *testing.T) {
 
-	const EXPECTED_NUM_OF_ROUTE_STOP_POINTS int = 12_508
+	const EXPECTED_NUM_OF_ROUTE_STOP_POINTS int = 9_655
 
 	assert := assert.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	assert.Nil(err)
 
 	loadedRoutesStopPoints, err := LoadRouteStopPoints(*uri, defaultTimeout)
@@ -38,10 +38,10 @@ func TestLoadRouteStopPoints(t *testing.T) {
 
 	// Check the values read from the first line of the CSV
 	{
-		const EXPECTED_ID string = "284722693"
-		const EXPECTED_STOP_POINT_INTERNAL_ID string = "1412"
-		const EXPECTED_ROUTES_ID string = "284722688"
-		const EXPECTED_STOP_POINT_ORDER int = 4251
+		const EXPECTED_ID string = "284794126"
+		const EXPECTED_STOP_POINT_INTERNAL_ID string = "9225"
+		const EXPECTED_ROUTES_ID string = "284794112"
+		const EXPECTED_STOP_POINT_ORDER int = 14482
 
 		assert.Contains(loadedRoutesStopPoints, EXPECTED_ID)
 		assert.Equal(
@@ -57,9 +57,9 @@ func TestLoadRouteStopPoints(t *testing.T) {
 
 	// Check the values read from the last line of the CSV
 	{
-		const EXPECTED_ID string = "268501249"
-		const EXPECTED_STOP_POINT_INTERNAL_ID string = "1004"
-		const EXPECTED_ROUTES_ID string = "268501248"
+		const EXPECTED_ID string = "268501761"
+		const EXPECTED_STOP_POINT_INTERNAL_ID string = "1737"
+		const EXPECTED_ROUTES_ID string = "268501760"
 		const EXPECTED_STOP_POINT_ORDER int = 0
 
 		assert.Contains(loadedRoutesStopPoints, EXPECTED_ID)
@@ -78,7 +78,7 @@ func TestLoadRouteStopPoints(t *testing.T) {
 
 func TestSortRouteStopPointsByOrder(t *testing.T) {
 
-	const EXPECTED_NUM_OF_ROUTES int = 1811
+	const EXPECTED_NUM_OF_ROUTES int = 1_435
 	const UNEXPECTED_ROUTE_ID string = "123456789"
 	const EXPECTED_ROUTE_ID string = "284721408"
 	const EXPECTED_NUM_OF_STOP_POINTS int = 14
@@ -100,7 +100,7 @@ func TestSortRouteStopPointsByOrder(t *testing.T) {
 	}
 
 	assert := assert.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	assert.Nil(err)
 
 	unsortedRouteStopPoints, err := LoadRouteStopPoints(*uri, defaultTimeout)

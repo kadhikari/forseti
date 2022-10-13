@@ -72,7 +72,7 @@ func TestParseVehiclePositionsFromFileBytes(t *testing.T) {
 	{
 		var EXPECTED_VEHICLE_POSITION = VehiclePosition{
 			ExternalVehiculeId: ExternalVehiculeId("2078"),
-			State:              HS,
+			State:              State_HS,
 			Heading:            236,
 			Latitude:           48.147359,
 			Longitude:          -1.705388,
@@ -89,7 +89,7 @@ func TestParseVehiclePositionsFromFileBytes(t *testing.T) {
 	{
 		var EXPECTED_VEHICLE_POSITION = VehiclePosition{
 			ExternalVehiculeId: ExternalVehiculeId("16"),
-			State:              INC,
+			State:              State_INC,
 			Heading:            0,
 			Latitude:           -5.983863,
 			Longitude:          -1.363087,

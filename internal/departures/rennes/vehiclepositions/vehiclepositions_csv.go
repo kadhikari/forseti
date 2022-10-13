@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hove-io/forseti/internal/utils"
+	"github.com/sirupsen/logrus"
 
 	"github.com/hove-io/forseti/google_transit"
 )
@@ -26,41 +27,52 @@ type VehiclePosition struct {
 	OccupancyStatus    google_transit.VehiclePosition_OccupancyStatus
 }
 
-type State int
+type State string
 
 const (
-	HS State = iota
-	HL
-	INC
-	LIGN
-	TDEP
-	HLP
-	TARR
-	DEVP
-	SPEC
-	ATE
-	HLPS
-	HLPR
-	DEV
+	State_HS   State = State("HS")
+	State_HL         = State("HL")
+	State_INC        = State("INC")
+	State_LIGN       = State("LIGN")
+	State_TDEP       = State("TDEP")
+	State_HLP        = State("HLP")
+	State_TARR       = State("TARR")
+	State_DEVP       = State("DEVP")
+	State_SPEC       = State("SPEC")
+	State_ATE        = State("ATE")
+	State_HLPS       = State("HLPS")
+	State_HLPR       = State("HLPR")
+	State_DEV        = State("DEV")
 )
 
 var (
 	statesMap = map[string]State{
-		"HS":   HS,
-		"HL":   HL,
-		"INC":  INC,
-		"LIGN": LIGN,
-		"TDEP": TDEP,
-		"HLP":  HLP,
-		"TARR": TARR,
-		"DEVP": DEVP,
-		"SPEC": SPEC,
-		"ATE":  ATE,
-		"HLPS": HLPS,
-		"HLPR": HLPR,
-		"DEV":  DEV,
+		"HS":   State_HS,
+		"HL":   State_HL,
+		"INC":  State_INC,
+		"LIGN": State_LIGN,
+		"TDEP": State_TDEP,
+		"HLP":  State_HLP,
+		"TARR": State_TARR,
+		"DEVP": State_DEVP,
+		"SPEC": State_SPEC,
+		"ATE":  State_ATE,
+		"HLPS": State_HLPS,
+		"HLPR": State_HLPR,
+		"DEV":  State_DEV,
 	}
 )
+
+func (s *State) IsInOperation() bool {
+	isInOperation := false
+	switch *s {
+	case State_LIGN, State_TDEP, State_DEVP, State_TARR:
+		isInOperation = true
+		// case State_HS:
+		// 	isInOperation = true
+	}
+	return isInOperation
+}
 
 func parseStateFromString(stateStr string) (State, bool) {
 	state, ok := statesMap[stateStr]
@@ -82,9 +94,10 @@ func newVehiclePosition(record []string) (*VehiclePosition, error) {
 		var parsingIsOk bool
 		state, parsingIsOk = parseStateFromString(stateStr)
 		if !parsingIsOk {
-			return nil, fmt.Errorf(
-				"the vehicle position state is not valid %s",
+			logrus.Warnf(
+				"the parsed vehicle state %s is unknown, replaced it by %s",
 				stateStr,
+				string(State_HS),
 			)
 		}
 	}

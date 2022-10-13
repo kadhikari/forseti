@@ -187,19 +187,26 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 		} else if newLastUpdate != nil {
 			d.setRealTimeVehicleJourneyCode(nil)
 			{
-				utcCurrentDatetime := time.Date(
-					2022, time.October, 29,
-					10, 0, 0,
-					000_000_000,
-					time.UTC,
-				)
+				var utcCurrentDatetime *time.Time
+				{
+					utcCurrentDatetime = nil
+				}
+				// {
+				// 	*utcCurrentDatetime = time.Date(
+				// 		2022, time.October, 29,
+				// 		10, 0, 0,
+				// 		000_000_000,
+				// 		time.UTC,
+				// 	)
+				// }
+
 				vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
 					navitiaToken,
 					d.getConnector().GetConnectionTimeout(),
 					d.getLocation(),
 					navitiaUrl,
 					navitiaCoverage,
-					&utcCurrentDatetime,
+					utcCurrentDatetime,
 				)
 				if err != nil {
 					logrus.Errorf(
@@ -327,6 +334,16 @@ func tryToLoadRealTimeVehiclePosition(
 			return nil, loadedLastUpdate, err
 		}
 		cityNavetteVehiclePosition := exctractCityNavetteVehiclePosition(loadedVehiclePositions)
+		if cityNavetteVehiclePosition != nil {
+			logrus.Infof(
+				"realtime vehicle position has been found for the vehicle %s lcoated at (lat=%f, lon=%f)",
+				cityNavetteVehiclePosition.ExternalVehiculeId,
+				cityNavetteVehiclePosition.Latitude,
+				cityNavetteVehiclePosition.Longitude,
+			)
+		} else {
+			logrus.Info("no realtime vehicle position has been found")
+		}
 		return cityNavetteVehiclePosition, loadedLastUpdate, nil
 	} else {
 		logrus.Infof(
@@ -377,14 +394,18 @@ func exctractCityNavetteVehiclePosition(
 		}
 	}
 
-	if len(cityNavetteVehiclePositions) == 0 {
-		return nil
-	}
-
-	for _, cityNavetteVehiclePosition := range cityNavetteVehiclePositions {
-		// if cityNavetteVehiclePosition.State != rennes_vp.HS {
-		return &cityNavetteVehiclePosition
-		// }
+	if len(cityNavetteVehiclePositions) != 0 {
+		for _, cityNavetteVehiclePosition := range cityNavetteVehiclePositions {
+			if cityNavetteVehiclePosition.State.IsInOperation() {
+				return &cityNavetteVehiclePosition
+			} else {
+				logrus.Warnf(
+					"vehicle positions for the vehicle %s is ignored, its state is %s",
+					cityNavetteVehiclePosition.ExternalVehiculeId,
+					string(cityNavetteVehiclePosition.State),
+				)
+			}
+		}
 	}
 
 	return nil

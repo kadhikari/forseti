@@ -68,8 +68,8 @@ func (s *State) IsInOperation() bool {
 	switch *s {
 	case State_LIGN, State_TDEP, State_DEVP, State_TARR:
 		isInOperation = true
-		// case State_HS:
-		// 	isInOperation = true
+	case State_HS:
+		isInOperation = true
 	}
 	return isInOperation
 }

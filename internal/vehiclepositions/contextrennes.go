@@ -172,7 +172,7 @@ func (d *RennesContext) InitContext(
 // main loop to refresh vehicle_positions
 func (d *RennesContext) RefreshVehiclePositionsLoop() {
 	// Wait 10 seconds before reloading vehicleposition informations
-	// time.Sleep(10 * time.Second)
+	time.Sleep(10 * time.Second)
 
 	// Get  Navitia server parameters
 	navitiaUrl := d.getNavitiaUrl()

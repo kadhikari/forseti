@@ -33,7 +33,13 @@ func TestMain(m *testing.M) {
 func TestExtractCsvStringFromJson(t *testing.T) {
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/real_time/%s", fixtureDir, estimatedStopTimesFileName))
+	uri, err := url.Parse(
+		fmt.Sprintf(
+			"file://%s/data_rennes/2022-09-08/real_time/%s",
+			fixtureDir,
+			estimatedStopTimesFileName,
+		),
+	)
 	assert.Nil(err)
 
 	inputBytes, err := ioutil.ReadFile(uri.Path)
@@ -90,7 +96,13 @@ func TestParseEstimatedStopTimesFromFile(t *testing.T) {
 
 		assert := assert.New(t)
 		require := require.New(t)
-		uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/real_time/%s", fixtureDir, estimatedStopTimesFileName))
+		uri, err := url.Parse(
+			fmt.Sprintf(
+				"file://%s/data_rennes/2022-09-08/real_time/%s",
+				fixtureDir,
+				estimatedStopTimesFileName,
+			),
+		)
 		require.Nil(err)
 
 		fileBytes, err := ioutil.ReadFile(uri.Path)

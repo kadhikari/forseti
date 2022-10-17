@@ -153,7 +153,7 @@ func GetConfig() (Config, error) {
 	pflag.Duration("positions-service-refresh", 5*time.Minute, "time between refresh of positions")
 	pflag.String("positions-navitia-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("positions-navitia-token", "", "token for the navitia source")
-	pflag.String("positions-navitia-coverage", "", "name of a naviia coverage")
+	pflag.String("positions-navitia-coverage", "", "name of a navitia coverage")
 	pflag.Duration("positions-clean-vp", 2*time.Hour, "time between clean list of vehiclePositions")
 	pflag.Bool("positions-service-refresh-active", false, "activate the periodic refresh of vehicle positions data")
 

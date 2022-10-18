@@ -85,7 +85,7 @@ func (d *GtfsRtContext) RefreshVehiclePositionsLoop() {
 		} else {
 			logrus.Info("Vehicle_positions data updated, list size: ", len(d.vehiclePositions.vehiclePositions))
 		}
-		time.Sleep(d.connector.GetFilesRefreshTime())
+		time.Sleep(d.connector.GetWsRefreshTime())
 	}
 }
 

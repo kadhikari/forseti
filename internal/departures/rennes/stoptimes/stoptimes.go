@@ -13,7 +13,7 @@ import (
 type CourseId string
 
 const StopTimesFileName string = "horaires.hor"
-const stopTimesCsvNumOfFields int = 4
+const stopTimesCsvNumOfFields int = 0
 
 /* ---------------------------------------------------------------------------------------
 // Structure and Consumer to creates StopTime objects based on a line read from a CSV

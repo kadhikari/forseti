@@ -28,11 +28,11 @@ func TestMain(m *testing.M) {
 
 func TestLoadRoutes(t *testing.T) {
 
-	const EXPECTED_NUM_OF_STOP_POINTS int = 383
+	const EXPECTED_NUM_OF_STOP_POINTS int = 382
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	require.Nil(err)
 
 	loadedRoutes, err := LoadRoutes(*uri, defaultTimeout)
@@ -63,7 +63,7 @@ func TestLoadRoutes(t *testing.T) {
 		const EXPECTED_ROUTE_ID string = "268502016"
 		const EXPECTED_LINE_INTERNAL_ID string = "1"
 		const EXPECTED_DIRECTION departures.DirectionType = departures.DirectionTypeForward
-		const EXPECTED_DESTNATION_ID string = "268500995"
+		const EXPECTED_DESTNATION_ID string = "268500994"
 
 		assert.Contains(loadedRoutes, EXPECTED_ROUTE_ID)
 		assert.Equal(

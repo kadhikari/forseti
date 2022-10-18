@@ -56,7 +56,7 @@ func TestParseLastUpdateInLocation(t *testing.T) {
 
 func TestExtractCsvStringFromJson(t *testing.T) {
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/webservice/%s", fixtureDir, lastUpdateFileName))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/real_time/%s", fixtureDir, lastUpdateFileName))
 	require.Nil(err)
 
 	inputBytes, err := ioutil.ReadFile(uri.Path)
@@ -66,5 +66,5 @@ func TestExtractCsvStringFromJson(t *testing.T) {
 	require.Nil(err)
 	require.NotEmpty(csvString)
 	// Check the string of the extracted CSV
-	require.Equal(csvString, "2022-04-04 15:38:00")
+	require.Equal(csvString, "2022-09-08 11:28:58")
 }

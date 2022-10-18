@@ -1,0 +1,32 @@
+{
+    "pagination": {
+      "start_page": 0,
+      "items_on_page": 0,
+      "items_per_page": 0,
+      "total_result": 0
+    },
+    "disruptions": [],
+    "feed_publishers": [
+      {
+        "url": "",
+        "id": "fr-nw-rennestemp",
+        "license": "Private (unspecified)",
+        "name": "fr-nw-rennes : STAR"
+      },
+      {
+        "url": "https://www.openstreetmap.org/copyright",
+        "id": "osm",
+        "license": "ODbL",
+        "name": "openstreetmap"
+      }
+    ],
+    "vehicle_positions": [],
+    "context": {
+      "timezone": "Europe/Paris",
+      "current_datetime": "20221029T030000"
+    },
+    "error": {
+      "message": "ptref : Filters: Unable to find object",
+      "id": "unknown_object"
+    }
+}

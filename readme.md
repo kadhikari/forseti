@@ -48,7 +48,7 @@ After the deactivation the service keeps working with the last loaded data.
 
 ## Build
 
-To build this project you need at least [go 1.15](https://golang.org/dl)<br>
+To build this project you need at least [go 1.17](https://golang.org/dl)<br>
 Dependencies are handled by go modules as such it is recommended to not checkout this in your *GOPATH*.
 
 To build the project you just need to run the following command, at the root of the project:

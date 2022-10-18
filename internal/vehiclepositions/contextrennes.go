@@ -187,7 +187,11 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 		} else if newLastUpdate != nil {
 			d.setRealTimeVehicleJourneyCode(nil)
 			{
-				var utcCurrentDatetime *time.Time = nil
+				var utcCurrentDatetime *time.Time
+				// TODO: This scope is a part of a temporary patch, uncomment this one later
+				// {
+				// 	utcCurrentDatetime = nil
+				// }
 				// TODO: This scope is a part of a temporary patch, delete this one later
 				{
 					_utcCurrentDatetime := time.Date(

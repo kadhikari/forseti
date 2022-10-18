@@ -187,17 +187,16 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 		} else if newLastUpdate != nil {
 			d.setRealTimeVehicleJourneyCode(nil)
 			{
-				var utcCurrentDatetime *time.Time
-				// {
-				// 	utcCurrentDatetime = nil
-				// }
+				var utcCurrentDatetime *time.Time = nil
+				// TODO: This scope is a part of a temporary patch, delete this one later
 				{
-					*utcCurrentDatetime = time.Date(
+					_utcCurrentDatetime := time.Date(
 						2022, time.October, 29,
 						10, 0, 0,
 						000_000_000,
 						time.UTC,
 					)
+					utcCurrentDatetime = &_utcCurrentDatetime
 				}
 
 				vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(

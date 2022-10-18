@@ -69,6 +69,7 @@ func (s *State) IsInOperation() bool {
 	case State_LIGN, State_TDEP, State_DEVP, State_TARR:
 		isInOperation = true
 	case State_HS:
+		// TODO: This cas is a part of a temporary patch, delete this one later
 		isInOperation = true
 	}
 	return isInOperation

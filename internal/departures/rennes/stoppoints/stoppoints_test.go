@@ -27,11 +27,11 @@ func TestMain(m *testing.M) {
 
 func TestLoadStopPoints(t *testing.T) {
 
-	const EXPECTED_NUM_OF_STOP_POINTS int = 1_584
+	const EXPECTED_NUM_OF_STOP_POINTS int = 1_597
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	require.Nil(err)
 
 	loadedStopPoints, err := LoadStopPoints(*uri, defaultTimeout)

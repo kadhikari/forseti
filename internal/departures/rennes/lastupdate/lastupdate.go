@@ -20,7 +20,7 @@ func LoadLastUpdate(
 	header string,
 	token string,
 	connectionTimeout time.Duration,
-	processingDate *time.Time,
+	location *time.Location,
 ) (*time.Time, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, lastUpdateFileName)
 	response, err := utils.GetHttpClient(uri.String(), token, header, connectionTimeout)
@@ -42,7 +42,7 @@ func LoadLastUpdate(
 		return nil, err
 	}
 
-	lastUpdate, err := parseLastUpdateInLocation(csvString, processingDate.Location())
+	lastUpdate, err := parseLastUpdateInLocation(csvString, location)
 	if err != nil {
 		departures.DepartureLoadingErrors.Inc()
 		return nil, err

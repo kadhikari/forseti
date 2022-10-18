@@ -27,11 +27,11 @@ func TestMain(m *testing.M) {
 
 func TestLoadLines(t *testing.T) {
 
-	const EXPECTED_NUM_OF_LINES int = 121
+	const EXPECTED_NUM_OF_LINES int = 122
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	require.Nil(err)
 
 	loadedLines, err := LoadLines(*uri, defaultTimeout)

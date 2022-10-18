@@ -98,6 +98,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var lastVehiclePositionsDataUpdate time.Time
 		var loadVehiclePositionsData bool = false
 		var refreshVehiclePositionsData string
+		var vehiclePositionsSource string
 		if manager.GetVehiclePositionsContext() != nil {
 			// manage vehiclepositions activation /status?vehicle_positions=true or false
 			vehiclePositionsStatus := c.Query("vehicle_positions")
@@ -108,6 +109,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastVehiclePositionsDataUpdate = manager.GetVehiclePositionsContext().GetLastVehiclePositionsDataUpdate()
 			loadVehiclePositionsData = manager.GetVehiclePositionsContext().LoadPositionsData()
 			refreshVehiclePositionsData = manager.GetVehiclePositionsContext().GetRereshTime()
+			vehiclePositionsSource = string(manager.GetVehiclePositionsContext().GetConnectorType())
 		}
 
 		var lastEquipmentDataUpdate time.Time
@@ -133,7 +135,12 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 			lastEquipmentDataUpdate,
 			LoadingStatus{freeFloatingsSource, loadFreeFloatingData, refreshFreeFloatingData, lastFreeFloatingsDataUpdate},
 			LoadingStatus{"", loadVehicleOccupanciesData, refreshVehicleOccupanciesData, lastVehicleOccupanciesDataUpdate},
-			LoadingStatus{"", loadVehiclePositionsData, refreshVehiclePositionsData, lastVehiclePositionsDataUpdate},
+			LoadingStatus{
+				vehiclePositionsSource,
+				loadVehiclePositionsData,
+				refreshVehiclePositionsData,
+				lastVehiclePositionsDataUpdate,
+			},
 		})
 	}
 }

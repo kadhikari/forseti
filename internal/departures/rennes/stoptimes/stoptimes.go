@@ -10,8 +10,10 @@ import (
 	"github.com/hove-io/forseti/internal/utils"
 )
 
+type CourseId string
+
 const StopTimesFileName string = "horaires.hor"
-const stopTimesCsvNumOfFields int = 4
+const stopTimesCsvNumOfFields int = 0
 
 /* ---------------------------------------------------------------------------------------
 // Structure and Consumer to creates StopTime objects based on a line read from a CSV
@@ -20,6 +22,7 @@ type StopTime struct {
 	Id               string
 	Time             time.Time
 	RouteStopPointId string
+	CourseId         CourseId
 }
 
 func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
@@ -43,6 +46,7 @@ func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
 		Id:               record[0],
 		Time:             stopTime,
 		RouteStopPointId: record[2],
+		CourseId:         CourseId(record[3]),
 	}, nil
 }
 

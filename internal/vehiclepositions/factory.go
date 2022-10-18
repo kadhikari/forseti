@@ -13,8 +13,20 @@ import (
 // To implement an interface, the contexts must imperatively implement all the methods declared in it.
 
 type IConnectors interface {
-	InitContext(ilesURI, externalURI url.URL, externalToken string, loadExternalRefresh, positionCleanVO,
-		connectionTimeout time.Duration, location *time.Location, reloadActive bool)
+	InitContext(
+		filesUrl url.URL,
+		filesRefreshDuration time.Duration,
+		serviceURI url.URL,
+		serviceToken string,
+		serviceRefreshDuration time.Duration,
+		navitiaUrl url.URL,
+		navitiaToken string,
+		navitiaCoverageName string,
+		connectionTimeout time.Duration,
+		positionCleanVP time.Duration,
+		location *time.Location,
+		reloadActive bool,
+	)
 
 	RefreshVehiclePositionsLoop()
 
@@ -28,12 +40,16 @@ type IConnectors interface {
 	LoadPositionsData() bool
 
 	GetRereshTime() string
+
+	GetConnectorType() connectors.ConnectorType
 }
 
 // Patern factory
 func ConnectorFactory(type_connector string) (IConnectors, error) {
 	if type_connector == string(connectors.Connector_GRFS_RT) {
 		return &GtfsRtContext{}, nil
+	} else if type_connector == string(connectors.Connector_RENNES) {
+		return &RennesContext{}, nil
 	} else {
 		return nil, fmt.Errorf("Wrong connector type passed")
 	}

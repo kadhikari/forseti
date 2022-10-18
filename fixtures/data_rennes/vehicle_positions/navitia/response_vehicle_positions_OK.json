@@ -1,0 +1,116 @@
+{
+    "pagination": {
+      "start_page": 0,
+      "items_on_page": 1,
+      "items_per_page": 25,
+      "total_result": 1
+    },
+    "links": [
+      {
+        "href": "http://navitia2-ws.ctp.customer.canaltp.fr/v1/coverage/fr-nw-rennestemp/physical_modes/{physical_modes.id}",
+        "type": "physical_modes",
+        "rel": "physical_modes",
+        "templated": true
+      },
+      {
+        "href": "http://navitia2-ws.ctp.customer.canaltp.fr/v1/coverage/fr-nw-rennestemp/lines/{line.id}",
+        "type": "line",
+        "rel": "lines",
+        "templated": true
+      },
+      {
+        "href": "http://navitia2-ws.ctp.customer.canaltp.fr/v1/coverage/fr-nw-rennestemp/vehicle_journeys/{vehicle_journey.id}",
+        "type": "vehicle_journey",
+        "rel": "vehicle_journeys",
+        "templated": true
+      },
+      {
+        "href": "http://navitia2-ws.ctp.customer.canaltp.fr/v1/coverage/fr-nw-rennestemp/commercial_modes/{commercial_mode.id}",
+        "type": "commercial_mode",
+        "rel": "commercial_modes",
+        "templated": true
+      },
+      {
+        "href": "http://navitia2-ws.ctp.customer.canaltp.fr/v1/coverage/fr-nw-rennestemp/lines/line:SAR:0100/vehicle_positions?_current_datetime=20221029T100000",
+        "type": "first",
+        "templated": false
+      }
+    ],
+    "disruptions": [],
+    "feed_publishers": [
+      {
+        "url": "",
+        "id": "fr-nw-rennestemp",
+        "license": "Private (unspecified)",
+        "name": "fr-nw-rennes : STAR"
+      },
+      {
+        "url": "https://www.openstreetmap.org/copyright",
+        "id": "osm",
+        "license": "ODbL",
+        "name": "openstreetmap"
+      },
+      {
+        "url": "",
+        "id": "SAR:fr-nw-rennes_STAR",
+        "license": "Private (unspecified)",
+        "name": "fr-nw-rennes : STAR"
+      }
+    ],
+    "vehicle_positions": [
+      {
+        "line": {
+          "comment": "Spéciale",
+          "code": "La Navette",
+          "name": "Navette Centre-Ville : Rennes (République Jaurès) <> Rennes (Sainte-Anne) <> Rennes (République Jaurès)",
+          "links": [],
+          "color": "009C99",
+          "geojson": {
+            "type": "MultiLineString",
+            "coordinates": []
+          },
+          "text_color": "FFFFFF",
+          "physical_modes": [
+            {
+              "id": "physical_mode:Bus",
+              "name": "Bus"
+            }
+          ],
+          "codes": [],
+          "comments": [
+            {
+              "type": "information",
+              "value": "Spéciale"
+            }
+          ],
+          "closing_time": "190300",
+          "opening_time": "103000",
+          "commercial_mode": {
+            "id": "commercial_mode:Bus",
+            "name": "Bus"
+          },
+          "id": "line:SAR:0100"
+        },
+        "vehicle_journey_positions": [
+          {
+            "vehicle_journey": {
+              "id": "vehicle_journey:SAR:2222x051500_dst_2",
+              "disruptions": [],
+              "codes": [
+                {
+                  "type": "source",
+                  "value": "2222x051500"
+                }
+              ],
+              "name": "Rennes République",
+              "headsign": "Rennes République"
+            }
+          }
+        ]
+      }
+    ],
+    "context": {
+      "timezone": "Europe/Paris",
+      "current_datetime": "20221029T120000"
+    }
+  }

@@ -27,11 +27,11 @@ func TestMain(m *testing.M) {
 
 func TestLoadDestinations(t *testing.T) {
 
-	const EXPECTED_NUM_OF_DESTINATIONS int = 611
+	const EXPECTED_NUM_OF_DESTINATIONS int = 565
 
 	assert := assert.New(t)
 	require := require.New(t)
-	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/referential", fixtureDir))
+	uri, err := url.Parse(fmt.Sprintf("file://%s/data_rennes/2022-09-08/base_scheduled", fixtureDir))
 	require.Nil(err)
 
 	loadedDestinations, err := LoadDestinations(*uri, defaultTimeout)

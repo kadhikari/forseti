@@ -487,8 +487,8 @@ func VehiclePositions(
 		config.PositionsNavitiaURI,
 		config.PositionsNavitiaToken,
 		config.PositionsNavitiaCoverage,
-		config.PositionsCleanVP,
 		config.ConnectionTimeout,
+		config.PositionsCleanVP,
 		config.TimeZoneLocation,
 		config.PositionsActive,
 	)

@@ -180,50 +180,51 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 	navitiaCoverage := d.getNavitiaCoverage()
 	for {
 		refreshTime := d.getConnector().GetWsRefreshTime()
-
-		newVehiclePosition, newLastUpdate, err := tryToLoadRealTimeVehiclePosition(d)
-		if err != nil {
-			logrus.Errorf("error while the updating of the vehicle positions: %v", err)
-		} else if newLastUpdate != nil {
-			d.setRealTimeVehicleJourneyCode(nil)
-			{
-				var utcCurrentDatetime *time.Time
-				// TODO: This scope is a part of a temporary patch, uncomment this one later
-				// {
-				// 	utcCurrentDatetime = nil
-				// }
-				// TODO: This scope is a part of a temporary patch, delete this one later
+		if d.LoadPositionsData() {
+			newVehiclePosition, newLastUpdate, err := tryToLoadRealTimeVehiclePosition(d)
+			if err != nil {
+				logrus.Errorf("error while the updating of the vehicle positions: %v", err)
+			} else if newLastUpdate != nil {
+				d.setRealTimeVehicleJourneyCode(nil)
 				{
-					_utcCurrentDatetime := time.Date(
-						2022, time.October, 29,
-						10, 0, 0,
-						000_000_000,
-						time.UTC,
+					var utcCurrentDatetime *time.Time
+					// TODO: This scope is a part of a temporary patch, uncomment this one later
+					// {
+					// 	utcCurrentDatetime = nil
+					// }
+					// TODO: This scope is a part of a temporary patch, delete this one later
+					{
+						_utcCurrentDatetime := time.Date(
+							2022, time.October, 29,
+							10, 0, 0,
+							000_000_000,
+							time.UTC,
+						)
+						utcCurrentDatetime = &_utcCurrentDatetime
+					}
+
+					vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
+						navitiaToken,
+						d.getConnector().GetConnectionTimeout(),
+						d.getLocation(),
+						navitiaUrl,
+						navitiaCoverage,
+						utcCurrentDatetime,
 					)
-					utcCurrentDatetime = &_utcCurrentDatetime
+					if err != nil {
+						logrus.Errorf(
+							"error occurred cannot get the vehicle journey code from navitia: %v",
+							err,
+						)
+					}
+					d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
 				}
 
-				vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
-					navitiaToken,
-					d.getConnector().GetConnectionTimeout(),
-					d.getLocation(),
-					navitiaUrl,
-					navitiaCoverage,
-					utcCurrentDatetime,
-				)
-				if err != nil {
-					logrus.Errorf(
-						"error occurred cannot get the vehicle journey code from navitia: %v",
-						err,
-					)
-				}
-				d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
+				d.setLastUpdate(newLastUpdate)
+				d.setRealTimeVehiclePosition(newVehiclePosition)
+				d.updateVehiclePositions()
+				logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 			}
-
-			d.setLastUpdate(newLastUpdate)
-			d.setRealTimeVehiclePosition(newVehiclePosition)
-			d.updateVehiclePositions()
-			logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 		}
 
 		time.Sleep(refreshTime)

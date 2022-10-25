@@ -347,7 +347,7 @@ func tryToLoadRealTimeVehiclePosition(
 		return cityNavetteVehiclePosition, loadedLastUpdate, nil
 	} else {
 		logrus.Infof(
-			"no newer vehicle positions available, last-update: %v",
+			"no newer vehicle position available, last-update: %v",
 			currentLastUpdate.Format(time.RFC3339),
 		)
 	}

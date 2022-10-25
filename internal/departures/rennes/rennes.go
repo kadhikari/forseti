@@ -464,7 +464,7 @@ func tryToLoadEstimatedDepartures(rennesContext *RennesContext) (map[string]Depa
 
 	} else {
 		logrus.Infof(
-			"No newer estimated departures available, last-update: %v",
+			"No newer estimated departure available, last-update: %v",
 			currentLastUpdate.Format(time.RFC3339),
 		)
 	}

@@ -48,6 +48,7 @@ type Config struct {
 
 	FreeFloatingsFilesURIStr string `mapstructure:"free-floatings-files-uri"`
 	FreeFloatingsFilesURI    url.URL
+	FreeFloatingsCityList      string `mapstructure:"free-floatings-city-list"`
 	FreeFloatingsURIStr      string `mapstructure:"free-floatings-uri"`
 	FreeFloatingsURI         url.URL
 	FreeFloatingsRefresh     time.Duration `mapstructure:"free-floatings-refresh"`
@@ -122,6 +123,7 @@ func GetConfig() (Config, error) {
 
 	//Passing configurations for free-floatings
 	pflag.String("free-floatings-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("free-floatings-city-list", "", "city list in format json")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")

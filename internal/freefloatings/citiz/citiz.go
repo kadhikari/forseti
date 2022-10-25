@@ -160,6 +160,7 @@ func LoadVehiclesData(vehiclesData CitizData) []freefloatings.FreeFloating {
 }
 
 func ReadCitizFile(path url.URL) ([]Citiz, error) {
+	fmt.Println("*** Using city list from file ***")
 	reader, err := utils.GetFileWithFS(path)
 	if err != nil {
 		return nil, err
@@ -176,6 +177,16 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 		return nil, err
 	}
 
+	return *data, nil
+}
+
+func ReadCitizFromConfig(strCitiz string) ([]Citiz, error) {
+    fmt.Println("*** Using city list parameter ***")
+	data := &AllCitiz{}
+	if err := json.Unmarshal([]byte(strCitiz), &data); err != nil {
+        fmt.Println("Error converting city list parameter to object list:", err)
+        return nil, err
+    }
 	return *data, nil
 }
 

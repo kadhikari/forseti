@@ -30,46 +30,46 @@ type VehiclePosition struct {
 type State string
 
 const (
-	State_HS   State = State("HS")
-	State_HL         = State("HL")
-	State_INC        = State("INC")
-	State_LIGN       = State("LIGN")
-	State_TDEP       = State("TDEP")
-	State_HLP        = State("HLP")
-	State_TARR       = State("TARR")
-	State_DEVP       = State("DEVP")
-	State_SPEC       = State("SPEC")
-	State_ATE        = State("ATE")
-	State_HLPS       = State("HLPS")
-	State_HLPR       = State("HLPR")
-	State_DEV        = State("DEV")
+	State_ATE     State = State("ATE")  /* Atelier */
+	State_INC           = State("INC")  /* Inconnu */
+	State_HL            = State("HL")   /* Hors ligne */
+	State_HS            = State("HS")   /* Hors service */
+	State_LIGN          = State("LIGN") /* En Ligne */
+	State_DEVP          = State("DEVP") /* Déviation programmée */
+	State_DEV           = State("DEV")  /* Déviation non-programmée */
+	State_GARE          = State("GARE") /* Garé */
+	State_HLPS          = State("HLPS") /* HLP de sortie dépot */
+	State_HLPR          = State("HLPR") /* HLP de rentrée dépot */
+	State_HLP           = State("HLP")  /* HLP intercourse */
+	State_SPEC          = State("SPEC") /* Service spécial */
+	State_TDEP          = State("TDEP") /* Terminus départ */
+	State_TARR          = State("TARR") /* Terminus arrivée */
+	State_UNKNOWN       = State("UNKNOWN")
 )
 
 var (
 	statesMap = map[string]State{
-		"HS":   State_HS,
-		"HL":   State_HL,
-		"INC":  State_INC,
-		"LIGN": State_LIGN,
-		"TDEP": State_TDEP,
-		"HLP":  State_HLP,
-		"TARR": State_TARR,
-		"DEVP": State_DEVP,
-		"SPEC": State_SPEC,
-		"ATE":  State_ATE,
-		"HLPS": State_HLPS,
-		"HLPR": State_HLPR,
-		"DEV":  State_DEV,
+		string(State_ATE):  State_ATE,
+		string(State_INC):  State_INC,
+		string(State_HL):   State_HL,
+		string(State_HS):   State_HS,
+		string(State_LIGN): State_LIGN,
+		string(State_DEVP): State_DEVP,
+		string(State_DEV):  State_DEV,
+		string(State_GARE): State_GARE,
+		string(State_HLPS): State_HLPS,
+		string(State_HLPR): State_HLPR,
+		string(State_HLP):  State_HLP,
+		string(State_SPEC): State_SPEC,
+		string(State_TDEP): State_TDEP,
+		string(State_TARR): State_TARR,
 	}
 )
 
 func (s *State) IsInOperation() bool {
 	isInOperation := false
 	switch *s {
-	case State_LIGN, State_TDEP, State_DEVP, State_TARR:
-		isInOperation = true
-	case State_HS:
-		// TODO: This cas is a part of a temporary patch, delete this one later
+	case State_LIGN, State_DEVP, State_DEV, State_TDEP, State_TARR:
 		isInOperation = true
 	}
 	return isInOperation
@@ -95,10 +95,12 @@ func newVehiclePosition(record []string) (*VehiclePosition, error) {
 		var parsingIsOk bool
 		state, parsingIsOk = parseStateFromString(stateStr)
 		if !parsingIsOk {
+			state = State_UNKNOWN
 			logrus.Warnf(
-				"the parsed vehicle state %s is unknown, replaced it by %s",
+				"the state if the vehicle %s is unknown (=%s), it is replaced by %s",
+				string(extVehicleId),
 				stateStr,
-				string(State_HS),
+				string(state),
 			)
 		}
 	}

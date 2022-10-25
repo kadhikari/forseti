@@ -184,37 +184,42 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 			newVehiclePosition, newLastUpdate, err := tryToLoadRealTimeVehiclePosition(d)
 			if err != nil {
 				logrus.Errorf("error while the updating of the vehicle positions: %v", err)
-			} else if newVehiclePosition != nil && newLastUpdate != nil {
-				d.setRealTimeVehicleJourneyCode(nil)
-				{
-					vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
-						navitiaToken,
-						d.getConnector().GetConnectionTimeout(),
-						d.getLocation(),
-						navitiaUrl,
-						navitiaCoverage,
-					)
-					if err != nil {
-						logrus.Errorf(
-							"error occurred cannot get the vehicle journey code from navitia: %v",
-							err,
-						)
-					}
-					// Log the returned vehicle journey code
+			}
+			if newLastUpdate != nil {
+				if newVehiclePosition != nil {
+					d.setRealTimeVehicleJourneyCode(nil)
 					{
-						logrus.Infof(
-							"the vehicle journey code returned for the line '%s' is '%s'",
-							LINE_CODE,
-							vehicleJourneyCode,
+						vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
+							navitiaToken,
+							d.getConnector().GetConnectionTimeout(),
+							d.getLocation(),
+							navitiaUrl,
+							navitiaCoverage,
 						)
+						if err != nil {
+							logrus.Errorf(
+								"error occurred cannot get the vehicle journey code from navitia: %v",
+								err,
+							)
+						}
+						// Log the returned vehicle journey code
+						{
+							logrus.Infof(
+								"the vehicle journey code returned for the line '%s' is '%s'",
+								LINE_CODE,
+								vehicleJourneyCode,
+							)
+						}
+						d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
 					}
-					d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
-				}
 
+					d.setRealTimeVehiclePosition(newVehiclePosition)
+					d.updateVehiclePositions()
+					logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
+				} else {
+					logrus.Infof("no vehicle position has been updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
+				}
 				d.setLastUpdate(newLastUpdate)
-				d.setRealTimeVehiclePosition(newVehiclePosition)
-				d.updateVehiclePositions()
-				logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 			}
 		}
 

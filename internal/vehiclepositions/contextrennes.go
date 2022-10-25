@@ -184,32 +184,16 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 			newVehiclePosition, newLastUpdate, err := tryToLoadRealTimeVehiclePosition(d)
 			if err != nil {
 				logrus.Errorf("error while the updating of the vehicle positions: %v", err)
-			} else if newLastUpdate != nil {
-				d.setRealTimeVehicleJourneyCode(nil)
-				{
-					var utcCurrentDatetime *time.Time
-					// TODO: This scope is a part of a temporary patch, uncomment this one later
-					// {
-					// 	utcCurrentDatetime = nil
-					// }
-					// TODO: This scope is a part of a temporary patch, delete this one later
-					{
-						_utcCurrentDatetime := time.Date(
-							2022, time.October, 29,
-							10, 0, 0,
-							000_000_000,
-							time.UTC,
-						)
-						utcCurrentDatetime = &_utcCurrentDatetime
-					}
-
+			}
+			if newLastUpdate != nil {
+				if newVehiclePosition != nil {
+					d.setRealTimeVehicleJourneyCode(nil)
 					vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
 						navitiaToken,
 						d.getConnector().GetConnectionTimeout(),
 						d.getLocation(),
 						navitiaUrl,
 						navitiaCoverage,
-						utcCurrentDatetime,
 					)
 					if err != nil {
 						logrus.Errorf(
@@ -217,13 +201,25 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 							err,
 						)
 					}
+					// Log the returned vehicle journey code
+					{
+						logrus.Infof(
+							"the vehicle journey code returned for the line '%s' is '%s'",
+							LINE_CODE,
+							vehicleJourneyCode,
+						)
+					}
 					d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
+
+					d.setRealTimeVehiclePosition(newVehiclePosition)
+					d.setLastUpdate(newLastUpdate)
+					d.updateVehiclePositions()
+					logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
+				} else {
+					d.setLastUpdate(newLastUpdate)
+					logrus.Infof("no vehicle position has been updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 				}
 
-				d.setLastUpdate(newLastUpdate)
-				d.setRealTimeVehiclePosition(newVehiclePosition)
-				d.updateVehiclePositions()
-				logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 			}
 		}
 
@@ -263,10 +259,6 @@ func (d *RennesContext) updateVehiclePositions() {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if d.lastUpdate == nil {
-		logrus.Debug("cannot udpate vehicle positions, no daily last update time loaded")
-		return
-	}
 	now := time.Now().In(d.location)
 	feedCreatedAt := d.lastUpdate.UTC()
 
@@ -340,7 +332,7 @@ func tryToLoadRealTimeVehiclePosition(
 		cityNavetteVehiclePosition := exctractCityNavetteVehiclePosition(loadedVehiclePositions)
 		if cityNavetteVehiclePosition != nil {
 			logrus.Infof(
-				"realtime vehicle position has been found for the vehicle %s lcoated at (lat=%f, lon=%f)",
+				"realtime vehicle position has been found for the vehicle %s loc$ated at (lat=%f, lon=%f)",
 				cityNavetteVehiclePosition.ExternalVehiculeId,
 				cityNavetteVehiclePosition.Latitude,
 				cityNavetteVehiclePosition.Longitude,
@@ -351,7 +343,7 @@ func tryToLoadRealTimeVehiclePosition(
 		return cityNavetteVehiclePosition, loadedLastUpdate, nil
 	} else {
 		logrus.Infof(
-			"no newer vehicle positions available, last-update: %v",
+			"no newer vehicle position available, last-update: %v",
 			currentLastUpdate.Format(time.RFC3339),
 		)
 	}

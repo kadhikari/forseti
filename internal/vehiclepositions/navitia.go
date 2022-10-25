@@ -122,7 +122,6 @@ func GetVehicleJourneyCodeFromNavitia(
 	location *time.Location,
 	uri url.URL,
 	coverageName string,
-	utcCurrentDatetime *time.Time,
 ) (string, error) {
 	// Format the URL og the navitia GET request
 	callUrl := fmt.Sprintf(
@@ -131,24 +130,8 @@ func GetVehicleJourneyCodeFromNavitia(
 		coverageName,
 		LINE_CODE,
 	)
-	if utcCurrentDatetime != nil {
-		// Check the llocation of the current datetime
-		{
-			currentDatetimeLocation := utcCurrentDatetime.Location()
-			if currentDatetimeLocation != time.UTC {
-				return "", fmt.Errorf(
-					"the current datetime must be localized at UTC: %v",
-					currentDatetimeLocation,
-				)
-			}
-		}
-		callUrl += fmt.Sprintf(
-			"?_current_datetime=%s",
-			utcCurrentDatetime.Format("20060102T150405"),
-		)
-	}
-	logrus.Debugf(
-		"send request to navitia: %s",
+	logrus.Infof(
+		"send GET request to navitia: %s",
 		callUrl,
 	)
 	resp, err := callNavitia(callUrl, token, connectionTimeout)

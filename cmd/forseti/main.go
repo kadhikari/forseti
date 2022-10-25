@@ -328,8 +328,8 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 		var c = citiz.CitizContext{}
 
 		c.InitContext(config.FreeFloatingsFilesURI, config.FreeFloatingsURI, config.FreeFloatingsRefresh,
-			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword)
-
+			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword,
+			config.FreeFloatingsCityList)
 		go c.RefreshFreeFloatingLoop(freeFloatingsContext)
 
 	} else if config.FreeFloatingsType == string(connectors.Connector_FLUCTUO) {

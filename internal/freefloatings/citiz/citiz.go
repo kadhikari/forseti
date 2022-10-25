@@ -29,6 +29,7 @@ func (d *CitizContext) InitContext(
 	connectionTimeout time.Duration,
 	userName string,
 	password string,
+	cityList string,
 ) {
 	const unusedDuration time.Duration = time.Duration(-1)
 
@@ -43,6 +44,9 @@ func (d *CitizContext) InitContext(
 	d.auth = &utils.OAuthResponse{}
 	d.user = userName
 	d.password = password
+	if len(cityList) > 0 {
+	  d.connector.SetCityList(cityList)
+	}
 }
 
 func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloatingsContext) {
@@ -105,8 +109,16 @@ func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.Fre
 	token := "bearer " + connector.GetToken()
 	freeFloatings := make([]freefloatings.FreeFloating, 0)
 	var err []error
+	var err_citiz error
+	var citiz []Citiz
 
-	citiz, err_citiz := ReadCitizFile(connector.GetFilesUri())
+	// If parameter cityList exist then, get city list from the parameter instead of file
+	if len(connector.GetCityList()) > 0 {
+	    citiz, err_citiz = ReadCitiesFromConfig(connector.GetCityList())
+	} else {
+	    citiz, err_citiz = ReadCitizFile(connector.GetFilesUri())
+	}
+
 	if err_citiz != nil {
 		err = append(err, err_citiz)
 		return freeFloatings, err
@@ -180,7 +192,7 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 	return *data, nil
 }
 
-func ReadCitizFromConfig(strCitiz string) ([]Citiz, error) {
+func ReadCitiesFromConfig(strCitiz string) ([]Citiz, error) {
     fmt.Println("*** Using city list parameter ***")
 	data := &AllCitiz{}
 	if err := json.Unmarshal([]byte(strCitiz), &data); err != nil {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/hove-io/forseti/internal/utils"
+	"github.com/sirupsen/logrus"
 	// forseti_vp "github.com/hove-io/forseti/internal/vehiclepositions"
 )
 
@@ -21,6 +22,7 @@ func LoadVehiclePositions(
 	connectionTimeout time.Duration,
 ) ([]VehiclePosition, error) {
 	uri.Path = fmt.Sprintf("%s/%s", uri.Path, vehiclePositionsFileName)
+	logrus.Infof("send a GET request %s", uri.String())
 	response, err := utils.GetHttpClient(uri.String(), token, header, connectionTimeout)
 
 	if err != nil {

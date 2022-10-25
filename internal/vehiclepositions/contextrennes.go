@@ -184,37 +184,28 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 			newVehiclePosition, newLastUpdate, err := tryToLoadRealTimeVehiclePosition(d)
 			if err != nil {
 				logrus.Errorf("error while the updating of the vehicle positions: %v", err)
-			} else if newLastUpdate != nil {
+			} else if newVehiclePosition != nil && newLastUpdate != nil {
 				d.setRealTimeVehicleJourneyCode(nil)
 				{
-					var utcCurrentDatetime *time.Time
-					// TODO: This scope is a part of a temporary patch, uncomment this one later
-					// {
-					// 	utcCurrentDatetime = nil
-					// }
-					// TODO: This scope is a part of a temporary patch, delete this one later
-					{
-						_utcCurrentDatetime := time.Date(
-							2022, time.October, 29,
-							10, 0, 0,
-							000_000_000,
-							time.UTC,
-						)
-						utcCurrentDatetime = &_utcCurrentDatetime
-					}
-
 					vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
 						navitiaToken,
 						d.getConnector().GetConnectionTimeout(),
 						d.getLocation(),
 						navitiaUrl,
 						navitiaCoverage,
-						utcCurrentDatetime,
 					)
 					if err != nil {
 						logrus.Errorf(
 							"error occurred cannot get the vehicle journey code from navitia: %v",
 							err,
+						)
+					}
+					// Log the returned vehicle journey code
+					{
+						logrus.Infof(
+							"the vehicle journey code returned for the line '%s' is '%s'",
+							LINE_CODE,
+							vehicleJourneyCode,
 						)
 					}
 					d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
@@ -340,7 +331,7 @@ func tryToLoadRealTimeVehiclePosition(
 		cityNavetteVehiclePosition := exctractCityNavetteVehiclePosition(loadedVehiclePositions)
 		if cityNavetteVehiclePosition != nil {
 			logrus.Infof(
-				"realtime vehicle position has been found for the vehicle %s lcoated at (lat=%f, lon=%f)",
+				"realtime vehicle position has been found for the vehicle %s loc$ated at (lat=%f, lon=%f)",
 				cityNavetteVehiclePosition.ExternalVehiculeId,
 				cityNavetteVehiclePosition.Latitude,
 				cityNavetteVehiclePosition.Longitude,

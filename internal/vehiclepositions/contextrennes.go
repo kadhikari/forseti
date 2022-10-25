@@ -188,38 +188,38 @@ func (d *RennesContext) RefreshVehiclePositionsLoop() {
 			if newLastUpdate != nil {
 				if newVehiclePosition != nil {
 					d.setRealTimeVehicleJourneyCode(nil)
-					{
-						vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
-							navitiaToken,
-							d.getConnector().GetConnectionTimeout(),
-							d.getLocation(),
-							navitiaUrl,
-							navitiaCoverage,
+					vehicleJourneyCode, err := GetVehicleJourneyCodeFromNavitia(
+						navitiaToken,
+						d.getConnector().GetConnectionTimeout(),
+						d.getLocation(),
+						navitiaUrl,
+						navitiaCoverage,
+					)
+					if err != nil {
+						logrus.Errorf(
+							"error occurred cannot get the vehicle journey code from navitia: %v",
+							err,
 						)
-						if err != nil {
-							logrus.Errorf(
-								"error occurred cannot get the vehicle journey code from navitia: %v",
-								err,
-							)
-						}
-						// Log the returned vehicle journey code
-						{
-							logrus.Infof(
-								"the vehicle journey code returned for the line '%s' is '%s'",
-								LINE_CODE,
-								vehicleJourneyCode,
-							)
-						}
-						d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
 					}
+					// Log the returned vehicle journey code
+					{
+						logrus.Infof(
+							"the vehicle journey code returned for the line '%s' is '%s'",
+							LINE_CODE,
+							vehicleJourneyCode,
+						)
+					}
+					d.setRealTimeVehicleJourneyCode(&vehicleJourneyCode)
 
 					d.setRealTimeVehiclePosition(newVehiclePosition)
+					d.setLastUpdate(newLastUpdate)
 					d.updateVehiclePositions()
 					logrus.Infof("vehicle positions are updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 				} else {
+					d.setLastUpdate(newLastUpdate)
 					logrus.Infof("no vehicle position has been updated, new last-update: %v", newLastUpdate.Format(time.RFC3339))
 				}
-				d.setLastUpdate(newLastUpdate)
+
 			}
 		}
 
@@ -259,10 +259,6 @@ func (d *RennesContext) updateVehiclePositions() {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 
-	if d.lastUpdate == nil {
-		logrus.Debug("cannot udpate vehicle positions, no daily last update time loaded")
-		return
-	}
 	now := time.Now().In(d.location)
 	feedCreatedAt := d.lastUpdate.UTC()
 

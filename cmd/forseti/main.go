@@ -48,7 +48,7 @@ type Config struct {
 
 	FreeFloatingsFilesURIStr string `mapstructure:"free-floatings-files-uri"`
 	FreeFloatingsFilesURI    url.URL
-	FreeFloatingsCityList      string `mapstructure:"free-floatings-city-list"`
+	FreeFloatingsCityList    string `mapstructure:"free-floatings-city-list"`
 	FreeFloatingsURIStr      string `mapstructure:"free-floatings-uri"`
 	FreeFloatingsURI         url.URL
 	FreeFloatingsRefresh     time.Duration `mapstructure:"free-floatings-refresh"`

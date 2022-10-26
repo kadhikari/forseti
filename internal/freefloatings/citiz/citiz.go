@@ -45,7 +45,7 @@ func (d *CitizContext) InitContext(
 	d.user = userName
 	d.password = password
 	if len(cityList) > 0 {
-	    d.connector.SetCityList(cityList)
+		d.connector.SetCityList(cityList)
 	}
 }
 
@@ -114,9 +114,9 @@ func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.Fre
 
 	// If parameter cityList exist then, get city list from the parameter instead of file
 	if len(connector.GetCityList()) > 0 {
-	    citiz, err_citiz = ReadCitiesFromConfig(connector.GetCityList())
+		citiz, err_citiz = ReadCitiesFromConfig(connector.GetCityList())
 	} else {
-	    citiz, err_citiz = ReadCitizFile(connector.GetFilesUri())
+		citiz, err_citiz = ReadCitizFile(connector.GetFilesUri())
 	}
 
 	if err_citiz != nil {
@@ -179,14 +179,14 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 
 	jsonData, err := ioutil.ReadAll(reader)
 	if err != nil {
-	    logrus.Error("Error while reading city file:", err)
+		logrus.Error("Error while reading city file:", err)
 		return nil, err
 	}
 
 	data := &AllCitiz{}
 	err = json.Unmarshal(jsonData, data)
 	if err != nil {
-	logrus.Error("Error while reading cities in the file:", err)
+		logrus.Error("Error while reading cities in the file:", err)
 		return nil, err
 	}
 
@@ -194,13 +194,13 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 }
 
 func ReadCitiesFromConfig(strCitiz string) ([]Citiz, error) {
-    logrus.Debug("*** Using city list parameter ***")
-    data := &AllCitiz{}
+	logrus.Debug("*** Using city list parameter ***")
+	data := &AllCitiz{}
 	if err := json.Unmarshal([]byte(strCitiz), &data); err != nil {
-        logrus.Error("Error converting city list parameter to object list:", err)
-        return nil, err
-    }
-    return *data, nil
+		logrus.Error("Error converting city list parameter to object list:", err)
+		return nil, err
+	}
+	return *data, nil
 }
 
 func tokenExpired(expireIn int) bool {

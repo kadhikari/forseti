@@ -70,7 +70,7 @@ func (d *CitizContext) RefreshFreeFloatingLoop(context *freefloatings.FreeFloati
 
 		err := RefreshFreeFloatings(d, context)
 		if err != nil {
-			logrus.Error("Error while reloading freefloating data: ")
+			logrus.Error("Error while reloading citiz freefloating data: ")
 			for _, e := range err {
 				logrus.Error(fmt.Sprintf("\t- %s", e))
 			}
@@ -157,7 +157,6 @@ func LoadDatafromConnector(connector *connectors.Connector) ([]freefloatings.Fre
 			logrus.Info("Message from provider ", data.KeyMessage)
 		}
 	}
-
 	logrus.Debug("*** Size of data Citiz: ", len(freeFloatings))
 
 	return freeFloatings, err
@@ -172,7 +171,7 @@ func LoadVehiclesData(vehiclesData CitizData) []freefloatings.FreeFloating {
 }
 
 func ReadCitizFile(path url.URL) ([]Citiz, error) {
-	fmt.Println("*** Using city list from file ***")
+	logrus.Debug("*** Using city list from file ***")
 	reader, err := utils.GetFileWithFS(path)
 	if err != nil {
 		return nil, err
@@ -180,12 +179,14 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 
 	jsonData, err := ioutil.ReadAll(reader)
 	if err != nil {
+	    logrus.Error("Error while reading city file:", err)
 		return nil, err
 	}
 
 	data := &AllCitiz{}
 	err = json.Unmarshal(jsonData, data)
 	if err != nil {
+	logrus.Error("Error while reading cities in the file:", err)
 		return nil, err
 	}
 
@@ -193,13 +194,13 @@ func ReadCitizFile(path url.URL) ([]Citiz, error) {
 }
 
 func ReadCitiesFromConfig(strCitiz string) ([]Citiz, error) {
-    fmt.Println("*** Using city list parameter ***")
-	data := &AllCitiz{}
+    logrus.Debug("*** Using city list parameter ***")
+    data := &AllCitiz{}
 	if err := json.Unmarshal([]byte(strCitiz), &data); err != nil {
-        fmt.Println("Error converting city list parameter to object list:", err)
+        logrus.Error("Error converting city list parameter to object list:", err)
         return nil, err
     }
-	return *data, nil
+    return *data, nil
 }
 
 func tokenExpired(expireIn int) bool {

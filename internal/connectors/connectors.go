@@ -22,7 +22,7 @@ type Connector struct {
 	url               url.URL
 	token             string
 	header            string
-	cityList               string
+	cityList          string
 	filesRefreshTime  time.Duration
 	wsRefreshTime     time.Duration
 	connectionTimeout time.Duration

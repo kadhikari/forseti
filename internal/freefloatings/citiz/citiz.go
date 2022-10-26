@@ -45,7 +45,7 @@ func (d *CitizContext) InitContext(
 	d.user = userName
 	d.password = password
 	if len(cityList) > 0 {
-	  d.connector.SetCityList(cityList)
+	    d.connector.SetCityList(cityList)
 	}
 }
 

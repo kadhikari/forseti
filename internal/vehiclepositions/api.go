@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/utils"
 )
 
@@ -61,15 +62,43 @@ func VehiclePositionsHandler(context IConnectors) gin.HandlerFunc {
 			return
 		}
 
-		vehiclePositions, err := context.GetVehiclePositions(parameter)
+		// TODO: Patch for the connector `rennes` of the API `/vehicle_positions`, remove it later
+		if context.GetConnectorType() == connectors.Connector_RENNES {
+			// Remove empty `vehicle_journey_code[]` from parameters
+			for i := len(parameter.VehicleJourneyCodes) - 1; i >= 0; i-- {
+				if len(parameter.VehicleJourneyCodes[i]) == 0 {
+					parameter.VehicleJourneyCodes = append(
+						parameter.VehicleJourneyCodes[:i],
+						parameter.VehicleJourneyCodes[i+1:]...,
+					)
+				}
+			}
+			var vehiclePositions []VehiclePosition
+			if len(parameter.VehicleJourneyCodes) == 0 {
+				vehiclePositions = make([]VehiclePosition, 0)
+			} else {
+				var err error
+				vehiclePositions, err = context.GetVehiclePositions(parameter)
+				if err != nil {
+					response.Error = "No data loaded"
+					c.JSON(http.StatusServiceUnavailable, response)
+					return
+				}
+			}
+			response.VehiclePositions = vehiclePositions
+			c.JSON(http.StatusOK, response)
+		} else {
 
-		if err != nil {
-			response.Error = "No data loaded"
-			c.JSON(http.StatusServiceUnavailable, response)
-			return
+			vehiclePositions, err := context.GetVehiclePositions(parameter)
+
+			if err != nil {
+				response.Error = "No data loaded"
+				c.JSON(http.StatusServiceUnavailable, response)
+				return
+			}
+			response.VehiclePositions = vehiclePositions
+			c.JSON(http.StatusOK, response)
 		}
-		response.VehiclePositions = vehiclePositions
-		c.JSON(http.StatusOK, response)
 	}
 }
 

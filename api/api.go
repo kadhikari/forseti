@@ -15,7 +15,6 @@ import (
 	"github.com/hove-io/forseti/internal/vehiclepositions"
 
 	"github.com/gin-contrib/pprof"
-	"github.com/gin-gonic/contrib/ginrus"
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -149,7 +148,7 @@ func SetupRouter(manager *manager.DataManager, r *gin.Engine) *gin.Engine {
 	if r == nil {
 		r = gin.New()
 	}
-	r.Use(ginrus.Ginrus(logrus.StandardLogger(), time.RFC3339, false))
+	r.Use(customizedGinrus(logrus.StandardLogger(), time.RFC3339, false))
 	r.Use(instrumentGin())
 	r.Use(gin.Recovery())
 	pprof.Register(r)
@@ -157,6 +156,42 @@ func SetupRouter(manager *manager.DataManager, r *gin.Engine) *gin.Engine {
 	r.GET("/status", StatusHandler(manager))
 
 	return r
+}
+
+// Customized `Ginrus` function: add the query in the message
+// Adapted from https://github.com/gin-gonic/contrib/blob/master/ginrus/ginrus.go
+func customizedGinrus(logger *logrus.Logger, timeFormat string, utc bool) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		start := time.Now()
+		// some evil middlewares modify this values
+		path := c.Request.URL.Path
+		query := c.Request.URL.RawQuery
+		c.Next()
+
+		end := time.Now()
+		latency := end.Sub(start)
+		if utc {
+			end = end.UTC()
+		}
+
+		entry := logger.WithFields(logrus.Fields{
+			"status":     c.Writer.Status(),
+			"method":     c.Request.Method,
+			"path":       path,
+			"query":      query,
+			"ip":         c.ClientIP(),
+			"latency":    latency,
+			"user-agent": c.Request.UserAgent(),
+			"time":       end.Format(timeFormat),
+		})
+
+		if len(c.Errors) > 0 {
+			// Append error field if this is an erroneous request.
+			entry.Error(c.Errors.String())
+		} else {
+			entry.Info()
+		}
+	}
 }
 
 func instrumentGin() gin.HandlerFunc {

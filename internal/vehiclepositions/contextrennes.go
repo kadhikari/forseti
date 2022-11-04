@@ -332,10 +332,11 @@ func tryToLoadRealTimeVehiclePosition(
 		cityNavetteVehiclePosition := exctractCityNavetteVehiclePosition(loadedVehiclePositions)
 		if cityNavetteVehiclePosition != nil {
 			logrus.Infof(
-				"realtime vehicle position has been found for the vehicle %s loc$ated at (lat=%f, lon=%f)",
+				"realtime vehicle position has been found for the vehicle %s located at (lat=%f, lon=%f), its state is %s",
 				cityNavetteVehiclePosition.ExternalVehiculeId,
 				cityNavetteVehiclePosition.Latitude,
 				cityNavetteVehiclePosition.Longitude,
+				string(cityNavetteVehiclePosition.State),
 			)
 		} else {
 			logrus.Info("no realtime vehicle position has been found")

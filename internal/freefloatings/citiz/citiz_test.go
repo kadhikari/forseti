@@ -74,6 +74,33 @@ func TestLoadCitizFromFile(t *testing.T) {
 	assert.Equal(int32(500), citiz[1].Radius)
 }
 
+func TestReadCitiesFromConfig(t *testing.T) {
+	require := require.New(t)
+	assert := assert.New(t)
+
+	cities := `[
+	{
+	    "city": "rennes",
+        "lat": 2.373357978453091,
+        "lon": 48.84433913198303,
+        "radius": 2000
+    },
+    {
+        "city": "tours",
+        "lat": 47.394505038025876,
+        "lon": 0.69372178957088,
+        "radius": 500
+    }]`
+	citiz, err := ReadCitiesFromConfig(cities)
+	require.Nil(err)
+	assert.Len(citiz, 2)
+	assert.Equal("rennes", citiz[0].City)
+	assert.Equal("tours", citiz[1].City)
+	assert.Equal(int32(2000), citiz[0].Radius)
+	assert.Equal(int32(500), citiz[1].Radius)
+
+}
+
 func TestNewFreeFloating(t *testing.T) {
 	require := require.New(t)
 	assert := assert.New(t)

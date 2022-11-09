@@ -48,6 +48,7 @@ type Config struct {
 
 	FreeFloatingsFilesURIStr string `mapstructure:"free-floatings-files-uri"`
 	FreeFloatingsFilesURI    url.URL
+	FreeFloatingsCityList    string `mapstructure:"free-floatings-city-list"`
 	FreeFloatingsURIStr      string `mapstructure:"free-floatings-uri"`
 	FreeFloatingsURI         url.URL
 	FreeFloatingsRefresh     time.Duration `mapstructure:"free-floatings-refresh"`
@@ -122,6 +123,7 @@ func GetConfig() (Config, error) {
 
 	//Passing configurations for free-floatings
 	pflag.String("free-floatings-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
+	pflag.String("free-floatings-city-list", "", "city list in format json")
 	pflag.String("free-floatings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
 	pflag.String("free-floatings-token", "", "token for free floating source")
 	pflag.Bool("free-floatings-refresh-active", false, "activate the periodic refresh of Fluctuo data")
@@ -326,8 +328,8 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 		var c = citiz.CitizContext{}
 
 		c.InitContext(config.FreeFloatingsFilesURI, config.FreeFloatingsURI, config.FreeFloatingsRefresh,
-			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword)
-
+			config.ConnectionTimeout, config.FreeFloatingsUserName, config.FreeFloatingsPassword,
+			config.FreeFloatingsCityList)
 		go c.RefreshFreeFloatingLoop(freeFloatingsContext)
 
 	} else if config.FreeFloatingsType == string(connectors.Connector_FLUCTUO) {

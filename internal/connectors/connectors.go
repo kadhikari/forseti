@@ -15,7 +15,7 @@ const (
 	Connector_CITIZ    ConnectorType = "citiz"
 	Connector_SYTRALRT ConnectorType = "sytralrt"
 	Connector_RENNES   ConnectorType = "rennes"
-	Connector_SIRI_SM  ConnectorType = "siri-sm"
+	Connector_SIRI_SM  ConnectorType = "sirism"
 )
 
 type Connector struct {

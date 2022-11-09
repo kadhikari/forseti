@@ -12,6 +12,7 @@ import (
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
 	"github.com/hove-io/forseti/internal/departures/rennes"
+	"github.com/hove-io/forseti/internal/departures/sirism"
 	"github.com/hove-io/forseti/internal/departures/sytralrt"
 	"github.com/hove-io/forseti/internal/equipments"
 	"github.com/hove-io/forseti/internal/freefloatings"
@@ -28,15 +29,16 @@ import (
 )
 
 type Config struct {
-	DeparturesFilesURIStr    string `mapstructure:"departures-files-uri"`
-	DeparturesFilesURI       url.URL
-	DeparturesFilesRefresh   time.Duration `mapstructure:"departures-files-refresh"`
-	DeparturesServiceURIStr  string        `mapstructure:"departures-service-uri"`
-	DeparturesServiceURI     url.URL
-	DeparturesServiceRefresh time.Duration `mapstructure:"departures-service-refresh"`
-	DeparturesToken          string        `mapstructure:"departures-token"`
-	DeparturesType           string        `mapstructure:"departures-type"`
-	DeparturesServiceSwitch  string        `mapstructure:"departures-service-switch"`
+	DeparturesFilesURIStr             string `mapstructure:"departures-files-uri"`
+	DeparturesFilesURI                url.URL
+	DeparturesFilesRefresh            time.Duration `mapstructure:"departures-files-refresh"`
+	DeparturesServiceURIStr           string        `mapstructure:"departures-service-uri"`
+	DeparturesServiceURI              url.URL
+	DeparturesServiceRefresh          time.Duration `mapstructure:"departures-service-refresh"`
+	DeparturesToken                   string        `mapstructure:"departures-token"`
+	DeparturesType                    string        `mapstructure:"departures-type"`
+	DeparturesServiceSwitch           string        `mapstructure:"departures-service-switch"`
+	DeparturesNotificationsStreamName string        `mapstructure:"departures-notifications-stream-name"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -112,6 +114,11 @@ func GetConfig() (Config, error) {
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-token", "", "token for departures service source")
 	pflag.String("departures-service-switch", "03:30:00", "Service switch time (format: HH:MM:SS)")
+	pflag.String(
+		"departures-notifications-stream-name",
+		"",
+		"Name of a AWS Kinesis Data Stream (required for the connector siri-sm)",
+	)
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -379,6 +386,13 @@ func Departures(
 			serviceSwitchTime,
 		)
 		go rennesContext.RefereshDeparturesLoop(departuresContext)
+	} else if config.DeparturesType == string(connectors.Connector_SIRI_SM) { // Enable the SIRI-SM connector
+		var siriSmContext sirism.SiriSmContext = sirism.SiriSmContext{}
+		siriSmContext.InitContext(
+			config.DeparturesNotificationsStreamName,
+			config.ConnectionTimeout,
+		)
+		go siriSmContext.RefereshDeparturesLoop(departuresContext)
 	}
 }
 

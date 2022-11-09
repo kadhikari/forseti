@@ -15,6 +15,7 @@ const (
 	Connector_CITIZ    ConnectorType = "citiz"
 	Connector_SYTRALRT ConnectorType = "sytralrt"
 	Connector_RENNES   ConnectorType = "rennes"
+	Connector_SIRI_SM  ConnectorType = "sirism"
 )
 
 type Connector struct {
@@ -22,6 +23,7 @@ type Connector struct {
 	url               url.URL
 	token             string
 	header            string
+	cityList          string
 	filesRefreshTime  time.Duration
 	wsRefreshTime     time.Duration
 	connectionTimeout time.Duration
@@ -74,6 +76,18 @@ func (d *Connector) GetWsRefreshTime() time.Duration {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	return d.wsRefreshTime
+}
+
+func (d *Connector) GetCityList() string {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.cityList
+}
+
+func (d *Connector) SetCityList(cities string) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.cityList = cities
 }
 
 func NewConnector(

@@ -1,4 +1,4 @@
-package departure
+package sirism
 
 import (
 	"encoding/xml"
@@ -13,6 +13,7 @@ import (
 	sirism_xml "github.com/hove-io/forseti/internal/sirism/xml"
 )
 
+// Type aliases
 type ItemId string
 type StopPointRef string
 

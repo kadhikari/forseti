@@ -11,18 +11,13 @@ import (
 
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
-	sirism_departure "github.com/hove-io/forseti/internal/sirism/departure"
 	sirism_kinesis "github.com/hove-io/forseti/internal/sirism/kinesis"
 )
-
-// Type aliases
-type ItemId = sirism_departure.ItemId
-type StopPointRef = sirism_departure.StopPointRef
 
 type SiriSmContext struct {
 	connector               *connectors.Connector
 	lastUpdate              *time.Time
-	departures              map[ItemId]sirism_departure.Departure
+	departures              map[ItemId]Departure
 	notificationsStream     chan []byte
 	notificationsStreamName string
 	mutex                   sync.RWMutex
@@ -53,13 +48,13 @@ func (s *SiriSmContext) SetLastUpdate(lastUpdate *time.Time) {
 }
 
 func (s *SiriSmContext) UpdateDepartures(
-	updatedDepartures []sirism_departure.Departure,
-	cancelledDepartures []sirism_departure.CancelledDeparture,
+	updatedDepartures []Departure,
+	cancelledDepartures []CancelledDeparture,
 ) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 	oldDeparturesList := s.departures
-	newDeparturesList := make(map[ItemId]sirism_departure.Departure, len(oldDeparturesList))
+	newDeparturesList := make(map[ItemId]Departure, len(oldDeparturesList))
 	// Deep copy of the departures map
 	for departureId, departure := range oldDeparturesList {
 		newDeparturesList[departureId] = departure
@@ -109,7 +104,7 @@ func (s *SiriSmContext) UpdateDepartures(
 	s.lastUpdate = &lastUpdateInUTC
 }
 
-func (s *SiriSmContext) GetDepartures() map[ItemId]sirism_departure.Departure {
+func (s *SiriSmContext) GetDepartures() map[ItemId]Departure {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	return s.departures
@@ -129,7 +124,7 @@ func (s *SiriSmContext) InitContext(
 		time.Duration(-1),
 		connectionTimeout,
 	)
-	s.departures = make(map[ItemId]sirism_departure.Departure)
+	s.departures = make(map[ItemId]Departure)
 	s.notificationsStream = make(chan []byte, 1)
 	s.notificationsStreamName = notificationsStreamName
 	sirism_kinesis.InitKinesisConsumer(
@@ -150,7 +145,7 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 		// Received a notification
 		var notifBytes []byte = <-d.notificationsStream
 		logrus.Infof("notification received (%d bytes)", len(notifBytes))
-		updatedDepartures, cancelledDepartures, err := sirism_departure.LoadDeparturesFromByteArray(notifBytes)
+		updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notifBytes)
 		if err != nil {
 			logrus.Errorf("record parsing error: %v", err)
 			continue
@@ -167,7 +162,7 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 }
 
 func mapDeparturesByStopPointId(
-	siriSmDepartures map[ItemId]sirism_departure.Departure,
+	siriSmDepartures map[ItemId]Departure,
 ) map[string][]departures.Departure {
 	result := make(map[string][]departures.Departure)
 	for _, siriSmDeparture := range siriSmDepartures {

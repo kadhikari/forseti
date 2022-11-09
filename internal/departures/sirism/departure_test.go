@@ -1,4 +1,4 @@
-package departure
+package sirism
 
 import (
 	"fmt"

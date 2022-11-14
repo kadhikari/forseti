@@ -9,6 +9,17 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// Returns `true` if the string `x` is contained in `list`,
+// otherwise it returns `false`
+func contains(list []string, x string) bool {
+	for _, item := range list {
+		if item == x {
+			return true
+		}
+	}
+	return false
+}
+
 func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 
 	client, err := initClient()
@@ -17,6 +28,27 @@ func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 		return
 	}
 	logrus.Debugf("AWS-Kinesis client initialized")
+
+	// Check if the stream exists
+	{
+		var listStreamsOutput *kinesis.ListStreamsOutput = nil
+		listStreamsOutput, err = client.ListStreams(
+			context.Background(),
+			&kinesis.ListStreamsInput{
+				// ExclusiveStartStreamName: &streamName,
+			},
+		)
+		if err != nil {
+			logrus.Errorf("AWS-Kinesis ListStreams error: %v", err)
+			return
+		}
+		if contains(listStreamsOutput.StreamNames, streamName) {
+			logrus.Debugf("the AWS-Kinesis Data Stream named ** %s ** exists", streamName)
+		} else {
+			logrus.Errorf("the AWS-Kinesis Data Stream named ** %s ** does not exist", streamName)
+			return
+		}
+	}
 
 	// initialize consumer
 	c, err := consumer.New(

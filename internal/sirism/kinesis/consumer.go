@@ -20,6 +20,16 @@ func contains(list []string, x string) bool {
 	return false
 }
 
+// This `struct` implements the interger `consumer.Logger`,
+// required to implement the fun `consumer.WithLogger`
+type customizedLogger struct {
+	logger *logrus.Logger
+}
+
+func (l *customizedLogger) Log(args ...interface{}) {
+	l.logger.Println(args...)
+}
+
 func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 
 	client, err := initClient()
@@ -51,10 +61,17 @@ func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 	}
 
 	// initialize consumer
-	c, err := consumer.New(
-		streamName,
-		consumer.WithClient(client),
-	)
+	var c *consumer.Consumer = nil
+	{
+		logger := customizedLogger{
+			logger: logrus.StandardLogger(),
+		}
+		c, err = consumer.New(
+			streamName,
+			consumer.WithClient(client),
+			consumer.WithLogger(&logger),
+		)
+	}
 	if err != nil {
 		logrus.Errorf("create AWS-Kinesis consumer error: %v", err)
 		return

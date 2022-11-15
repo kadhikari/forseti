@@ -39,6 +39,7 @@ type Config struct {
 	DeparturesType                    string        `mapstructure:"departures-type"`
 	DeparturesServiceSwitch           string        `mapstructure:"departures-service-switch"`
 	DeparturesNotificationsStreamName string        `mapstructure:"departures-notifications-stream-name"`
+	DeparturesStreamReadOnlyRoleARN   string        `mapstructure:"departures-stream-read-only-role-arn"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -119,6 +120,7 @@ func GetConfig() (Config, error) {
 		"",
 		"Name of a AWS Kinesis Data Stream (required for the connector siri-sm)",
 	)
+	pflag.String("departures-stream-read-only-role-arn", "", "ARN for read-only Role")
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -389,6 +391,7 @@ func Departures(
 	} else if config.DeparturesType == string(connectors.Connector_SIRI_SM) { // Enable the SIRI-SM connector
 		var siriSmContext sirism.SiriSmContext = sirism.SiriSmContext{}
 		siriSmContext.InitContext(
+			config.DeparturesStreamReadOnlyRoleARN,
 			config.DeparturesNotificationsStreamName,
 			config.ConnectionTimeout,
 		)

@@ -3,8 +3,11 @@ package kinesis
 import (
 	"context"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	consumer "github.com/harlow/kinesis-consumer"
 	"github.com/sirupsen/logrus"
 )
@@ -30,9 +33,9 @@ func (l *customizedLogger) Log(args ...interface{}) {
 	l.logger.Println(args...)
 }
 
-func InitKinesisConsumer(streamName string, notifStream chan []byte) {
+func InitKinesisConsumer(roleARN string, streamName string, notifStream chan []byte) {
 
-	client, err := initClient()
+	client, err := initClient(roleARN)
 	if err != nil {
 		logrus.Errorf("init AWS-Kinesis client error: %v", err)
 		return
@@ -41,12 +44,9 @@ func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 
 	// Check if the stream exists
 	{
-		var listStreamsOutput *kinesis.ListStreamsOutput = nil
-		listStreamsOutput, err = client.ListStreams(
+		listStreamsOutput, err := client.ListStreams(
 			context.Background(),
-			&kinesis.ListStreamsInput{
-				// ExclusiveStartStreamName: &streamName,
-			},
+			&kinesis.ListStreamsInput{},
 		)
 		if err != nil {
 			logrus.Errorf("AWS-Kinesis ListStreams error: %v", err)
@@ -61,7 +61,7 @@ func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 	}
 
 	// initialize consumer
-	var c *consumer.Consumer = nil
+	var c *consumer.Consumer
 	{
 		logger := customizedLogger{
 			logger: logrus.StandardLogger(),
@@ -97,7 +97,7 @@ func InitKinesisConsumer(streamName string, notifStream chan []byte) {
 	}()
 }
 
-func initClient() (*kinesis.Client, error) {
+func initClient(roleARN string) (*kinesis.Client, error) {
 	cfg, err := config.LoadDefaultConfig(
 		context.TODO(),
 		// config.WithRegion(awsRegion),
@@ -105,6 +105,26 @@ func initClient() (*kinesis.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	if roleARN != "" {
+		logrus.Infof("try to assume role '%s'", roleARN)
+		stsclient := sts.NewFromConfig(cfg)
+		assumed_cfg, assumed_err := config.LoadDefaultConfig(
+			context.TODO(),
+			config.WithCredentialsProvider(
+				aws.NewCredentialsCache(
+					stscreds.NewAssumeRoleProvider(
+						stsclient,
+						roleARN,
+					)),
+			),
+		)
+		if assumed_err != nil {
+			return nil, assumed_err
+		}
+		cfg = assumed_cfg
+	}
+
 	var client *kinesis.Client = kinesis.NewFromConfig(cfg)
 	return client, nil
 }

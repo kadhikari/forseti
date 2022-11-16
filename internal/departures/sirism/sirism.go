@@ -20,6 +20,7 @@ type SiriSmContext struct {
 	departures              map[ItemId]Departure
 	notificationsStream     chan []byte
 	notificationsStreamName string
+	roleARN                 string
 	mutex                   sync.RWMutex
 }
 
@@ -111,6 +112,7 @@ func (s *SiriSmContext) GetDepartures() map[ItemId]Departure {
 }
 
 func (s *SiriSmContext) InitContext(
+	roleARN string,
 	notificationsStreamName string,
 	connectionTimeout time.Duration,
 ) {
@@ -127,7 +129,9 @@ func (s *SiriSmContext) InitContext(
 	s.departures = make(map[ItemId]Departure)
 	s.notificationsStream = make(chan []byte, 1)
 	s.notificationsStreamName = notificationsStreamName
+	s.roleARN = roleARN
 	sirism_kinesis.InitKinesisConsumer(
+		s.roleARN,
 		s.notificationsStreamName,
 		s.notificationsStream,
 	)

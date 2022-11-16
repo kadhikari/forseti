@@ -17,7 +17,8 @@ Input parameters to inform Forseti:
 - `--departures-service-uri` The path to the external service (Required for `rennes`)
 - `--departures-service-refresh` The refresh time between 2 request of the  external service(Required for `rennes`)
 - `--departures-token` The token for the external service (Required for `rennes`)
-- `--departures-notifications-stream-name` The name of the AWS Kinesis Data Stream (Required `sirism`)
+- `--departures-notifications-stream-name` The name of the AWS Kinesis Data Stream (Required for `sirism`)
+- `--departures-stream-read-only-role-arn` The ARN of the role to assume on AWS to read Kinesis Data Stream (Optional but only for `sirism`)
 
 Exemple:
 

@@ -11,17 +11,21 @@ import (
 
 	"github.com/hove-io/forseti/internal/connectors"
 	"github.com/hove-io/forseti/internal/departures"
+	rennes_stoptimes "github.com/hove-io/forseti/internal/departures/rennes/stoptimes"
 	sirism_kinesis "github.com/hove-io/forseti/internal/sirism/kinesis"
 )
 
 type SiriSmContext struct {
-	connector               *connectors.Connector
-	lastUpdate              *time.Time
-	departures              map[ItemId]Departure
-	notificationsStream     chan []byte
-	notificationsStreamName string
-	roleARN                 string
-	mutex                   sync.RWMutex
+	connector                   *connectors.Connector
+	lastUpdate                  *time.Time
+	departures                  map[ItemId]Departure
+	notificationsStream         chan []byte
+	notificationsStreamName     string
+	roleARN                     string
+	localDailyServiceSwitchTime *time.Time
+	lastResetDeparturesTime     *time.Time
+	location                    *time.Location
+	mutex                       sync.RWMutex
 }
 
 func (s *SiriSmContext) GetConnector() *connectors.Connector {
@@ -36,6 +40,30 @@ func (s *SiriSmContext) SetConnector(connector *connectors.Connector) {
 	s.connector = connector
 }
 
+func (s *SiriSmContext) GetLastResetDeparturesTime() *time.Time {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.lastResetDeparturesTime
+}
+
+func (s *SiriSmContext) SetLastResetDeparturesTime(lastResetDeparturesTime *time.Time) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.lastResetDeparturesTime = lastResetDeparturesTime
+}
+
+func (s *SiriSmContext) GetDailyServiceTime() *time.Time {
+	s.mutex.RLock()
+	defer s.mutex.RUnlock()
+	return s.localDailyServiceSwitchTime
+}
+
+func (s *SiriSmContext) SetDailyServiceTime(dailyServiceSwitchTime *time.Time) {
+	s.mutex.Lock()
+	defer s.mutex.Unlock()
+	s.localDailyServiceSwitchTime = dailyServiceSwitchTime
+}
+
 func (s *SiriSmContext) GetLastUpdate() *time.Time {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -48,12 +76,10 @@ func (s *SiriSmContext) SetLastUpdate(lastUpdate *time.Time) {
 	s.lastUpdate = lastUpdate
 }
 
-func (s *SiriSmContext) UpdateDepartures(
+func (s *SiriSmContext) updateDepartures(
 	updatedDepartures []Departure,
 	cancelledDepartures []CancelledDeparture,
 ) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
 	oldDeparturesList := s.departures
 	newDeparturesList := make(map[ItemId]Departure, len(oldDeparturesList))
 	// Deep copy of the departures map
@@ -105,6 +131,16 @@ func (s *SiriSmContext) UpdateDepartures(
 	s.lastUpdate = &lastUpdateInUTC
 }
 
+func (s *SiriSmContext) resetDepartures(context *departures.DeparturesContext) {
+
+	s.departures = make(map[ItemId]Departure)
+
+	lastResetDeparturesTime := time.Now().In(time.UTC)
+	s.lastResetDeparturesTime = &lastResetDeparturesTime
+
+	context.UpdateDepartures(make(map[string][]departures.Departure))
+}
+
 func (s *SiriSmContext) GetDepartures() map[ItemId]Departure {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
@@ -115,6 +151,8 @@ func (s *SiriSmContext) InitContext(
 	roleARN string,
 	notificationsStreamName string,
 	connectionTimeout time.Duration,
+	dailyServiceSwitchTime *time.Time,
+	location *time.Location,
 ) {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
@@ -130,12 +168,74 @@ func (s *SiriSmContext) InitContext(
 	s.notificationsStream = make(chan []byte, 1)
 	s.notificationsStreamName = notificationsStreamName
 	s.roleARN = roleARN
+	s.localDailyServiceSwitchTime = dailyServiceSwitchTime
+	s.location = location
 	sirism_kinesis.InitKinesisConsumer(
 		s.roleARN,
 		s.notificationsStreamName,
 		s.notificationsStream,
 	)
 	s.lastUpdate = nil
+}
+
+func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesContext) {
+	for {
+		// Received a notification
+		var notifBytes []byte = <-d.notificationsStream
+		{
+			d.mutex.Lock()
+			logrus.Infof("notification received (%d bytes)", len(notifBytes))
+			updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notifBytes)
+			if err != nil {
+				logrus.Errorf("record parsing error: %v", err)
+				continue
+			}
+			d.updateDepartures(updatedDepartures, cancelledDepartures)
+			if err != nil {
+				logrus.Errorf("departures updating error: %v", err)
+				continue
+			}
+			mappedLoadedDepartures := mapDeparturesByStopPointId(d.departures)
+			context.UpdateDepartures(mappedLoadedDepartures)
+			logrus.Info("departures are updated")
+			d.mutex.Unlock()
+		}
+	}
+}
+
+func (d *SiriSmContext) getNextResetDeparturesTimerFrom(t *time.Time) (time.Time, *time.Timer) {
+	todayServiceSwitchTime, _ := rennes_stoptimes.CombineDateAndTimeInLocation(
+		t, d.localDailyServiceSwitchTime, d.location,
+	)
+	nextServiceSwitchTimeDelay := todayServiceSwitchTime.Sub(*t)
+	if nextServiceSwitchTimeDelay <= time.Duration(0) {
+		nextServiceSwitchTimeDelay += 24 * time.Hour
+	}
+	nextServiceSwitchTime := t.Add(nextServiceSwitchTimeDelay)
+	nextServiceSwitchTimer := time.NewTimer(nextServiceSwitchTimeDelay)
+	return nextServiceSwitchTime, nextServiceSwitchTimer
+}
+
+func (d *SiriSmContext) processResetDeparturesLoop(context *departures.DeparturesContext) {
+	now := time.Now().In(d.location)
+	nextServiceSwitchTime, serviceSwitchTimer := d.getNextResetDeparturesTimerFrom(&now)
+	logrus.Infof("the next departures delete is scheduled at %v", nextServiceSwitchTime.Format(time.RFC3339))
+	for {
+		<-serviceSwitchTimer.C
+		{
+			d.mutex.Lock()
+			{
+				initialNumberOfDepartures := len(d.departures)
+				d.resetDepartures(context)
+				logrus.Infof("all departures (%d departures) have been deleted", initialNumberOfDepartures)
+				now := time.Now().In(d.location)
+				var nextServiceSwitchTime time.Time
+				nextServiceSwitchTime, serviceSwitchTimer = d.getNextResetDeparturesTimerFrom(&now)
+				logrus.Infof("the next departures delete is scheduled at %v", nextServiceSwitchTime.Format(time.RFC3339))
+			}
+			d.mutex.Unlock()
+		}
+	}
 }
 
 func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesContext) {
@@ -145,24 +245,11 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 
 	// Wait 10 seconds before reloading external departures informations
 	time.Sleep(10 * time.Second)
-	for {
-		// Received a notification
-		var notifBytes []byte = <-d.notificationsStream
-		logrus.Infof("notification received (%d bytes)", len(notifBytes))
-		updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notifBytes)
-		if err != nil {
-			logrus.Errorf("record parsing error: %v", err)
-			continue
-		}
-		d.UpdateDepartures(updatedDepartures, cancelledDepartures)
-		if err != nil {
-			logrus.Errorf("departures updating error: %v", err)
-			continue
-		}
-		mappedLoadedDepartures := mapDeparturesByStopPointId(d.departures)
-		context.UpdateDepartures(mappedLoadedDepartures)
-		logrus.Info("departures are updated")
-	}
+
+	// Launch the goroutine that allow consume the input SIRI-SM notifications
+	go d.processNotificationsLoop(context)
+	// Launch the goroutine that allow delete all departures daily
+	go d.processResetDeparturesLoop(context)
 }
 
 func mapDeparturesByStopPointId(

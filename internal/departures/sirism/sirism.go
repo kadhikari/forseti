@@ -16,16 +16,15 @@ import (
 )
 
 type SiriSmContext struct {
-	connector                   *connectors.Connector
-	lastUpdate                  *time.Time
-	departures                  map[ItemId]Departure
-	notificationsStream         chan []byte
-	notificationsStreamName     string
-	roleARN                     string
-	localDailyServiceSwitchTime *time.Time
-	lastResetDeparturesTime     *time.Time
-	location                    *time.Location
-	mutex                       sync.RWMutex
+	connector               *connectors.Connector
+	lastUpdate              *time.Time
+	departures              map[ItemId]Departure
+	notificationsStream     chan []byte
+	notificationsStreamName string
+	roleARN                 string
+	dailyServiceSwitchTime  *time.Time
+	location                *time.Location
+	mutex                   sync.RWMutex
 }
 
 func (s *SiriSmContext) GetConnector() *connectors.Connector {
@@ -38,30 +37,6 @@ func (s *SiriSmContext) SetConnector(connector *connectors.Connector) {
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 	s.connector = connector
-}
-
-func (s *SiriSmContext) GetLastResetDeparturesTime() *time.Time {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	return s.lastResetDeparturesTime
-}
-
-func (s *SiriSmContext) SetLastResetDeparturesTime(lastResetDeparturesTime *time.Time) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.lastResetDeparturesTime = lastResetDeparturesTime
-}
-
-func (s *SiriSmContext) GetDailyServiceTime() *time.Time {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
-	return s.localDailyServiceSwitchTime
-}
-
-func (s *SiriSmContext) SetDailyServiceTime(dailyServiceSwitchTime *time.Time) {
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-	s.localDailyServiceSwitchTime = dailyServiceSwitchTime
 }
 
 func (s *SiriSmContext) GetLastUpdate() *time.Time {
@@ -131,13 +106,8 @@ func (s *SiriSmContext) updateDepartures(
 	s.lastUpdate = &lastUpdateInUTC
 }
 
-func (s *SiriSmContext) resetDepartures(context *departures.DeparturesContext) {
-
+func (s *SiriSmContext) cleanDepartures(context *departures.DeparturesContext) {
 	s.departures = make(map[ItemId]Departure)
-
-	lastResetDeparturesTime := time.Now().In(time.UTC)
-	s.lastResetDeparturesTime = &lastResetDeparturesTime
-
 	context.UpdateDepartures(make(map[string][]departures.Departure))
 }
 
@@ -168,7 +138,7 @@ func (s *SiriSmContext) InitContext(
 	s.notificationsStream = make(chan []byte, 1)
 	s.notificationsStreamName = notificationsStreamName
 	s.roleARN = roleARN
-	s.localDailyServiceSwitchTime = dailyServiceSwitchTime
+	s.dailyServiceSwitchTime = dailyServiceSwitchTime
 	s.location = location
 	sirism_kinesis.InitKinesisConsumer(
 		s.roleARN,
@@ -205,7 +175,7 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 
 func (d *SiriSmContext) getNextResetDeparturesTimerFrom(t *time.Time) (time.Time, *time.Timer) {
 	todayServiceSwitchTime, _ := rennes_stoptimes.CombineDateAndTimeInLocation(
-		t, d.localDailyServiceSwitchTime, d.location,
+		t, d.dailyServiceSwitchTime, d.location,
 	)
 	nextServiceSwitchTimeDelay := todayServiceSwitchTime.Sub(*t)
 	if nextServiceSwitchTimeDelay <= time.Duration(0) {
@@ -216,7 +186,7 @@ func (d *SiriSmContext) getNextResetDeparturesTimerFrom(t *time.Time) (time.Time
 	return nextServiceSwitchTime, nextServiceSwitchTimer
 }
 
-func (d *SiriSmContext) processResetDeparturesLoop(context *departures.DeparturesContext) {
+func (d *SiriSmContext) processCleanDeparturesLoop(context *departures.DeparturesContext) {
 	now := time.Now().In(d.location)
 	nextServiceSwitchTime, serviceSwitchTimer := d.getNextResetDeparturesTimerFrom(&now)
 	logrus.Infof("the next departures delete is scheduled at %v", nextServiceSwitchTime.Format(time.RFC3339))
@@ -226,7 +196,7 @@ func (d *SiriSmContext) processResetDeparturesLoop(context *departures.Departure
 			d.mutex.Lock()
 			{
 				initialNumberOfDepartures := len(d.departures)
-				d.resetDepartures(context)
+				d.cleanDepartures(context)
 				logrus.Infof("all departures (%d departures) have been deleted", initialNumberOfDepartures)
 				now := time.Now().In(d.location)
 				var nextServiceSwitchTime time.Time
@@ -249,7 +219,7 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 	// Launch the goroutine that allow consume the input SIRI-SM notifications
 	go d.processNotificationsLoop(context)
 	// Launch the goroutine that allow delete all departures daily
-	go d.processResetDeparturesLoop(context)
+	go d.processCleanDeparturesLoop(context)
 }
 
 func mapDeparturesByStopPointId(

@@ -58,15 +58,14 @@ func TestGetNextResetDeparturesTimerFrom(t *testing.T) {
 
 	for _, test := range tests {
 		siriSmContext := &SiriSmContext{
-			connector:                   nil,
-			lastUpdate:                  nil,
-			departures:                  nil,
-			notificationsStream:         nil,
-			notificationsStreamName:     "",
-			roleARN:                     "",
-			localDailyServiceSwitchTime: &test.dailyServiceSwitchTime,
-			lastResetDeparturesTime:     nil,
-			location:                    test.location,
+			connector:               nil,
+			lastUpdate:              nil,
+			departures:              nil,
+			notificationsStream:     nil,
+			notificationsStreamName: "",
+			roleARN:                 "",
+			dailyServiceSwitchTime:  &test.dailyServiceSwitchTime,
+			location:                test.location,
 		}
 
 		nextServiceSwitchTime, _ := siriSmContext.getNextResetDeparturesTimerFrom(&test.currentTime)

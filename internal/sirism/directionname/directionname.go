@@ -3,6 +3,7 @@ package directionname
 import (
 	"encoding/xml"
 	"fmt"
+	"strings"
 )
 
 type DirectionName int
@@ -19,10 +20,10 @@ func (dn *DirectionName) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 		return err
 	}
 
-	if innerText == "ALLER" {
+	if strings.EqualFold(innerText, "ALLER") || strings.EqualFold(innerText, "A") {
 		*dn = DirectionNameAller
 		return nil
-	} else if innerText == "RETOUR" {
+	} else if strings.EqualFold(innerText, "RETOUR") || strings.EqualFold(innerText, "R") {
 		*dn = DirectionNameRetour
 		return nil
 	}

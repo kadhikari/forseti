@@ -394,6 +394,8 @@ func Departures(
 			config.DeparturesStreamReadOnlyRoleARN,
 			config.DeparturesNotificationsStreamName,
 			config.ConnectionTimeout,
+			serviceSwitchTime,
+			config.TimeZoneLocation,
 		)
 		go siriSmContext.RefereshDeparturesLoop(departuresContext)
 	}

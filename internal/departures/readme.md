@@ -18,7 +18,11 @@ Input parameters to inform Forseti:
 - `--departures-service-refresh` The refresh time between 2 request of the  external service(Required for `rennes`)
 - `--departures-token` The token for the external service (Required for `rennes`)
 - `--departures-notifications-stream-name` The name of the AWS Kinesis Data Stream (Required for `sirism`)
-- `--departures-stream-read-only-role-arn` The ARN of the role to assume on AWS to read Kinesis Data Stream (Optional but only for `sirism`)
+- `--departures-stream-read-only-role-arn` The ARN of the role to assume on AWS to read Kinesis Data Stream (Optional but only for 
+`sirism`)
+- `--departures-service-switch` Required by several connectors as follows:
+    - the connector `rennes`: the time of day when the operating day starts
+    - the connector `sirism`: the time of day when the departures are deleted
 
 Exemple:
 
@@ -31,12 +35,13 @@ SERVICE SYTRALRT
 
 SERVICE RENNES
 ``` bash
-./forseti --departures-type=rennes \
-    --departures-files-uri file:///forseti/fixtures/data_rennes/referential \
-    --departures-files-refresh=300s \
-    --departures-service-uri https://path/to/external_service \
-    --departures-service-refresh=20s \
-    --departures-token=12345
+./forseti --departures-type="rennes" \
+    --departures-files-uri="file:///forseti/fixtures/data_rennes/referential" \
+    --departures-files-refresh="300s" \
+    --departures-service-uri="https://path/to/external_service" \
+    --departures-service-refresh="20s" \
+    --departures-token="12345" \
+    --departures-service-switch="04:30:00"
 ```
 
 SERVICE SIRI-SM
@@ -45,5 +50,6 @@ SERVICE SIRI-SM
     --departures-type="sirism" \
     --departures-files-uri="IDontCare" \
     --departures-notifications-stream-name="siri-sm-notif-stream" \
+    --departures-service-switch="03:00:00" \
     --timezone-location="Europe/Paris"
 ```

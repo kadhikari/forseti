@@ -154,11 +154,13 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 
 	for {
 		// Received a notification
+		// TODO: memory optimization
 		var recordBytes []byte = <-d.notificationsStream
 		logrus.Infof("record received (%d bytes)", len(recordBytes))
 		var notificationBytes []byte
 		// uncompress the gzip record
 		{
+			// TODO: memory optimization
 			inputBuffer := bytes.NewBuffer(recordBytes)
 			gzipReader, err := gzip.NewReader(inputBuffer)
 			if err != nil {
@@ -168,6 +170,7 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 				)
 				continue
 			}
+			// TODO: initialize with 10 MB
 			outputBuffer := bytes.Buffer{}
 			_, err = outputBuffer.ReadFrom(gzipReader)
 			if err != nil {

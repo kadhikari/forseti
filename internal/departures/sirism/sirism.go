@@ -1,6 +1,8 @@
 package sirism
 
 import (
+	"bytes"
+	"compress/gzip"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -149,13 +151,38 @@ func (s *SiriSmContext) InitContext(
 }
 
 func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesContext) {
+
 	for {
 		// Received a notification
-		var notifBytes []byte = <-d.notificationsStream
+		var recordBytes []byte = <-d.notificationsStream
+		logrus.Infof("record received (%d bytes)", len(recordBytes))
+		var notificationBytes []byte
+		// uncompress the gzip record
+		{
+			inputBuffer := bytes.NewBuffer(recordBytes)
+			gzipReader, err := gzip.NewReader(inputBuffer)
+			if err != nil {
+				logrus.Errorf(
+					"unexpected error occurred while the gzip decompression of the record, the current record is skipped: %v",
+					err,
+				)
+				continue
+			}
+			outputBuffer := bytes.Buffer{}
+			_, err = outputBuffer.ReadFrom(gzipReader)
+			if err != nil {
+				logrus.Errorf(
+					"unexpected error occurred while the gzip decompression of the record, the current record is skipped: %v",
+					err,
+				)
+				continue
+			}
+			notificationBytes = outputBuffer.Bytes()
+		}
 		{
 			d.mutex.Lock()
-			logrus.Infof("notification received (%d bytes)", len(notifBytes))
-			updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notifBytes)
+			logrus.Infof("notification received (%d bytes)", len(notificationBytes))
+			updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notificationBytes)
 			if err != nil {
 				logrus.Errorf("record parsing error: %v", err)
 				continue

@@ -473,7 +473,7 @@ func tryToLoadEstimatedDepartures(rennesContext *RennesContext) (map[string]Depa
 
 func loadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure, error) {
 
-	var estimatedStopTimes map[string]rennes_stoptimes.StopTime
+	var estimatedStopTimes map[string]rennes_estimatedstoptimes.EstimatedStopTime
 	dailyServiceStartTime := rennesContext.computeDailyServiceStartTime()
 	estimatedStopTimes, err := rennes_estimatedstoptimes.LoadEstimatedStopTimes(
 		rennesContext.connector.GetUrl(),
@@ -493,10 +493,18 @@ func loadEstimatedDepartures(rennesContext *RennesContext) (map[string]Departure
 	}
 
 	for stopTimeId, estimatedStopTime := range estimatedStopTimes {
+		var departureType departures.DepartureType
+		switch estimatedStopTime.Fiability {
+		case rennes_estimatedstoptimes.Fiability_T:
+			departureType = departures.DepartureTypeTheoretical
+		case rennes_estimatedstoptimes.Fiability_F:
+			departureType = departures.DepartureTypeEstimated
+		}
+
 		// Update the estimated time of the departure
 		if departure, ok := departuresCopy[stopTimeId]; ok {
 			departure.Time = estimatedStopTime.Time
-			departure.Type = departures.DepartureTypeEstimated
+			departure.Type = departureType
 			departuresCopy[stopTimeId] = departure
 		}
 	}

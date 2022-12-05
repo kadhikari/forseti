@@ -13,7 +13,7 @@ import (
 type CourseId string
 
 const StopTimesFileName string = "horaires.hor"
-const stopTimesCsvNumOfFields int = 0
+const stopTimesCsvNumOfFields int = 4
 
 /* ---------------------------------------------------------------------------------------
 // Structure and Consumer to creates StopTime objects based on a line read from a CSV
@@ -26,7 +26,7 @@ type StopTime struct {
 }
 
 func newStopTime(record []string, loc *time.Location) (*StopTime, error) {
-	if len(record) < stopTimesCsvNumOfFields {
+	if len(record) != stopTimesCsvNumOfFields {
 		return nil, fmt.Errorf("missing field in StopTime record")
 	}
 
@@ -65,12 +65,13 @@ func CombineDateAndTimeInLocation(
 	return time.ParseInLocation(DATETIME_LAYOUT, datetimeStr, location)
 }
 
-func (s *StopTime) computeActualStopTime(
+func ComputeActualStopTime(
+	t time.Time,
 	dailyServiceStartTime *time.Time,
 ) time.Time {
 	actualStopTime, _ := CombineDateAndTimeInLocation(
 		dailyServiceStartTime,
-		&s.Time,
+		&t,
 		dailyServiceStartTime.Location(),
 	)
 	if actualStopTime.Before(*dailyServiceStartTime) {
@@ -118,13 +119,12 @@ func LoadStopTimes(
 		return nil, err
 	}
 
-	return LoadStopTimesUsingReader(file, connectionTimeout, dailyServiceStartTime)
+	return loadStopTimesUsingReader(file, dailyServiceStartTime)
 
 }
 
-func LoadStopTimesUsingReader(
+func loadStopTimesUsingReader(
 	reader io.Reader,
-	connectionTimeout time.Duration,
 	dailyServiceStartTime *time.Time,
 ) (map[string]StopTime, error) {
 
@@ -142,7 +142,8 @@ func LoadStopTimesUsingReader(
 
 	// Update the data of each stop time
 	for id, stopTime := range stopTimesConsumer.stopTimes {
-		actualStopTime := stopTime.computeActualStopTime(
+		actualStopTime := ComputeActualStopTime(
+			stopTime.Time,
 			dailyServiceStartTime,
 		)
 		stopTime.Time = actualStopTime

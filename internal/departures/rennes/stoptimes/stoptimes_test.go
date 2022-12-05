@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -97,27 +98,6 @@ func TestLoadStopTimes(t *testing.T) {
 
 		}
 
-		// // Check the values read from the last line of the CSV
-		// {
-		// 	const EXPECTED_ID string = "268435458"
-		// 	const EXPECTED_ROUTE_STOP_POINT_ID string = "274137857"
-		// 	const EXPECTED_COURSE_ID CourseId = CourseId("268435457")
-
-		// 	assert.Contains(loadedStopTimes, EXPECTED_ID)
-		// 	assert.Equal(
-		// 		loadedStopTimes[EXPECTED_ID],
-		// 		StopTime{
-		// 			Id:               EXPECTED_ID,
-		// 			Time:             test.localTimeLastLine,
-		// 			RouteStopPointId: EXPECTED_ROUTE_STOP_POINT_ID,
-		// 			CourseId:         EXPECTED_COURSE_ID,
-		// 		},
-		// 	)
-		// 	{
-		// 		utcLoadedTime := loadedStopTimes[EXPECTED_ID].Time.In(time.UTC)
-		// 		assert.Equal(utcLoadedTime, test.urcTimeLastLine)
-		// 	}
-		// }
 	}
 }
 
@@ -156,13 +136,13 @@ func TestCombineDateAndTimeInLocation(t *testing.T) {
 	assert := assert.New(t)
 	for _, test := range tests {
 		errMessage := fmt.Sprintf("the unit test '%s' has failed", test.name)
-		gotResult, gotError := CombineDateAndTimeInLocation(
+		getResult, gotError := CombineDateAndTimeInLocation(
 			&test.datePart,
 			&test.timePart,
 			test.location)
 		assert.Equal(gotError != nil, test.errorIsExpected, errMessage)
 		if gotError != nil {
-			assert.Equal(gotResult, test.expectedResult, errMessage)
+			assert.Equal(getResult, test.expectedResult, errMessage)
 		}
 	}
 }
@@ -174,67 +154,43 @@ func TestComputeActualStopTime(t *testing.T) {
 
 	var tests = []struct {
 		name                   string
-		stopTime               StopTime
+		stopTime               time.Time
 		dailyServiceStartTime  time.Time
 		expectedActualStopTime time.Time
 	}{
 		{
-			name: "0 nanosecond after service start time (midday)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "0 nanosecond after service start time (midday)",
+			stopTime:               time.Date(0, time.January, 1, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDDAY,
 			expectedActualStopTime: time.Date(2022, time.June, 15, 12, 0, 0, 0, EUROPE_PARIS_LOCATION),
 		},
 		{
-			name: "1 nanosecond after service start time (midday)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 1, 12, 0, 0, 1, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "1 nanosecond after service start time (midday)",
+			stopTime:               time.Date(0, time.January, 1, 12, 0, 0, 1, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDDAY,
 			expectedActualStopTime: time.Date(2022, time.June, 15, 12, 0, 0, 1, EUROPE_PARIS_LOCATION),
 		},
 		{
-			name: "1 nanosecond before service start time (midday)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 1, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "1 nanosecond before service start time (midday)",
+			stopTime:               time.Date(0, time.January, 1, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDDAY,
 			expectedActualStopTime: time.Date(2022, time.June, 16, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 		},
 		{
-			name: "0 nanosecond after service start time (midnight)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "0 nanosecond after service start time (midnight)",
+			stopTime:               time.Date(0, time.January, 1, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDNIGHT,
 			expectedActualStopTime: time.Date(2022, time.June, 15, 0, 0, 0, 0, EUROPE_PARIS_LOCATION),
 		},
 		{
-			name: "1 nanosecond after service start time (midnight)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 2, 0, 0, 0, 1, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "1 nanosecond after service start time (midnight)",
+			stopTime:               time.Date(0, time.January, 2, 0, 0, 0, 1, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDNIGHT,
 			expectedActualStopTime: time.Date(2022, time.June, 15, 0, 0, 0, 1, EUROPE_PARIS_LOCATION),
 		},
 		{
-			name: "1 nanosecond before service start time (midnight)",
-			stopTime: StopTime{
-				Id:               "UNUSED_ID",
-				Time:             time.Date(0, time.January, 2, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
-				RouteStopPointId: "UNUSED_ROUTE_STOP_POINT_ID",
-			},
+			name:                   "1 nanosecond before service start time (midnight)",
+			stopTime:               time.Date(0, time.January, 2, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 			dailyServiceStartTime:  SERVICE_START_TIME_AT_MIDNIGHT,
 			expectedActualStopTime: time.Date(2022, time.June, 15, 11, 59, 59, 999_999_999, EUROPE_PARIS_LOCATION),
 		},
@@ -242,7 +198,74 @@ func TestComputeActualStopTime(t *testing.T) {
 	assert := assert.New(t)
 	for _, test := range tests {
 		errMessage := fmt.Sprintf("the unit test '%s' failed", test.name)
-		gotActualStopTime := test.stopTime.computeActualStopTime(&test.dailyServiceStartTime)
-		assert.Equal(test.expectedActualStopTime, gotActualStopTime, errMessage)
+		getActualStopTime := ComputeActualStopTime(test.stopTime, &test.dailyServiceStartTime)
+		assert.Equal(test.expectedActualStopTime, getActualStopTime, errMessage)
+	}
+}
+
+func TestNewEstimatedStopTime(t *testing.T) {
+	require := require.New(t)
+
+	location, err := time.LoadLocation("Europe/Paris")
+	require.Nil(err)
+
+	var tests = []struct {
+		record          string
+		location        *time.Location
+		errorIsExpected bool
+		expectedResult  *StopTime
+	}{
+		{ // With all required fields
+			record:          "268435464;11:51:01;274137857;268435460",
+			location:        location,
+			errorIsExpected: false,
+			expectedResult: &StopTime{
+				Id: "268435464",
+				Time: time.Date(
+					0, time.January, 1,
+					11, 51, 1, 0,
+					location,
+				),
+				RouteStopPointId: "274137857",
+				CourseId:         CourseId("268435460"),
+			},
+		},
+		{ // With too many fields
+			record:          "268435464;11:51:01;274137857;268435460;xxx",
+			location:        location,
+			errorIsExpected: true,
+			expectedResult:  nil,
+		},
+		{ // With too many fields
+			record:          "268435464;11:51:01;274137857;268435460;",
+			location:        location,
+			errorIsExpected: true,
+			expectedResult:  nil,
+		},
+		{ // With a missing field
+			record:          "268435464;11:51:01;274137857",
+			location:        location,
+			errorIsExpected: true,
+			expectedResult:  nil,
+		},
+	}
+
+	for _, test := range tests {
+		_ = test
+		splittedRecord := strings.Split(test.record, ";")
+		getResult, err := newStopTime(
+			splittedRecord,
+			test.location,
+		)
+		if test.errorIsExpected {
+			require.NotNil(err)
+			require.Nil(getResult)
+		} else {
+			require.Nil(err)
+			require.Equal(
+				*(test.expectedResult),
+				*getResult,
+			)
+		}
 	}
 }

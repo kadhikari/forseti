@@ -125,8 +125,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 8
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 8)
 			for _, departure := range *response.Departures {
 				require.True(
 					departure.DirectionType == departures.DirectionTypeForward ||
@@ -147,8 +146,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 8
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 8)
 			for _, departure := range *response.Departures {
 				require.True(
 					departure.DirectionType == departures.DirectionTypeForward ||
@@ -169,8 +167,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 4
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 4)
 			for _, departure := range *response.Departures {
 				require.Equal(
 					departures.DirectionTypeForward,
@@ -191,8 +188,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 4
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 4)
 			for _, departure := range *response.Departures {
 				require.Equal(
 					departures.DirectionTypeForward,
@@ -213,8 +209,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 2
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 2)
 			for _, departure := range *response.Departures {
 				require.Equal(
 					departures.DirectionTypeBackward,
@@ -235,8 +230,7 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			const EXPECTED_NUMBER_OF_DEPARTURES int = 2
-			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			assert.Len(*response.Departures, 2)
 			for _, departure := range *response.Departures {
 				require.Equal(
 					departures.DirectionTypeBackward,

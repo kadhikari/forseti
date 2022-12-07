@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 	"time"
 )
 
@@ -69,10 +70,11 @@ func ParseDirectionType(value string) DirectionType {
 }
 
 func ParseDirectionTypeFromNavitia(value string) (DirectionType, error) {
-	switch value {
-	case "forward":
+	lowerCaseValue := strings.ToLower(value)
+	switch lowerCaseValue {
+	case "forward", "outbound":
 		return DirectionTypeForward, nil
-	case "backward":
+	case "backward", "inbound":
 		return DirectionTypeBackward, nil
 	case "", "both":
 		return DirectionTypeBoth, nil
@@ -80,7 +82,6 @@ func ParseDirectionTypeFromNavitia(value string) (DirectionType, error) {
 		return DirectionTypeUnknown, nil
 	default:
 		return DirectionTypeUnknown, fmt.Errorf("impossible to parse %s", value)
-
 	}
 }
 

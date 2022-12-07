@@ -125,7 +125,14 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 8)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 8
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.True(
+					departure.DirectionType == departures.DirectionTypeForward ||
+						departure.DirectionType == departures.DirectionTypeBackward,
+				)
+			}
 		}
 
 		{
@@ -140,7 +147,14 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 8)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 8
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.True(
+					departure.DirectionType == departures.DirectionTypeForward ||
+						departure.DirectionType == departures.DirectionTypeBackward,
+				)
+			}
 		}
 
 		{
@@ -155,7 +169,36 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 4)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 4
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.Equal(
+					departures.DirectionTypeForward,
+					departure.DirectionType,
+				)
+			}
+		}
+
+		{
+			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=outbound", nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, c.Request)
+			require.Equal(200, w.Code)
+
+			response := departures.DeparturesResponse{}
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			require.Nil(err)
+			assert.Empty(response.Message)
+			require.NotNil(response.Departures)
+			assert.NotEmpty(response.Departures)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 4
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.Equal(
+					departures.DirectionTypeForward,
+					departure.DirectionType,
+				)
+			}
 		}
 
 		{
@@ -170,7 +213,36 @@ func TestDeparturesApi(t *testing.T) {
 			assert.Empty(response.Message)
 			require.NotNil(response.Departures)
 			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 2)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 2
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.Equal(
+					departures.DirectionTypeBackward,
+					departure.DirectionType,
+				)
+			}
+		}
+
+		{
+			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=inbound", nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, c.Request)
+			require.Equal(200, w.Code)
+
+			response := departures.DeparturesResponse{}
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			require.Nil(err)
+			assert.Empty(response.Message)
+			require.NotNil(response.Departures)
+			assert.NotEmpty(response.Departures)
+			const EXPECTED_NUMBER_OF_DEPARTURES int = 2
+			assert.Len(*response.Departures, EXPECTED_NUMBER_OF_DEPARTURES)
+			for _, departure := range *response.Departures {
+				require.Equal(
+					departures.DirectionTypeBackward,
+					departure.DirectionType,
+				)
+			}
 		}
 
 		{
@@ -520,25 +592,4 @@ func TestParseDirectionType(t *testing.T) {
 	assert.Equal(departures.DirectionTypeBackward, departures.ParseDirectionType("RET"))
 	assert.Equal(departures.DirectionTypeUnknown, departures.ParseDirectionType(""))
 	assert.Equal(departures.DirectionTypeUnknown, departures.ParseDirectionType("foo"))
-}
-
-func TestParseDirectionTypeFromNavitia(t *testing.T) {
-	assert := assert.New(t)
-
-	r, err := departures.ParseDirectionTypeFromNavitia("forward")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeForward, r)
-
-	r, err = departures.ParseDirectionTypeFromNavitia("backward")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeBackward, r)
-
-	r, err = departures.ParseDirectionTypeFromNavitia("")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeBoth, r)
-
-	_, err = departures.ParseDirectionTypeFromNavitia("foo")
-	assert.NotNil(err)
-	_, err = departures.ParseDirectionTypeFromNavitia("ALL")
-	assert.NotNil(err)
 }

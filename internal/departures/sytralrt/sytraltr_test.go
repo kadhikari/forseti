@@ -76,21 +76,6 @@ func TestDeparturesApi(t *testing.T) {
 		err = RefreshDepartures(sytralRtContext, departuresContext)
 		assert.Nil(err)
 
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(200, w.Code)
-
-			response := departures.DeparturesResponse{}
-			err = json.Unmarshal(w.Body.Bytes(), &response)
-			require.Nil(err)
-			assert.Empty(response.Message)
-			require.NotNil(response.Departures)
-			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 4)
-		}
-
 		// these is no stop 5 in our dataset
 		{
 			c.Request = httptest.NewRequest("GET", "/departures?stop_id=5", nil)
@@ -107,78 +92,93 @@ func TestDeparturesApi(t *testing.T) {
 		}
 	}
 
+	var tests = []struct {
+		requestUri                 string
+		expectedNumberOfDepartures int
+		getDeparturesList          []departures.DirectionType
+	}{
+		{
+			requestUri:                 "/departures?stop_id=3&stop_id=4",
+			expectedNumberOfDepartures: 8,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward, departures.DirectionTypeBackward},
+		},
+		{
+			requestUri:                 "/departures?stop_id=3&stop_id=4&direction_type=both",
+			expectedNumberOfDepartures: 8,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward, departures.DirectionTypeBackward},
+		},
+		{
+			requestUri:                 "/departures?stop_id=3&stop_id=4&direction_type=forward",
+			expectedNumberOfDepartures: 4,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward},
+		},
+		{
+			requestUri:                 "/departures?stop_id=3&stop_id=4&direction_type=outbound",
+			expectedNumberOfDepartures: 4,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward},
+		},
+		{
+			requestUri:                 "/departures?stop_id=3&direction_type=backward",
+			expectedNumberOfDepartures: 2,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeBackward},
+		},
+		{
+			requestUri:                 "/departures?stop_id=3&direction_type=inbound",
+			expectedNumberOfDepartures: 2,
+			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeBackward},
+		},
+	}
+
 	//load data with more than one stops
+	{
+		containsFunc := func(slice []departures.DirectionType, elmt departures.DirectionType) bool {
+			for _, v := range slice {
+				if v == elmt {
+					return true
+				}
+			}
+
+			return false
+		}
+
+		sytralContext := &SytralRTContext{}
+		sytralContext.InitContext(*multipleURI, defaultTimeout, defaultTimeout)
+		err = RefreshDepartures(sytralContext, departuresContext)
+		assert.Nil(err)
+		for _, test := range tests {
+
+			c.Request = httptest.NewRequest("GET", test.requestUri, nil)
+			w := httptest.NewRecorder()
+			router.ServeHTTP(w, c.Request)
+			require.Equal(200, w.Code)
+
+			response := departures.DeparturesResponse{}
+			err := json.Unmarshal(w.Body.Bytes(), &response)
+			require.Nil(err)
+			assert.Empty(response.Message)
+			require.NotNil(response.Departures)
+			assert.Len(*response.Departures, test.expectedNumberOfDepartures)
+			if len(*response.Departures) > 0 {
+				for _, departure := range *response.Departures {
+					require.True(containsFunc(
+						test.getDeparturesList,
+						departure.DirectionType,
+					))
+				}
+			}
+		}
+	}
 	{
 		sytralContext := &SytralRTContext{}
 		sytralContext.InitContext(*multipleURI, defaultTimeout, defaultTimeout)
 		err = RefreshDepartures(sytralContext, departuresContext)
 		assert.Nil(err)
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(200, w.Code)
 
-			response := departures.DeparturesResponse{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			require.Nil(err)
-			assert.Empty(response.Message)
-			require.NotNil(response.Departures)
-			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 8)
-		}
+		c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=aller", nil)
+		w := httptest.NewRecorder()
+		router.ServeHTTP(w, c.Request)
+		require.Equal(400, w.Code)
 
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=both", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(200, w.Code)
-
-			response := departures.DeparturesResponse{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			require.Nil(err)
-			assert.Empty(response.Message)
-			require.NotNil(response.Departures)
-			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 8)
-		}
-
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&stop_id=4&direction_type=forward", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(200, w.Code)
-
-			response := departures.DeparturesResponse{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			require.Nil(err)
-			assert.Empty(response.Message)
-			require.NotNil(response.Departures)
-			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 4)
-		}
-
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=backward", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(200, w.Code)
-
-			response := departures.DeparturesResponse{}
-			err := json.Unmarshal(w.Body.Bytes(), &response)
-			require.Nil(err)
-			assert.Empty(response.Message)
-			require.NotNil(response.Departures)
-			assert.NotEmpty(response.Departures)
-			assert.Len(*response.Departures, 2)
-		}
-
-		{
-			c.Request = httptest.NewRequest("GET", "/departures?stop_id=3&direction_type=aller", nil)
-			w := httptest.NewRecorder()
-			router.ServeHTTP(w, c.Request)
-			require.Equal(400, w.Code)
-		}
 	}
 }
 
@@ -520,25 +520,4 @@ func TestParseDirectionType(t *testing.T) {
 	assert.Equal(departures.DirectionTypeBackward, departures.ParseDirectionType("RET"))
 	assert.Equal(departures.DirectionTypeUnknown, departures.ParseDirectionType(""))
 	assert.Equal(departures.DirectionTypeUnknown, departures.ParseDirectionType("foo"))
-}
-
-func TestParseDirectionTypeFromNavitia(t *testing.T) {
-	assert := assert.New(t)
-
-	r, err := departures.ParseDirectionTypeFromNavitia("forward")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeForward, r)
-
-	r, err = departures.ParseDirectionTypeFromNavitia("backward")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeBackward, r)
-
-	r, err = departures.ParseDirectionTypeFromNavitia("")
-	assert.Nil(err)
-	assert.Equal(departures.DirectionTypeBoth, r)
-
-	_, err = departures.ParseDirectionTypeFromNavitia("foo")
-	assert.NotNil(err)
-	_, err = departures.ParseDirectionTypeFromNavitia("ALL")
-	assert.NotNil(err)
 }

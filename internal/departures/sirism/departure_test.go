@@ -298,13 +298,23 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
 	notificationXml := `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
 <soap:Body>
 	<ns1:NotifyStopMonitoring xmlns:ns1="http://wsdl.siri.org.uk">
-		<ServiceDeliveryInfo xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+		<ServiceDeliveryInfo
+			xmlns:ns2="http://www.ifopt.org.uk/acsb"
+			xmlns:ns3="http://www.ifopt.org.uk/ifopt"
+			xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0"
+			xmlns:ns5="http://www.siri.org.uk/siri"
+			xmlns:ns6="http://wsdl.siri.org.uk/siri">
 			<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
 			<ns5:ProducerRef>ILEVIA</ns5:ProducerRef>
 			<ns5:ResponseMessageIdentifier>ILEVIA:ResponseMessage::2136076:LOC</ns5:ResponseMessageIdentifier>
 			<ns5:RequestMessageRef>SUBREQ</ns5:RequestMessageRef>
 		</ServiceDeliveryInfo>
-		<Notification xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+		<Notification
+			xmlns:ns2="http://www.ifopt.org.uk/acsb"
+			xmlns:ns3="http://www.ifopt.org.uk/ifopt"
+			xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0"
+			xmlns:ns5="http://www.siri.org.uk/siri"
+			xmlns:ns6="http://wsdl.siri.org.uk/siri">
 			<ns5:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
 			<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
 			<ns5:RequestMessageRef>SUBHOR_ILEVIA:StopPoint:BP:CAS001:LOC</ns5:RequestMessageRef>
@@ -393,7 +403,12 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
 				</ns5:MonitoredStopVisitCancellation>
 			</ns5:StopMonitoringDelivery>
 		</Notification>
-		<SiriExtension xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri"/>
+		<SiriExtension
+			xmlns:ns2="http://www.ifopt.org.uk/acsb"
+			xmlns:ns3="http://www.ifopt.org.uk/ifopt"
+			xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0"
+			xmlns:ns5="http://www.siri.org.uk/siri"
+			xmlns:ns6="http://wsdl.siri.org.uk/siri"/>
 	</ns1:NotifyStopMonitoring>
 </soap:Body>
 </soap:Envelope>`

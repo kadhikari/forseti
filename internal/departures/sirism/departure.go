@@ -25,7 +25,7 @@ type Departure struct {
 	DestinationRef        string
 	DestinationName       string
 	AimedDepartureTime    time.Time
-	ExpectedDepartureTime time.Time
+	ExpectedDepartureTime *time.Time /* Optional attribut */
 }
 
 type CancelledDeparture struct {
@@ -33,15 +33,19 @@ type CancelledDeparture struct {
 	StopPointRef StopPointRef
 }
 
-func (d *Departure) DepartureTimeIsTheoretical() bool {
-	return d.AimedDepartureTime.Equal(d.ExpectedDepartureTime)
+func (d *Departure) GetDepartureTime() time.Time {
+	if d.ExpectedDepartureTime != nil {
+		return *d.ExpectedDepartureTime
+	}
+	return d.AimedDepartureTime
 }
 
-func (d *Departure) GetDepartureTime() time.Time {
-	if d.DepartureTimeIsTheoretical() {
-		return d.AimedDepartureTime
+func (d *Departure) GetDepartureType() departures.DepartureType {
+	departureType := departures.DepartureTypeTheoretical
+	if d.ExpectedDepartureTime != nil {
+		departureType = departures.DepartureTypeEstimated
 	}
-	return d.ExpectedDepartureTime
+	return departureType
 }
 
 func LoadDeparturesFromFilePath(xmlFilePath string) ([]Departure, []CancelledDeparture, error) {
@@ -100,7 +104,12 @@ func LoadDeparturesFromByteArray(xmlBytes []byte) ([]Departure, []CancelledDepar
 					return nil, nil, err
 				}
 				aimedDepartureTime := time.Time(monitoredCall.AimedDepartureTime)
-				expectedDepartureTime := time.Time(monitoredCall.ExpectedDepartureTime)
+				var expectedDepartureTime *time.Time = nil
+				if monitoredCall.ExpectedDepartureTime != nil {
+					// A temporary variable is mandatory to get its pointer
+					expectedDepartureTimeTmpVar := time.Time(*monitoredCall.ExpectedDepartureTime)
+					expectedDepartureTime = &expectedDepartureTimeTmpVar
+				}
 				var directionType departures.DirectionType
 				if directionName == sirism_directionname.DirectionNameAller {
 					directionType = departures.DirectionTypeForward

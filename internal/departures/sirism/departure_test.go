@@ -17,11 +17,15 @@ const SECONDS_PER_HOUR int = 3_600
 
 var EXPECTED_LOCATION *time.Location = time.FixedZone("", 2*SECONDS_PER_HOUR)
 
+func toTimePtr(t time.Time) *time.Time {
+	return &t
+}
+
 var DEPARTURE_TIME_TESTS = []struct {
-	name                               string
-	departure                          Departure
-	expectedDepartureTimeIsTheoretical bool
-	expectedDepartureTime              time.Time
+	name                  string
+	departure             Departure
+	expectedDepartureType departures.DepartureType
+	expectedDepartureTime time.Time
 }{
 	{
 		name: "check theoretical departure time",
@@ -37,13 +41,9 @@ var DEPARTURE_TIME_TESTS = []struct {
 				5, 32, 0, 0,
 				EXPECTED_LOCATION,
 			),
-			ExpectedDepartureTime: time.Date(
-				2022, time.June, 15,
-				5, 32, 0, 0,
-				EXPECTED_LOCATION,
-			),
+			ExpectedDepartureTime: nil,
 		},
-		expectedDepartureTimeIsTheoretical: true,
+		expectedDepartureType: departures.DepartureTypeTheoretical,
 		expectedDepartureTime: time.Date(
 			2022, time.June, 15,
 			5, 32, 0, 0,
@@ -64,13 +64,13 @@ var DEPARTURE_TIME_TESTS = []struct {
 				5, 32, 0, 0,
 				EXPECTED_LOCATION,
 			),
-			ExpectedDepartureTime: time.Date(
+			ExpectedDepartureTime: toTimePtr(time.Date(
 				2022, time.June, 15,
 				5, 31, 59, 999_999_999,
 				EXPECTED_LOCATION,
-			),
+			)),
 		},
-		expectedDepartureTimeIsTheoretical: false,
+		expectedDepartureType: departures.DepartureTypeEstimated,
 		expectedDepartureTime: time.Date(
 			2022, time.June, 15,
 			5, 31, 59, 999_999_999,
@@ -91,13 +91,13 @@ var DEPARTURE_TIME_TESTS = []struct {
 				5, 32, 0, 0,
 				EXPECTED_LOCATION,
 			),
-			ExpectedDepartureTime: time.Date(
+			ExpectedDepartureTime: toTimePtr(time.Date(
 				2022, time.June, 15,
 				5, 32, 0, 1,
 				EXPECTED_LOCATION,
-			),
+			)),
 		},
-		expectedDepartureTimeIsTheoretical: false,
+		expectedDepartureType: departures.DepartureTypeEstimated,
 		expectedDepartureTime: time.Date(
 			2022, time.June, 15,
 			5, 32, 0, 1,
@@ -118,13 +118,13 @@ var DEPARTURE_TIME_TESTS = []struct {
 				5, 32, 0, 0,
 				EXPECTED_LOCATION,
 			),
-			ExpectedDepartureTime: time.Date(
+			ExpectedDepartureTime: toTimePtr(time.Date(
 				2022, time.June, 15,
 				5, 32, 0, 0,
 				time.UTC,
-			),
+			)),
 		},
-		expectedDepartureTimeIsTheoretical: false,
+		expectedDepartureType: departures.DepartureTypeEstimated,
 		expectedDepartureTime: time.Date(
 			2022, time.June, 15,
 			5, 32, 0, 0,
@@ -143,13 +143,13 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
-func TestDepartureTimeIsTheoretical(t *testing.T) {
+func TestGetDepartureType(t *testing.T) {
 	assert := assert.New(t)
 
 	for _, test := range DEPARTURE_TIME_TESTS {
 		assert.Equalf(
-			test.expectedDepartureTimeIsTheoretical,
-			test.departure.DepartureTimeIsTheoretical(),
+			test.expectedDepartureType,
+			test.departure.GetDepartureType(),
 			"the unit test '%s' failed", test.name,
 		)
 	}
@@ -168,8 +168,9 @@ func TestGetDepartureTime(t *testing.T) {
 }
 
 func TestExtractDeparturesFromFilePath(t *testing.T) {
+
 	assert := assert.New(t)
-	EXPECTED_LOCATION := time.FixedZone("", 2*SECONDS_PER_HOUR)
+	expectedLocation := time.FixedZone("", 2*SECONDS_PER_HOUR)
 	var tests = []struct {
 		xmlFileName                         string
 		expectedNumberOfUpdatedDepartures   int
@@ -192,13 +193,13 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 				AimedDepartureTime: time.Date(
 					2022, time.June, 15,
 					5, 32, 0, 0,
-					EXPECTED_LOCATION,
+					expectedLocation,
 				),
-				ExpectedDepartureTime: time.Date(
+				ExpectedDepartureTime: toTimePtr(time.Date(
 					2022, time.June, 15,
 					5, 32, 0, 0,
-					EXPECTED_LOCATION,
-				),
+					expectedLocation,
+				)),
 			},
 			expectedLastUpdatedDeparture: &Departure{
 				Id:              ItemId("SIRI:130827335"),
@@ -210,13 +211,13 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 				AimedDepartureTime: time.Date(
 					2022, time.June, 15,
 					6, 44, 34, 0,
-					EXPECTED_LOCATION,
+					expectedLocation,
 				),
-				ExpectedDepartureTime: time.Date(
+				ExpectedDepartureTime: toTimePtr(time.Date(
 					2022, time.June, 15,
 					6, 44, 34, 0,
-					EXPECTED_LOCATION,
-				),
+					expectedLocation,
+				)),
 			},
 			expectedNumberOfCancelledDepartures: 0,
 			expectedFirstCancelledDeparture:     nil,
@@ -235,7 +236,6 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 			expectedLastCancelledDeparture: nil,
 		},
 	}
-	_ = tests
 	for _, test := range tests {
 		uri, err := url.Parse(fmt.Sprintf("file://%s/data_sirism/%s", fixtureDir, test.xmlFileName))
 		assert.Nil(err)
@@ -292,6 +292,185 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestLoadDeparturesFromByteArray(t *testing.T) {
+	notificationXml := `<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+<soap:Body>
+	<ns1:NotifyStopMonitoring xmlns:ns1="http://wsdl.siri.org.uk">
+		<ServiceDeliveryInfo xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+			<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
+			<ns5:ProducerRef>ILEVIA</ns5:ProducerRef>
+			<ns5:ResponseMessageIdentifier>ILEVIA:ResponseMessage::2136076:LOC</ns5:ResponseMessageIdentifier>
+			<ns5:RequestMessageRef>SUBREQ</ns5:RequestMessageRef>
+		</ServiceDeliveryInfo>
+		<Notification xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+			<ns5:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
+			<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
+			<ns5:RequestMessageRef>SUBHOR_ILEVIA:StopPoint:BP:CAS001:LOC</ns5:RequestMessageRef>
+			<ns5:SubscriberRef>KISIO2</ns5:SubscriberRef>
+			<ns5:SubscriptionRef>SUBHOR_ILEVIA:StopPoint:BP:CAS001:LOC</ns5:SubscriptionRef>
+			<ns5:Status>true</ns5:Status>
+			<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAS001:LOC</ns5:MonitoringRef>
+			<ns5:MonitoredStopVisit>
+				<ns5:RecordedAtTime>2022-06-15T04:35:56.969+02:00</ns5:RecordedAtTime>
+				<ns5:ItemIdentifier>SIRI:130784050</ns5:ItemIdentifier>
+				<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAS001:LOC</ns5:MonitoringRef>
+				<ns5:MonitoredVehicleJourney>
+					<ns5:LineRef>ILEVIA:Line::50:LOC</ns5:LineRef>
+					<ns5:FramedVehicleJourneyRef>
+						<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+						<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::50_1_052900_2_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+					</ns5:FramedVehicleJourneyRef>
+					<ns5:JourneyPatternRef>ILEVIA:JourneyPattern::50_STA001_LIG114_1:LOC</ns5:JourneyPatternRef>
+					<ns5:JourneyPatternName>50_STA001_LIG114_1</ns5:JourneyPatternName>
+					<ns5:VehicleMode>bus</ns5:VehicleMode>
+					<ns5:PublishedLineName>LIGNE 50</ns5:PublishedLineName>
+					<ns5:DirectionName>RETOUR</ns5:DirectionName>
+					<ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+					<ns5:DestinationRef>ILEVIA:StopPoint:BP:LIG114:LOC</ns5:DestinationRef>
+					<ns5:DestinationName>GARE LILLE FLANDRES</ns5:DestinationName>
+					<ns5:Monitored>true</ns5:Monitored>
+					<ns5:MonitoredCall>
+						<ns5:StopPointRef>ILEVIA:StopPoint:BP:CAS001:LOC</ns5:StopPointRef>
+						<ns5:Order>3</ns5:Order>
+						<ns5:StopPointName>CASSEL</ns5:StopPointName>
+						<ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+						<ns5:DestinationDisplay>LILLE FLANDRES</ns5:DestinationDisplay>
+						<ns5:AimedDepartureTime>2022-06-15T05:32:00.000+02:00</ns5:AimedDepartureTime>
+						<ns5:ExpectedDepartureTime>2022-06-15T05:32:30.000+02:00</ns5:ExpectedDepartureTime>
+						<ns5:DepartureStatus>onTime</ns5:DepartureStatus>
+					</ns5:MonitoredCall>
+				</ns5:MonitoredVehicleJourney>
+			</ns5:MonitoredStopVisit>
+			<ns5:MonitoredStopVisit>
+				<ns5:RecordedAtTime>2022-06-15T04:35:56.969+02:00</ns5:RecordedAtTime>
+				<ns5:ItemIdentifier>SIRI:130784224</ns5:ItemIdentifier>
+				<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAS001:LOC</ns5:MonitoringRef>
+				<ns5:MonitoredVehicleJourney>
+					<ns5:LineRef>ILEVIA:Line::50:LOC</ns5:LineRef>
+					<ns5:FramedVehicleJourneyRef>
+						<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+						<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::50_2_055900_2_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+					</ns5:FramedVehicleJourneyRef>
+					<ns5:JourneyPatternRef>ILEVIA:JourneyPattern::50_STA001_LIG114_1:LOC</ns5:JourneyPatternRef>
+					<ns5:JourneyPatternName>50_STA001_LIG114_1</ns5:JourneyPatternName>
+					<ns5:VehicleMode>bus</ns5:VehicleMode>
+					<ns5:PublishedLineName>LIGNE 50</ns5:PublishedLineName>
+					<ns5:DirectionName>RETOUR</ns5:DirectionName>
+					<ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+					<ns5:DestinationRef>ILEVIA:StopPoint:BP:LIG114:LOC</ns5:DestinationRef>
+					<ns5:DestinationName>GARE LILLE FLANDRES</ns5:DestinationName>
+					<ns5:Monitored>true</ns5:Monitored>
+					<ns5:MonitoredCall>
+						<ns5:StopPointRef>ILEVIA:StopPoint:BP:CAS001:LOC</ns5:StopPointRef>
+						<ns5:Order>3</ns5:Order>
+						<ns5:StopPointName>CASSEL</ns5:StopPointName>
+						<ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+						<ns5:DestinationDisplay>LILLE FLANDRES</ns5:DestinationDisplay>
+						<ns5:AimedDepartureTime>2022-06-15T06:02:00.000+02:00</ns5:AimedDepartureTime>
+						<ns5:DepartureStatus>onTime</ns5:DepartureStatus>
+					</ns5:MonitoredCall>
+				</ns5:MonitoredVehicleJourney>
+			</ns5:MonitoredStopVisit>
+			</ns5:StopMonitoringDelivery>
+			<ns5:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
+				<ns5:ResponseTimestamp>2022-08-16T04:36:15.640+02:00</ns5:ResponseTimestamp>
+				<ns5:RequestMessageRef>SUBHOR_ILEVIA:StopPoint:BP:CAS002:LOC</ns5:RequestMessageRef>
+				<ns5:SubscriberRef>KISIO2</ns5:SubscriberRef>
+				<ns5:SubscriptionRef>SUBHOR_ILEVIA:StopPoint:BP:CAS002:LOC</ns5:SubscriptionRef>
+				<ns5:Status>true</ns5:Status>
+				<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAS002:LOC</ns5:MonitoringRef>
+				<ns5:MonitoredStopVisitCancellation>
+					<ns5:RecordedAtTime>2022-08-16T04:36:15.591+02:00</ns5:RecordedAtTime>
+					<ns5:ItemRef>SIRI:130784051</ns5:ItemRef>
+					<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAS002:LOC</ns5:MonitoringRef>
+					<ns5:LineRef>ILEVIA:Line::50:LOC</ns5:LineRef>
+					<ns5:VehicleJourneyRef>
+						<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+						<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::50_1_052900_2_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+					</ns5:VehicleJourneyRef>
+				</ns5:MonitoredStopVisitCancellation>
+			</ns5:StopMonitoringDelivery>
+		</Notification>
+		<SiriExtension xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri"/>
+	</ns1:NotifyStopMonitoring>
+</soap:Body>
+</soap:Envelope>`
+
+	// Force the variable `time.Local` of the server while the run
+	time.Local = time.UTC
+
+	assert := assert.New(t)
+	getDepartures, getCancelledDepartures, err := LoadDeparturesFromByteArray([]byte(notificationXml))
+	assert.Nil(err)
+
+	// Ckeck parsed departures
+	{
+		var expectedDepartures = []Departure{
+			{
+				Id:              ItemId("SIRI:130784050"),
+				LineRef:         "50",
+				StopPointRef:    StopPointRef("CAS001"),
+				DirectionType:   departures.DirectionTypeBackward,
+				DestinationRef:  "LIG114",
+				DestinationName: "GARE LILLE FLANDRES",
+				AimedDepartureTime: time.Date(
+					2022, time.June, 15,
+					5, 32, 00, 000_000_000,
+					EXPECTED_LOCATION,
+				),
+				ExpectedDepartureTime: toTimePtr(time.Date(
+					2022, time.June, 15,
+					5, 32, 30, 0,
+					EXPECTED_LOCATION,
+				)),
+			},
+			{
+				Id:              ItemId("SIRI:130784224"),
+				LineRef:         "50",
+				StopPointRef:    StopPointRef("CAS001"),
+				DirectionType:   departures.DirectionTypeBackward,
+				DestinationRef:  "LIG114",
+				DestinationName: "GARE LILLE FLANDRES",
+				AimedDepartureTime: time.Date(
+					2022, time.June, 15,
+					6, 02, 00, 0,
+					EXPECTED_LOCATION,
+				),
+				ExpectedDepartureTime: nil,
+			},
+		}
+
+		assert.Equal(
+			expectedDepartures,
+			getDepartures,
+		)
+		// Check the departures type (theoretical or estimated)
+		assert.Equal(
+			departures.DepartureTypeEstimated,
+			getDepartures[0].GetDepartureType(),
+		)
+		assert.Equal(
+			departures.DepartureTypeTheoretical,
+			getDepartures[1].GetDepartureType(),
+		)
+	}
+
+	// Ckeck parsed cancelled departures
+	{
+		var expectedCancelledDepartures = []CancelledDeparture{
+			{
+				Id:           ItemId("SIRI:130784051"),
+				StopPointRef: StopPointRef("CAS002"),
+			},
+		}
+		assert.Equal(
+			expectedCancelledDepartures,
+			getCancelledDepartures,
+		)
+	}
+
 }
 
 func BenchmarkLoadDeparturesFromFilePath(b *testing.B) {

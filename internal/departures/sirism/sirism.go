@@ -257,14 +257,10 @@ func mapDeparturesByStopPointId(
 ) map[string][]departures.Departure {
 	result := make(map[string][]departures.Departure)
 	for _, siriSmDeparture := range siriSmDepartures {
-		departureType := departures.DepartureTypeEstimated
-		if siriSmDeparture.DepartureTimeIsTheoretical() {
-			departureType = departures.DepartureTypeTheoretical
-		}
 		appendedDeparture := departures.Departure{
 			Line:          siriSmDeparture.LineRef,
 			Stop:          string(siriSmDeparture.StopPointRef),
-			Type:          fmt.Sprint(departureType),
+			Type:          fmt.Sprint(siriSmDeparture.GetDepartureType()),
 			Direction:     siriSmDeparture.DestinationRef,
 			DirectionName: siriSmDeparture.DestinationName,
 			Datetime:      siriSmDeparture.GetDepartureTime(),

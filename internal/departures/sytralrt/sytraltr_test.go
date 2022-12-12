@@ -100,12 +100,18 @@ func TestDeparturesApi(t *testing.T) {
 		{
 			requestUri:                 "/departures?stop_id=3&stop_id=4",
 			expectedNumberOfDepartures: 8,
-			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward, departures.DirectionTypeBackward},
+			getDeparturesList: []departures.DirectionType{
+				departures.DirectionTypeForward,
+				departures.DirectionTypeBackward,
+			},
 		},
 		{
 			requestUri:                 "/departures?stop_id=3&stop_id=4&direction_type=both",
 			expectedNumberOfDepartures: 8,
-			getDeparturesList:          []departures.DirectionType{departures.DirectionTypeForward, departures.DirectionTypeBackward},
+			getDeparturesList: []departures.DirectionType{
+				departures.DirectionTypeForward,
+				departures.DirectionTypeBackward,
+			},
 		},
 		{
 			requestUri:                 "/departures?stop_id=3&stop_id=4&direction_type=forward",

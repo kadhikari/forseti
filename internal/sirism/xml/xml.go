@@ -118,7 +118,7 @@ type MonitoredCall struct {
 	XMLName               xml.Name     `xml:"MonitoredCall"`
 	StopPointRef          StopPointRef `xml:"StopPointRef"`
 	AimedDepartureTime    customTime   `xml:"AimedDepartureTime"`
-	ExpectedDepartureTime customTime   `xml:"ExpectedDepartureTime"`
+	ExpectedDepartureTime *customTime  `xml:"ExpectedDepartureTime,omitempty"`
 }
 
 type customTime time.Time

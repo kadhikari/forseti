@@ -17,6 +17,10 @@ var fixtureDir string
 
 const SECONDS_PER_HOUR int = 3_600
 
+func custumTimeToPtr(t customTime) *customTime {
+	return &t
+}
+
 func TestMain(m *testing.M) {
 
 	fixtureDir = os.Getenv("FIXTUREDIR")
@@ -146,11 +150,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									5, 32, 0, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									5, 32, 0, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -181,11 +185,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									6, 2, 0, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									6, 2, 0, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -226,11 +230,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									5, 44, 25, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									5, 44, 25, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -261,11 +265,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									6, 12, 25, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									6, 12, 25, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -296,11 +300,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									6, 14, 34, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									6, 14, 34, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -331,11 +335,11 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									6, 44, 34, 0,
 									EXPECTED_LOCATION,
 								)),
-								ExpectedDepartureTime: customTime(time.Date(
+								ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
 									2022, time.June, 15,
 									6, 44, 34, 0,
 									EXPECTED_LOCATION,
-								)),
+								))),
 							},
 						},
 					},
@@ -394,5 +398,85 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 				)
 			}
 		}
+	}
+}
+
+func TestMonitoredCallUnmarshalXML(t *testing.T) {
+	// Force the variable `time.Local` of the server while the run
+	time.Local = time.UTC
+	const SECONDS_PER_HOUR int = 3_600
+	var expectedLocation *time.Location = time.FixedZone("", 2*SECONDS_PER_HOUR)
+	var tests = []struct {
+		xmlText               string
+		expectedMonitoredCall MonitoredCall
+	}{
+		{ // with a tag `<ExpectedDepartureTime>`
+			xmlText: `
+<MonitoredCall xmlns="http://www.siri.org.uk/siri">
+	<StopPointRef>ILEVIA:StopPoint:BP:CEN001:LOC</StopPointRef>
+	<Order>17</Order>
+	<StopPointName>FRELINGHIEN CENTRE</StopPointName>
+	<VehicleAtStop>false</VehicleAtStop>
+	<DestinationDisplay>ST PHILIBERT</DestinationDisplay>
+	<AimedDepartureTime>2022-06-15T07:02:00.000+02:00</AimedDepartureTime>
+	<ExpectedDepartureTime>2022-06-15T07:01:00.000+02:00</ExpectedDepartureTime>
+	<DepartureStatus>onTime</DepartureStatus>
+</MonitoredCall>`,
+			expectedMonitoredCall: MonitoredCall{
+				XMLName: xml.Name{
+					Space: "http://www.siri.org.uk/siri",
+					Local: "MonitoredCall",
+				},
+				StopPointRef: StopPointRef("CEN001"),
+				AimedDepartureTime: customTime(time.Date(
+					2022, time.June, 15,
+					7, 2, 0, 000_000_000,
+					expectedLocation,
+				)),
+				ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
+					2022, time.June, 15,
+					7, 1, 0, 000_000_000,
+					expectedLocation,
+				))),
+			},
+		},
+		{ // without a tag `<ExpectedDepartureTime>`
+			xmlText: `
+<MonitoredCall xmlns="http://www.siri.org.uk/siri">
+	<StopPointRef>ILEVIA:StopPoint:BP:CEN001:LOC</StopPointRef>
+	<Order>17</Order>
+	<StopPointName>FRELINGHIEN CENTRE</StopPointName>
+	<VehicleAtStop>false</VehicleAtStop>
+	<DestinationDisplay>ST PHILIBERT</DestinationDisplay>
+	<AimedDepartureTime>2022-06-15T07:02:00.000+02:00</AimedDepartureTime>
+	<DepartureStatus>onTime</DepartureStatus>
+</MonitoredCall>`,
+			expectedMonitoredCall: MonitoredCall{
+				XMLName: xml.Name{
+					Space: "http://www.siri.org.uk/siri",
+					Local: "MonitoredCall",
+				},
+				StopPointRef: StopPointRef("CEN001"),
+				AimedDepartureTime: customTime(time.Date(
+					2022, time.June, 15,
+					7, 2, 0, 000_000_000,
+					expectedLocation,
+				)),
+				ExpectedDepartureTime: nil,
+			},
+		},
+	}
+	assert := assert.New(t)
+	for _, test := range tests {
+		getMonitoredCall := MonitoredCall{}
+		err := xml.Unmarshal(
+			[]byte(test.xmlText),
+			&getMonitoredCall,
+		)
+		assert.Nil(err)
+		assert.Equal(
+			test.expectedMonitoredCall,
+			getMonitoredCall,
+		)
 	}
 }

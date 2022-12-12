@@ -46,10 +46,6 @@ jobs:
           make dockerhub-login DOCKERHUB_USER=${{secrets.DOCKERHUB_USER}} DOCKERHUB_PWD=${{secrets.DOCKERHUB_PWD}}
           make push-image-forseti-master
 
-      - name: Publish master images to aws:sbx
-        run: |
-          make push-image-forseti-master-to-sbx
-
       - name: slack notification (the job has failed)
         if: failure()
         run: |
@@ -61,5 +57,4 @@ jobs:
     runs-on: [ self-hosted, forseti, sandbox ]
     steps:
       - name: Push dev images to aws sandbox registry
-        if: github.event_name == 'push'
         run: make push-image-forseti-master-to-sbx

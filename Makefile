@@ -1,6 +1,11 @@
 VERSION=$(shell git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
 PROJECT='forseti'
 DOCKER_HUB='navitia/'$(PROJECT)
+REGION='eu-west-1'
+PRD_TAG_EXT='navitia-'$(PROJECT)-$(PROJECT)
+SBX_ECR_REGISTRY='103372532272.dkr.ecr.eu-west-1.amazonaws.com'
+PRD_ECR_REGISTRY='162230498103.dkr.ecr.eu-west-1.amazonaws.com'
+
 GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
 .PHONY: linter-install
@@ -79,6 +84,22 @@ push-image-forseti-master: ## Push forseti-image to dockerhub
 	$(info Push image-forseti-master to Dockerhub)
 	docker tag $(PROJECT):$(VERSION) $(DOCKER_HUB):master
 	docker push $(DOCKER_HUB):master
+
+.PHONY: push-image-forseti-master-to-ecr-sbx
+push-image-forseti-master-to-ecr-sbx: ## Push forseti-image to ecr:sbx
+	$(info Push image-forseti-master to ecr:sbx)
+	docker pull $(DOCKER_HUB):master
+	docker tag $(DOCKER_HUB):master $(SBX_ECR_REGISTRY)/$(PROJECT):master
+	aws ecr get-login-password --region $(REGION) | docker login --username AWS --password-stdin  $(SBX_ECR_REGISTRY)
+	docker push $(SBX_ECR_REGISTRY)/$(PROJECT):master
+
+.PHONY: push-image-forseti-release-to-prd
+push-image-forseti-release-to-prd: ## Push forseti-mage to ecr:prd
+	$(info Push image-forseti-release to ecr:prd)
+	docker pull $(DOCKER_HUB):$(VERSION)
+	docker tag $(DOCKER_HUB):$(VERSION) $(PRD_ECR_REGISTRY)/$(PRD_TAG_EXT):$(VERSION)
+	aws ecr get-login-password --region $(REGION) | docker login --username AWS --password-stdin  $(PRD_ECR_REGISTRY)
+	docker push $(PRD_ECR_REGISTRY)/$(PRD_TAG_EXT):$(VERSION)
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help

@@ -15,7 +15,7 @@ jobs:
           go-version: 1.17
 
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -49,3 +49,15 @@ jobs:
         if: failure()
         run: |
           echo '{"text":":warning: Forseti Github Actions: Create image for branch master failed ! (https://github.com/hove-io/forseti/actions/workflows/master.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+
+  PushImageAws:
+    if: github.event_name == 'push'
+    needs: CreateAndPublish
+    runs-on: [ self-hosted, forseti, sandbox ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Push dev images to aws sandbox registry
+        run: make push-image-forseti-master-to-ecr-sbx

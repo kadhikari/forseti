@@ -4,6 +4,7 @@ DOCKER_HUB='navitia/'$(PROJECT)
 REGION='eu-west-1'
 SBX_ECR_REGISTRY: '103372532272.dkr.ecr.eu-west-1.amazonaws.com'
 PRD_ECR_REGISTRY: '162230498103.dkr.ecr.eu-west-1.amazonaws.com'
+DOCKER_AWS_SBX: '103372532272.dkr.ecr.eu-west-1.amazonaws.com/'$(PROJECT)
 
 GTFS_PROTO='google_transit/gtfs-realtime/proto/gtfs-realtime.proto'
 
@@ -88,9 +89,9 @@ push-image-forseti-master: ## Push forseti-image to dockerhub
 push-image-forseti-master-to-sbx: ## Push forseti-image to aws:sbx
 	$(info Push image-forseti-master to aws:sbx)
 	docker pull $(DOCKER_HUB):master
-	docker tag $(DOCKER_HUB):master $(SBX_ECR_REGISTRY)/$(PROJECT):master
+	docker tag $(DOCKER_HUB):master $(DOCKER_AWS_SBX):master
 	aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin  $SBX_ECR_REGISTRY
-	docker push $(SBX_ECR_REGISTRY)/$(PROJECT):master
+	docker push $(DOCKER_AWS_SBX):master
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 .PHONY: help

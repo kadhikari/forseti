@@ -90,7 +90,7 @@ push-image-forseti-master-to-sbx: ## Push forseti-image to aws:sbx
 	$(info Push image-forseti-master to aws:sbx)
 	docker pull $(DOCKER_HUB):master
 	docker tag $(DOCKER_HUB):master $(SBX_ECR_REGISTRY)/$(PROJECT):master
-	aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin  $SBX_ECR_REGISTRY
+	aws ecr get-login-password --region $(REGION) | docker login --username AWS --password-stdin  $(SBX_ECR_REGISTRY)
 	docker push $(SBX_ECR_REGISTRY)/$(PROJECT):master
 
 # Absolutely awesome: http://marmelab.com/blog/2016/02/29/auto-documented-makefile.html

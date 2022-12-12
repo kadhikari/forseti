@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - feat_push_image_master_to_ecr_sbx
 
 jobs:
   CreateAndPublish:

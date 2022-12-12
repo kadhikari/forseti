@@ -87,6 +87,7 @@ push-image-forseti-master: ## Push forseti-image to dockerhub
 .PHONY: push-image-forseti-master-to-sbx
 push-image-forseti-master-to-sbx: ## Push forseti-image to aws:sbx
 	$(info Push image-forseti-master to aws:sbx)
+	docker pull $(DOCKER_HUB):master
 	docker tag $(PROJECT):$(VERSION) $(SBX_ECR_REGISTRY)/$(PROJECT):master
 	aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin  $SBX_ECR_REGISTRY
 	docker push $(SBX_ECR_REGISTRY)/$(PROJECT):master

@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - feat_push_image_master_to_sbx
 
 jobs:
   CreateAndPublish:
@@ -53,3 +54,12 @@ jobs:
         if: failure()
         run: |
           echo '{"text":":warning: Forseti Github Actions: Create image for branch master failed ! (https://github.com/hove-io/forseti/actions/workflows/master.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+
+  PushAwsEcr:
+    runs-on: [ self-hosted, forseti, sandbox ]
+      if: github.event_name == 'push'
+      needs: CreateAndPublish
+      steps:
+        - name: Push dev images to aws sandbox registry
+          if: github.event_name == 'push'
+          run: make push-image-forseti-master-to-sbx

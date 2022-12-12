@@ -61,4 +61,4 @@ jobs:
         with:
           fetch-depth: 0
       - name: Push dev images to aws sandbox registry
-        run: make push-image-forseti-master-to-sbx
+        run: make push-image-forseti-master-to-ecr-sbx

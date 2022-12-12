@@ -62,3 +62,15 @@ jobs:
         run: |
           VERSION=$(git tag -l --sort=-v:refname| sed 's/v//g'| head -n 1)
           echo '{"text":":information_source: Forseti Github Actions: Create image for branch realse succeded - New image forseti' $VERSION 'is available"}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
+
+  PushImageAws:
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+    needs: CreateAndPublish
+    runs-on: [ self-hosted, forseti, sandbox ]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Push release image to aws prod registry
+        run: make push-image-forseti-release-to-prd

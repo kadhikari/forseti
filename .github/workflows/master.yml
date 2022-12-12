@@ -55,7 +55,7 @@ jobs:
         run: |
           echo '{"text":":warning: Forseti Github Actions: Create image for branch master failed ! (https://github.com/hove-io/forseti/actions/workflows/master.yml)."}' | http --json POST ${{secrets.SLACK_NAVITIA_CORE_TEAM_URL}}
 
-  PushAwsEcr:
+  PushImageAws:
     runs-on: [ self-hosted, forseti, sandbox ]
       if: github.event_name == 'push'
       needs: CreateAndPublish

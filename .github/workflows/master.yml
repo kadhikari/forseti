@@ -59,7 +59,7 @@ jobs:
     if: github.event_name == 'push'
     needs: CreateAndPublish
     runs-on: [ self-hosted, forseti, sandbox ]
-      steps:
-        - name: Push dev images to aws sandbox registry
-          if: github.event_name == 'push'
-          run: make push-image-forseti-master-to-sbx
+    steps:
+      - name: Push dev images to aws sandbox registry
+        if: github.event_name == 'push'
+        run: make push-image-forseti-master-to-sbx

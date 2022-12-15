@@ -188,13 +188,10 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 			updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notificationBytes)
 			if err != nil {
 				logrus.Errorf("record parsing error: %v", err)
+				d.mutex.Unlock()
 				continue
 			}
 			d.updateDepartures(updatedDepartures, cancelledDepartures)
-			if err != nil {
-				logrus.Errorf("departures updating error: %v", err)
-				continue
-			}
 			mappedLoadedDepartures := mapDeparturesByStopPointId(d.departures)
 			context.UpdateDepartures(mappedLoadedDepartures)
 			logrus.Info("departures are updated")

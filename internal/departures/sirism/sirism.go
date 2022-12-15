@@ -192,11 +192,6 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 				continue
 			}
 			d.updateDepartures(updatedDepartures, cancelledDepartures)
-			if err != nil {
-				logrus.Errorf("departures updating error: %v", err)
-				d.mutex.Unlock()
-				continue
-			}
 			mappedLoadedDepartures := mapDeparturesByStopPointId(d.departures)
 			context.UpdateDepartures(mappedLoadedDepartures)
 			logrus.Info("departures are updated")

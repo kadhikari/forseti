@@ -77,29 +77,35 @@ func (smd *StopMonitoringDelivery) UnmarshalXML(d *xml.Decoder, start xml.StartE
 				case *directionname.UnexpectedDirectionNameError:
 					// skip the current token
 					logrus.Warnf(
-						"unexpected DirectionName %s, the current MonitoredStopVisit is skipped ",
+						"unexpected DirectionName %s, the current MonitoredStopVisit is skipped",
 						e.UnexpectedDirectionName,
 					)
 					continue
 				case nil:
-					// nothing to do
+					monitoredStopVisits = append(
+						monitoredStopVisits,
+						monitoredStopVisit,
+					)
 				default:
-					return e
+					logrus.Errorf(
+						"an unexpected error occurred while the XML parsing, the current MonitoredStopVisit is skipped: %v",
+						err,
+					)
 				}
-				monitoredStopVisits = append(
-					monitoredStopVisits,
-					monitoredStopVisit,
-				)
 			case "MonitoredStopVisitCancellation":
 				var monitoredStopVisitCancellation MonitoredStopVisitCancellation
 				err = d.DecodeElement(&monitoredStopVisitCancellation, &start)
 				if err != nil {
-					return nil
+					logrus.Errorf(
+						"an unexpected error occurred while the XML parsing, the current MonitoredStopVisitCancellation is skipped: %v",
+						err,
+					)
+				} else {
+					monitoredStopVisitCancellations = append(
+						monitoredStopVisitCancellations,
+						monitoredStopVisitCancellation,
+					)
 				}
-				monitoredStopVisitCancellations = append(
-					monitoredStopVisitCancellations,
-					monitoredStopVisitCancellation,
-				)
 			}
 		}
 	}

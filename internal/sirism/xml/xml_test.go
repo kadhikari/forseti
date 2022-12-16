@@ -480,3 +480,117 @@ func TestMonitoredCallUnmarshalXML(t *testing.T) {
 		)
 	}
 }
+
+func TestEnvelopeUnmarshalXMLWithInvalidDirectionName(t *testing.T) {
+	assert := assert.New(t)
+	// Force the variable `time.Local` of the server while the run
+	time.Local = time.UTC
+	const secondsPerHour int = 3_600
+	var expectedLocation *time.Location = time.FixedZone("", 2*secondsPerHour)
+	const expectedTotalNumberOfMonitoredStopVisits = 2
+	const expectedTotalNumberOfMonitoredStopVisitCancellations = 0
+	expectedStopMonitoringDeliveries := []StopMonitoringDelivery{
+		{
+			XMLName: xml.Name{
+				Space: "http://www.siri.org.uk/siri",
+				Local: "StopMonitoringDelivery",
+			},
+			MonitoringRef: StopPointRef("CAT001"),
+			MonitoredStopVisits: []MonitoredStopVisit{
+				{
+					XMLName: xml.Name{
+						Space: "http://www.siri.org.uk/siri",
+						Local: "MonitoredStopVisit",
+					},
+					ItemIdentifier: "SIRI:130706562",
+					MonitoringRef:  StopPointRef("CAT001"),
+					MonitoredVehicleJourney: MonitoredVehicleJourney{
+						XMLName: xml.Name{
+							Space: "http://www.siri.org.uk/siri",
+							Local: "MonitoredVehicleJourney",
+						},
+						LineRef:         LineRef("86"),
+						DirectionName:   directionname.DirectionNameAller,
+						DestinationRef:  StopPointRef("LEU001"),
+						DestinationName: "GARE LILLE EUROPE",
+						MonitoredCall: MonitoredCall{
+							XMLName: xml.Name{
+								Space: "http://www.siri.org.uk/siri",
+								Local: "MonitoredCall",
+							},
+							StopPointRef: StopPointRef("CAT001"),
+							AimedDepartureTime: customTime(time.Date(
+								2022, time.June, 15,
+								6, 10, 45, 0,
+								expectedLocation,
+							)),
+							ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
+								2022, time.June, 15,
+								6, 10, 45, 0,
+								expectedLocation,
+							))),
+						},
+					},
+				},
+				{
+					XMLName: xml.Name{
+						Space: "http://www.siri.org.uk/siri",
+						Local: "MonitoredStopVisit",
+					},
+					ItemIdentifier: "SIRI:130683837",
+					MonitoringRef:  StopPointRef("CAT001"),
+					MonitoredVehicleJourney: MonitoredVehicleJourney{
+						XMLName: xml.Name{
+							Space: "http://www.siri.org.uk/siri",
+							Local: "MonitoredVehicleJourney",
+						},
+						LineRef:         LineRef("82"),
+						DirectionName:   directionname.DirectionNameAller,
+						DestinationRef:  StopPointRef("PDN002"),
+						DestinationName: "TOURCOING PONT DE NEUVILLE",
+						MonitoredCall: MonitoredCall{
+							XMLName: xml.Name{
+								Space: "http://www.siri.org.uk/siri",
+								Local: "MonitoredCall",
+							},
+							StopPointRef: StopPointRef("CAT001"),
+							AimedDepartureTime: customTime(time.Date(
+								2022, time.June, 15,
+								6, 24, 5, 0,
+								expectedLocation,
+							)),
+							ExpectedDepartureTime: custumTimeToPtr(customTime(time.Date(
+								2022, time.June, 15,
+								6, 24, 5, 0,
+								expectedLocation,
+							))),
+						},
+					},
+				},
+			},
+			MonitoredStopVisitCancellations: nil,
+		},
+	}
+
+	{
+		const xmlFileName string = "notif_siri_with_invalid_directionname.xml"
+		// Force the variable `time.Local` of the server while the run
+		time.Local = time.UTC
+		var getEnveloppe Envelope
+		parseNotificationFromXmlFile(assert, xmlFileName, &getEnveloppe)
+		notification := getEnveloppe.Notification
+		assert.Equal(
+			expectedTotalNumberOfMonitoredStopVisits,
+			notification.getTotalNumberOfMonitoredStopVisits(),
+		)
+		assert.Equal(
+			expectedTotalNumberOfMonitoredStopVisitCancellations,
+			notification.getTotalNumberOfMonitoredStopVisitCancellations(),
+		)
+		assert.Equal(
+			expectedStopMonitoringDeliveries,
+			notification.StopMonitoringDeliveries,
+		)
+	}
+
+}

@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/hove-io/forseti/internal/sirism/directionname"
+	"github.com/sirupsen/logrus"
 )
 
 type Envelope struct {
@@ -48,6 +49,80 @@ type StopMonitoringDelivery struct {
 	MonitoringRef                   StopPointRef                     `xml:"MonitoringRef"`
 	MonitoredStopVisits             []MonitoredStopVisit             `xml:"MonitoredStopVisit"`
 	MonitoredStopVisitCancellations []MonitoredStopVisitCancellation `xml:"MonitoredStopVisitCancellation"`
+}
+
+func (smd *StopMonitoringDelivery) UnmarshalXML(d *xml.Decoder, start xml.StartElement) error {
+
+	var monitoringRef StopPointRef
+	monitoredStopVisits := make([]MonitoredStopVisit, 0)
+	monitoredStopVisitCancellations := make([]MonitoredStopVisitCancellation, 0)
+
+	for token, err := d.Token(); err == nil; token, err = d.Token() {
+		if err != nil {
+			return err
+		}
+		switch start := token.(type) {
+		case xml.StartElement:
+			tag := start.Name.Local
+			switch tag {
+			case "MonitoringRef":
+				err = d.DecodeElement(&monitoringRef, &start)
+				if err != nil {
+					return err
+				}
+			case "MonitoredStopVisit":
+				var monitoredStopVisit MonitoredStopVisit
+				err = d.DecodeElement(&monitoredStopVisit, &start)
+				switch e := err.(type) {
+				case *directionname.UnexpectedDirectionNameError:
+					// skip the current token
+					logrus.Warnf(
+						"unexpected DirectionName %s, the current MonitoredStopVisit(%s) is skipped ",
+						monitoredStopVisit.ItemIdentifier,
+						e.UnexpectedDirectionName,
+					)
+					continue
+				case nil:
+					// nothing to do
+				default:
+					return e
+				}
+				monitoredStopVisits = append(
+					monitoredStopVisits,
+					monitoredStopVisit,
+				)
+			case "MonitoredStopVisitCancellation":
+				var monitoredStopVisitCancellation MonitoredStopVisitCancellation
+				err = d.DecodeElement(&monitoredStopVisitCancellation, &start)
+				if err != nil {
+					return nil
+				}
+				monitoredStopVisitCancellations = append(
+					monitoredStopVisitCancellations,
+					monitoredStopVisitCancellation,
+				)
+			}
+		}
+	}
+	smd.XMLName = start.Name
+	smd.MonitoringRef = monitoringRef
+	{
+		// Default behaviour of the function `UnmarshalXML()`:
+		// the slice is not allocated if no matching element have been found
+		if len(monitoredStopVisits) == 0 {
+			monitoredStopVisits = nil
+		}
+		smd.MonitoredStopVisits = monitoredStopVisits
+	}
+	{
+		// Default behaviour of the function  `UnmarshalXML()`:
+		// the slice is not allocated if not matching element have been found
+		if len(monitoredStopVisitCancellations) == 0 {
+			monitoredStopVisitCancellations = nil
+		}
+		smd.MonitoredStopVisitCancellations = monitoredStopVisitCancellations
+	}
+	return nil
 }
 
 type StopPointRef string

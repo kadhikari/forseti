@@ -77,8 +77,7 @@ func (smd *StopMonitoringDelivery) UnmarshalXML(d *xml.Decoder, start xml.StartE
 				case *directionname.UnexpectedDirectionNameError:
 					// skip the current token
 					logrus.Warnf(
-						"unexpected DirectionName %s, the current MonitoredStopVisit(%s) is skipped ",
-						monitoredStopVisit.ItemIdentifier,
+						"unexpected DirectionName %s, the current MonitoredStopVisit is skipped ",
 						e.UnexpectedDirectionName,
 					)
 					continue

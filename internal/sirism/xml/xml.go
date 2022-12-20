@@ -80,7 +80,6 @@ func (smd *StopMonitoringDelivery) UnmarshalXML(d *xml.Decoder, start xml.StartE
 						"unexpected DirectionName %s, the current MonitoredStopVisit is skipped",
 						e.UnexpectedDirectionName,
 					)
-					continue
 				case nil:
 					monitoredStopVisits = append(
 						monitoredStopVisits,

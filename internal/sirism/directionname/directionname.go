@@ -28,5 +28,20 @@ func (dn *DirectionName) UnmarshalXML(d *xml.Decoder, start xml.StartElement) er
 		return nil
 	}
 
-	return fmt.Errorf("the `DirectionName` is not well formatted: %s", innerText)
+	return &UnexpectedDirectionNameError{
+		UnexpectedDirectionName: innerText,
+	}
+}
+
+type UnexpectedDirectionNameError struct {
+	UnexpectedDirectionName string
+}
+
+// Overriding of the interface `Error`
+func (err *UnexpectedDirectionNameError) Error() string {
+	errMessage := fmt.Sprintf(
+		"the direction name '%s' is not expected",
+		err.UnexpectedDirectionName,
+	)
+	return errMessage
 }

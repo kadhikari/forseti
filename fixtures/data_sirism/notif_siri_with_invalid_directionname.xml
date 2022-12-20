@@ -1,0 +1,116 @@
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+	<soap:Body>
+		<ns1:NotifyStopMonitoring xmlns:ns1="http://wsdl.siri.org.uk">
+			<ServiceDeliveryInfo xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+				<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
+				<ns5:ProducerRef>ILEVIA</ns5:ProducerRef>
+				<ns5:ResponseMessageIdentifier>ILEVIA:ResponseMessage::2136076:LOC</ns5:ResponseMessageIdentifier>
+				<ns5:RequestMessageRef>SUBREQ</ns5:RequestMessageRef>
+			</ServiceDeliveryInfo>
+			<Notification xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri">
+				<ns5:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
+					<ns5:ResponseTimestamp>2022-06-15T04:36:07.881+02:00</ns5:ResponseTimestamp>
+					<ns5:RequestMessageRef>SUBHOR_ILEVIA:StopPoint:BP:CAT001:LOC</ns5:RequestMessageRef>
+					<ns5:SubscriberRef>KISIO2</ns5:SubscriberRef>
+					<ns5:SubscriptionRef>SUBHOR_ILEVIA:StopPoint:BP:CAT001:LOC</ns5:SubscriptionRef>
+					<ns5:Status>true</ns5:Status>
+					<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:MonitoringRef>
+					<ns5:MonitoredStopVisit>
+						<ns5:RecordedAtTime>2022-06-15T04:35:57.169+02:00</ns5:RecordedAtTime>
+						<ns5:ItemIdentifier>SIRI:130706562</ns5:ItemIdentifier>
+						<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:MonitoringRef>
+						<ns5:MonitoredVehicleJourney>
+							<ns5:LineRef>ILEVIA:Line::86:LOC</ns5:LineRef>
+							<ns5:FramedVehicleJourneyRef>
+								<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+								<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::86_1_060000_1_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+							</ns5:FramedVehicleJourneyRef>
+							<ns5:JourneyPatternRef>ILEVIA:JourneyPattern::86_COG001_LEU001_1:LOC</ns5:JourneyPatternRef>
+							<ns5:JourneyPatternName>86_COG001_LEU001_1</ns5:JourneyPatternName>
+							<ns5:VehicleMode>bus</ns5:VehicleMode>
+							<ns5:PublishedLineName>LIGNE 86</ns5:PublishedLineName>
+							<ns5:DirectionName>ALLER</ns5:DirectionName>
+							<ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+							<ns5:DestinationRef>ILEVIA:StopPoint:BP:LEU001:LOC</ns5:DestinationRef>
+							<ns5:DestinationName>GARE LILLE EUROPE</ns5:DestinationName>
+							<ns5:Monitored>true</ns5:Monitored>
+							<ns5:MonitoredCall>
+								<ns5:StopPointRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:StopPointRef>
+								<ns5:Order>9</ns5:Order>
+								<ns5:StopPointName>BOUSBECQUE CAT</ns5:StopPointName>
+								<ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+								<ns5:DestinationDisplay>LILLE EUROPE</ns5:DestinationDisplay>
+								<ns5:AimedDepartureTime>2022-06-15T06:10:45.000+02:00</ns5:AimedDepartureTime>
+								<ns5:ExpectedDepartureTime>2022-06-15T06:10:45.000+02:00</ns5:ExpectedDepartureTime>
+								<ns5:DepartureStatus>onTime</ns5:DepartureStatus>
+							</ns5:MonitoredCall>
+						</ns5:MonitoredVehicleJourney>
+					</ns5:MonitoredStopVisit>
+					<ns5:MonitoredStopVisit>
+						<ns5:RecordedAtTime>2022-06-15T04:35:57.169+02:00</ns5:RecordedAtTime>
+						<ns5:ItemIdentifier>SIRI:130790237</ns5:ItemIdentifier>
+						<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:MonitoringRef>
+						<ns5:MonitoredVehicleJourney>
+							<ns5:LineRef>ILEVIA:Line::84:LOC</ns5:LineRef>
+							<ns5:FramedVehicleJourneyRef>
+								<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+								<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::84_53_060000_1_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+							</ns5:FramedVehicleJourneyRef>
+							<ns5:JourneyPatternRef>ILEVIA:JourneyPattern::84_GLY002_PLR037_1:LOC</ns5:JourneyPatternRef>
+							<ns5:JourneyPatternName>84_GLY002_PLR037_1</ns5:JourneyPatternName>
+							<ns5:VehicleMode>bus</ns5:VehicleMode>
+							<ns5:PublishedLineName>LIGNE 84</ns5:PublishedLineName>
+							<ns5:DirectionName>INVALID_DIRECTION_NAME</ns5:DirectionName>
+							<ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+							<ns5:DestinationRef>ILEVIA:StopPoint:BP:PLR037:LOC</ns5:DestinationRef>
+							<ns5:DestinationName>TOURCOING CENTRE</ns5:DestinationName>
+							<ns5:Monitored>true</ns5:Monitored>
+							<ns5:MonitoredCall>
+								<ns5:StopPointRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:StopPointRef>
+								<ns5:Order>13</ns5:Order>
+								<ns5:StopPointName>BOUSBECQUE CAT</ns5:StopPointName>
+								<ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+								<ns5:DestinationDisplay>TOURCOING CENTRE</ns5:DestinationDisplay>
+								<ns5:AimedDepartureTime>2022-06-15T06:13:00.000+02:00</ns5:AimedDepartureTime>
+								<ns5:ExpectedDepartureTime>2022-06-15T06:13:00.000+02:00</ns5:ExpectedDepartureTime>
+								<ns5:DepartureStatus>onTime</ns5:DepartureStatus>
+							</ns5:MonitoredCall>
+						</ns5:MonitoredVehicleJourney>
+					</ns5:MonitoredStopVisit>
+					<ns5:MonitoredStopVisit>
+						<ns5:RecordedAtTime>2022-06-15T04:35:57.169+02:00</ns5:RecordedAtTime>
+						<ns5:ItemIdentifier>SIRI:130683837</ns5:ItemIdentifier>
+						<ns5:MonitoringRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:MonitoringRef>
+						<ns5:MonitoredVehicleJourney>
+							<ns5:LineRef>ILEVIA:Line::82:LOC</ns5:LineRef>
+							<ns5:FramedVehicleJourneyRef>
+								<ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+								<ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::82_2_054000_1_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
+							</ns5:FramedVehicleJourneyRef>
+							<ns5:JourneyPatternRef>ILEVIA:JourneyPattern::82_ARG082_PDN002_5:LOC</ns5:JourneyPatternRef>
+							<ns5:JourneyPatternName>82_ARG082_PDN002_5</ns5:JourneyPatternName>
+							<ns5:VehicleMode>bus</ns5:VehicleMode>
+							<ns5:PublishedLineName>LIGNE 82</ns5:PublishedLineName>
+							<ns5:DirectionName>ALLER</ns5:DirectionName>
+							<ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+							<ns5:DestinationRef>ILEVIA:StopPoint:BP:PDN002:LOC</ns5:DestinationRef>
+							<ns5:DestinationName>TOURCOING PONT DE NEUVILLE</ns5:DestinationName>
+							<ns5:Monitored>true</ns5:Monitored>
+							<ns5:MonitoredCall>
+								<ns5:StopPointRef>ILEVIA:StopPoint:BP:CAT001:LOC</ns5:StopPointRef>
+								<ns5:Order>38</ns5:Order>
+								<ns5:StopPointName>BOUSBECQUE CAT</ns5:StopPointName>
+								<ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+								<ns5:DestinationDisplay>PT DE NEUVILLE</ns5:DestinationDisplay>
+								<ns5:AimedDepartureTime>2022-06-15T06:24:05.000+02:00</ns5:AimedDepartureTime>
+								<ns5:ExpectedDepartureTime>2022-06-15T06:24:05.000+02:00</ns5:ExpectedDepartureTime>
+								<ns5:DepartureStatus>onTime</ns5:DepartureStatus>
+							</ns5:MonitoredCall>
+						</ns5:MonitoredVehicleJourney>
+					</ns5:MonitoredStopVisit>
+				</ns5:StopMonitoringDelivery>
+			</Notification>
+			<SiriExtension xmlns:ns2="http://www.ifopt.org.uk/acsb" xmlns:ns3="http://www.ifopt.org.uk/ifopt" xmlns:ns4="http://datex2.eu/schema/2_0RC1/2_0" xmlns:ns5="http://www.siri.org.uk/siri" xmlns:ns6="http://wsdl.siri.org.uk/siri"/>
+		</ns1:NotifyStopMonitoring>
+	</soap:Body>
+</soap:Envelope>

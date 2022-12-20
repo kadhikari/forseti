@@ -480,3 +480,35 @@ func TestMonitoredCallUnmarshalXML(t *testing.T) {
 		)
 	}
 }
+
+func TestEnvelopeUnmarshalXMLWithInvalidDirectionName(t *testing.T) {
+	assert := assert.New(t)
+	// Force the variable `time.Local` of the server while the run
+	time.Local = time.UTC
+	const expectedTotalNumberOfMonitoredStopVisits = 2
+	const expectedTotalNumberOfMonitoredStopVisitCancellations = 0
+	expectedMonitoredStopVisitItemIdentifiers := []string{"SIRI:130706562", "SIRI:130683837"}
+	{
+		const xmlFileName string = "notif_siri_with_invalid_directionname.xml"
+		// Force the variable `time.Local` of the server while the run
+		time.Local = time.UTC
+		var getEnveloppe Envelope
+		parseNotificationFromXmlFile(assert, xmlFileName, &getEnveloppe)
+		notification := getEnveloppe.Notification
+		assert.Equal(
+			expectedTotalNumberOfMonitoredStopVisits,
+			notification.getTotalNumberOfMonitoredStopVisits(),
+		)
+		assert.Equal(
+			expectedTotalNumberOfMonitoredStopVisitCancellations,
+			notification.getTotalNumberOfMonitoredStopVisitCancellations(),
+		)
+		for index, monitoredStopVisit := range notification.StopMonitoringDeliveries[0].MonitoredStopVisits {
+			assert.Equal(
+				expectedMonitoredStopVisitItemIdentifiers[index],
+				monitoredStopVisit.ItemIdentifier,
+			)
+		}
+	}
+
+}

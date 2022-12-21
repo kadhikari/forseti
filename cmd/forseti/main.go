@@ -29,17 +29,18 @@ import (
 )
 
 type Config struct {
-	DeparturesFilesURIStr             string `mapstructure:"departures-files-uri"`
-	DeparturesFilesURI                url.URL
-	DeparturesFilesRefresh            time.Duration `mapstructure:"departures-files-refresh"`
-	DeparturesServiceURIStr           string        `mapstructure:"departures-service-uri"`
-	DeparturesServiceURI              url.URL
-	DeparturesServiceRefresh          time.Duration `mapstructure:"departures-service-refresh"`
-	DeparturesToken                   string        `mapstructure:"departures-token"`
-	DeparturesType                    string        `mapstructure:"departures-type"`
-	DeparturesServiceSwitch           string        `mapstructure:"departures-service-switch"`
-	DeparturesNotificationsStreamName string        `mapstructure:"departures-notifications-stream-name"`
-	DeparturesStreamReadOnlyRoleARN   string        `mapstructure:"departures-stream-read-only-role-arn"`
+	DeparturesFilesURIStr               string `mapstructure:"departures-files-uri"`
+	DeparturesFilesURI                  url.URL
+	DeparturesFilesRefresh              time.Duration `mapstructure:"departures-files-refresh"`
+	DeparturesServiceURIStr             string        `mapstructure:"departures-service-uri"`
+	DeparturesServiceURI                url.URL
+	DeparturesServiceRefresh            time.Duration `mapstructure:"departures-service-refresh"`
+	DeparturesToken                     string        `mapstructure:"departures-token"`
+	DeparturesType                      string        `mapstructure:"departures-type"`
+	DeparturesServiceSwitch             string        `mapstructure:"departures-service-switch"`
+	DeparturesNotificationsStreamName   string        `mapstructure:"departures-notifications-stream-name"`
+	DeparturesStreamReadOnlyRoleARN     string        `mapstructure:"departures-stream-read-only-role-arn"`
+	DeparturesNotificationsReloadPeriod time.Duration `mapstructure:"departures-notifications-reload-period"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -121,6 +122,11 @@ func GetConfig() (Config, error) {
 		"Name of a AWS Kinesis Data Stream (required for the connector siri-sm)",
 	)
 	pflag.String("departures-stream-read-only-role-arn", "", "ARN for read-only Role")
+	pflag.Duration(
+		"departures-notifications-reload-period",
+		3*time.Hour,
+		"The period since which the records are being reloaded (used by the connector siri-sm)",
+	)
 
 	//Passing configurations for parkings
 	pflag.String("parkings-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -393,6 +399,7 @@ func Departures(
 		siriSmContext.InitContext(
 			config.DeparturesStreamReadOnlyRoleARN,
 			config.DeparturesNotificationsStreamName,
+			config.DeparturesNotificationsReloadPeriod,
 			config.ConnectionTimeout,
 			serviceSwitchTime,
 			config.TimeZoneLocation,

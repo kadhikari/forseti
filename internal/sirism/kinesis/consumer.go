@@ -2,11 +2,13 @@ package kinesis
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/kinesis"
+	"github.com/aws/aws-sdk-go-v2/service/kinesis/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	consumer "github.com/harlow/kinesis-consumer"
 	"github.com/sirupsen/logrus"
@@ -33,7 +35,12 @@ func (l *customizedLogger) Log(args ...interface{}) {
 	l.logger.Println(args...)
 }
 
-func InitKinesisConsumer(roleARN string, streamName string, notifStream chan []byte) {
+func InitKinesisConsumer(
+	roleARN string,
+	streamName string,
+	notifStream chan []byte,
+	notificationsReloadPeriod time.Duration,
+) {
 
 	client, err := initClient(roleARN)
 	if err != nil {
@@ -63,13 +70,22 @@ func InitKinesisConsumer(roleARN string, streamName string, notifStream chan []b
 	// initialize consumer
 	var c *consumer.Consumer
 	{
+		now := time.Now().UTC()
+		timestamp := now.Add(-notificationsReloadPeriod)
 		logger := customizedLogger{
 			logger: logrus.StandardLogger(),
 		}
+		logrus.Infof(
+			"reload latest Kinesis records since %s (%v in the past)",
+			notificationsReloadPeriod,
+			timestamp.Format(time.RFC3339),
+		)
 		c, err = consumer.New(
 			streamName,
 			consumer.WithClient(client),
 			consumer.WithLogger(&logger),
+			consumer.WithShardIteratorType(string(types.ShardFilterTypeAtTimestamp)),
+			consumer.WithTimestamp(timestamp),
 		)
 	}
 	if err != nil {

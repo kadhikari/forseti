@@ -18,6 +18,7 @@ Input parameters to inform Forseti:
 - `--departures-service-refresh` The refresh time between 2 request of the  external service(Required for `rennes`)
 - `--departures-token` The token for the external service (Required for `rennes`)
 - `--departures-notifications-stream-name` The name of the AWS Kinesis Data Stream (Required for `sirism`)
+- `--departures-notifications-reload-period` The period since which the records are being reloaded
 - `--departures-stream-read-only-role-arn` The ARN of the role to assume on AWS to read Kinesis Data Stream (Optional but only for 
 `sirism`)
 - `--departures-service-switch` Required by several connectors as follows:
@@ -50,6 +51,7 @@ SERVICE SIRI-SM
     --departures-type="sirism" \
     --departures-files-uri="IDontCare" \
     --departures-notifications-stream-name="siri-sm-notif-stream" \
+    --departures-notifications-reload-period="75m" \
     --departures-service-switch="03:00:00" \
     --timezone-location="Europe/Paris"
 ```

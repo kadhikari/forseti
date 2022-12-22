@@ -18,15 +18,16 @@ import (
 )
 
 type SiriSmContext struct {
-	connector               *connectors.Connector
-	lastUpdate              *time.Time
-	departures              map[ItemId]Departure
-	notificationsStream     chan []byte
-	notificationsStreamName string
-	roleARN                 string
-	dailyServiceSwitchTime  *time.Time
-	location                *time.Location
-	mutex                   sync.RWMutex
+	connector                 *connectors.Connector
+	lastUpdate                *time.Time
+	departures                map[ItemId]Departure
+	notificationsStream       chan []byte
+	notificationsStreamName   string
+	notificationsReloadPeriod time.Duration
+	roleARN                   string
+	dailyServiceSwitchTime    *time.Time
+	location                  *time.Location
+	mutex                     sync.RWMutex
 }
 
 func (s *SiriSmContext) GetConnector() *connectors.Connector {
@@ -122,6 +123,7 @@ func (s *SiriSmContext) GetDepartures() map[ItemId]Departure {
 func (s *SiriSmContext) InitContext(
 	roleARN string,
 	notificationsStreamName string,
+	notificationsReloadPeriod time.Duration,
 	connectionTimeout time.Duration,
 	dailyServiceSwitchTime *time.Time,
 	location *time.Location,
@@ -139,6 +141,7 @@ func (s *SiriSmContext) InitContext(
 	s.departures = make(map[ItemId]Departure)
 	s.notificationsStream = make(chan []byte, 1)
 	s.notificationsStreamName = notificationsStreamName
+	s.notificationsReloadPeriod = notificationsReloadPeriod
 	s.roleARN = roleARN
 	s.dailyServiceSwitchTime = dailyServiceSwitchTime
 	s.location = location
@@ -146,6 +149,7 @@ func (s *SiriSmContext) InitContext(
 		s.roleARN,
 		s.notificationsStreamName,
 		s.notificationsStream,
+		s.notificationsReloadPeriod,
 	)
 	s.lastUpdate = nil
 }

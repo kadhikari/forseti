@@ -62,6 +62,8 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	departuresContext := &departures.DeparturesContext{}
 	var manager manager.DataManager
 	manager.SetDeparturesContext(departuresContext)
+	departuresContext.SetConnectorType("sytralrt")
+	departuresContext.SetStatus("ok")
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
 	departures.AddDeparturesEntryPoint(router, departuresContext)
@@ -83,6 +85,15 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	assert.Equal(response.Status, "ok")
 	assert.True(response.LastDepartureUpdate.After(startTime))
 	assert.True(response.LastDepartureUpdate.Before(time.Now()))
+
+	// Verify newly added object departures in status
+	assert.True(response.Departures.RefreshActive)
+	assert.True(response.Departures.LastUpdate.After(startTime))
+	assert.True(response.Departures.LastUpdate.Before(time.Now()))
+	assert.Equal(response.Departures.Source, "sytralrt")
+	assert.Equal(response.Departures.SourceStatus, "ok")
+	assert.Equal(response.Departures.LastStatusUpdate, time.Time{})
+	assert.Equal(response.Departures.Message, "")
 }
 
 func TestStatusApiHasLastParkingUpdateTime(t *testing.T) {
@@ -210,6 +221,7 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 
 	// Verify /status
 	manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
+	vehicleOccupanciesOditiContext.SetStatus("ok")
 	c.Request = httptest.NewRequest("GET", "/status", nil)
 	w := httptest.NewRecorder()
 	engine.ServeHTTP(w, c.Request)
@@ -234,6 +246,14 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	assert.True(status.VehicleOccupancies.RefreshActive)
 	assert.False(status.FreeFloatings.RefreshActive)
+
+	// Verify additional attributes in /status
+	assert.Equal(status.VehicleOccupancies.Source, "oditi")
+	assert.Equal(status.VehicleOccupancies.SourceStatus, "ok")
+	// LastStatusUpdate never updated
+	assert.Equal(status.VehicleOccupancies.LastStatusUpdate, time.Time{})
+	// Empty message
+	assert.Equal(status.VehicleOccupancies.Message, "")
 }
 
 func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
@@ -260,6 +280,8 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 
 	freeFloatingsContext.UpdateFreeFloating(freeFloatings)
+	freeFloatingsContext.SetStatus("ok")
+	freeFloatingsContext.SetPackageName("fluctuo")
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 
@@ -290,4 +312,12 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	require.Nil(err)
 	assert.True(response.FreeFloatings.RefreshActive)
 	assert.False(response.VehicleOccupancies.RefreshActive)
+
+	// Verify additional attributes in /status
+	assert.Equal(response.FreeFloatings.Source, "fluctuo")
+	assert.Equal(response.FreeFloatings.SourceStatus, "ok")
+	// LastStatusUpdate never updated
+	assert.Equal(response.FreeFloatings.LastStatusUpdate, time.Time{})
+	// Empty message
+	assert.Equal(response.FreeFloatings.Message, "")
 }

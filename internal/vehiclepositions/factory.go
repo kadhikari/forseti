@@ -35,6 +35,8 @@ type IConnectors interface {
 
 	GetLastVehiclePositionsDataUpdate() time.Time
 
+	GetLastStatusUpdate() time.Time
+
 	ManageVehiclePositionsStatus(activate bool)
 
 	LoadPositionsData() bool
@@ -42,6 +44,10 @@ type IConnectors interface {
 	GetRereshTime() string
 
 	GetConnectorType() connectors.ConnectorType
+
+	GetStatus() string
+
+	SetStatus(status string)
 }
 
 // Patern factory

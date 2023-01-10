@@ -240,12 +240,24 @@ func (d *RennesContext) GetLastVehiclePositionsDataUpdate() time.Time {
 	return d.vehiclePositions.GetLastVehiclePositionsDataUpdate()
 }
 
+func (d *RennesContext) GetLastStatusUpdate() time.Time {
+	return d.vehiclePositions.GetLastStatusUpdate()
+}
+
 func (d *RennesContext) ManageVehiclePositionsStatus(vehiclePositionsActive bool) {
 	d.vehiclePositions.ManageVehiclePositionsStatus(vehiclePositionsActive)
 }
 
 func (d *RennesContext) LoadPositionsData() bool {
 	return d.vehiclePositions.LoadPositionsData()
+}
+
+func (d *RennesContext) GetStatus() string {
+	return d.vehiclePositions.GetStatus()
+}
+
+func (d *RennesContext) SetStatus(status string) {
+	d.vehiclePositions.SetStatus(status)
 }
 
 func (d *RennesContext) GetRereshTime() string {

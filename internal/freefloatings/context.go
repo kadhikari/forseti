@@ -14,10 +14,12 @@ import (
 type FreeFloatingsContext struct {
 	freeFloatings          *[]FreeFloating
 	lastFreeFloatingUpdate time.Time
+	lastStatusUpdate       time.Time
 	freeFloatingsMutex     sync.RWMutex
 	loadFreeFloatingData   bool
 	packageName            string
 	RefreshTime            time.Duration
+	status                 string
 }
 
 func (d *FreeFloatingsContext) ManageFreeFloatingsStatus(activate bool) {
@@ -48,6 +50,13 @@ func (d *FreeFloatingsContext) GetLastFreeFloatingsDataUpdate() time.Time {
 	return d.lastFreeFloatingUpdate
 }
 
+func (d *FreeFloatingsContext) GetLastStatusUpdate() time.Time {
+	d.freeFloatingsMutex.RLock()
+	defer d.freeFloatingsMutex.RUnlock()
+
+	return d.lastStatusUpdate
+}
+
 func (d *FreeFloatingsContext) GetRereshTime() string {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
@@ -67,6 +76,20 @@ func (d *FreeFloatingsContext) SetPackageName(pathPackage string) {
 	paths := strings.Split(pathPackage, "/")
 	size := len(paths)
 	d.packageName = paths[size-1]
+}
+
+func (d *FreeFloatingsContext) GetStatus() string {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	return d.status
+}
+
+func (d *FreeFloatingsContext) SetStatus(status string) {
+	d.freeFloatingsMutex.Lock()
+	defer d.freeFloatingsMutex.Unlock()
+
+	d.status = status
 }
 
 //nolint

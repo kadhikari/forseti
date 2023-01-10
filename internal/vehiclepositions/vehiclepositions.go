@@ -18,7 +18,9 @@ import (
 type VehiclePositions struct {
 	vehiclePositions           map[string]*VehiclePosition
 	lastVehiclePositionsUpdate time.Time
+	lastStatusUpdate           time.Time
 	loadOccupancyData          bool
+	status                     string
 	mutex                      sync.RWMutex
 }
 
@@ -140,10 +142,29 @@ func (d *VehiclePositions) GetLastVehiclePositionsDataUpdate() time.Time {
 	return d.lastVehiclePositionsUpdate
 }
 
+func (d *VehiclePositions) GetLastStatusUpdate() time.Time {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+
+	return d.lastStatusUpdate
+}
+
 func (d *VehiclePositions) LoadPositionsData() bool {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
 	return d.loadOccupancyData
+}
+
+func (d *VehiclePositions) GetStatus() string {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	return d.status
+}
+
+func (d *VehiclePositions) SetStatus(status string) {
+	d.mutex.RLock()
+	defer d.mutex.RUnlock()
+	d.status = status
 }
 
 func NewVehiclePosition(sourceCode string, date time.Time, lat float32, lon float32, bearing float32,

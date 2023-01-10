@@ -11,10 +11,13 @@ import (
 type DeparturesContext struct {
 	departures          *map[string][]Departure
 	lastDepartureUpdate time.Time
+	lastStatusUpdate    time.Time
 	departuresMutex     sync.RWMutex
 	packageName         string
 	filesRefreshTime    time.Duration
 	wsRefreshTime       time.Duration
+	connectorType       string
+	status              string
 }
 
 func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) {
@@ -35,6 +38,13 @@ func (d *DeparturesContext) GetLastDepartureDataUpdate() time.Time {
 	defer d.departuresMutex.RUnlock()
 
 	return d.lastDepartureUpdate
+}
+
+func (d *DeparturesContext) GetLastStatusUpdate() time.Time {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	return d.lastStatusUpdate
 }
 
 func (d *DeparturesContext) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
@@ -113,6 +123,20 @@ func (d *DeparturesContext) SetWsRefeshTime(wsRefreshTime time.Duration) {
 	d.wsRefreshTime = wsRefreshTime
 }
 
+func (d *DeparturesContext) GetStatus() string {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	return d.status
+}
+
+func (d *DeparturesContext) SetStatus(status string) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+
+	d.status = status
+}
+
 func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {
 	return (wantedDirectionType == departureDirectionType ||
 		departureDirectionType == DirectionTypeUnknown ||
@@ -128,4 +152,16 @@ func filterDeparturesByDirectionType(departures []Departure, directionType Direc
 		}
 	}
 	return departures[:n]
+}
+
+func (d *DeparturesContext) GetConnectorType() string {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+	return d.connectorType
+}
+
+func (d *DeparturesContext) SetConnectorType(connectorType string) {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+	d.connectorType = connectorType
 }

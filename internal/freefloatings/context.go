@@ -89,7 +89,7 @@ func (d *FreeFloatingsContext) SetStatus(status string) {
 	d.freeFloatingsMutex.Lock()
 	defer d.freeFloatingsMutex.Unlock()
 
-    d.lastStatusUpdate = time.Now()
+	d.lastStatusUpdate = time.Now()
 	d.status = status
 }
 

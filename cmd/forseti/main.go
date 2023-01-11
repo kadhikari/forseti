@@ -430,7 +430,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			logrus.Error(err)
 			return
 		}
-		vehicleOccupanciesOditiContext.SetStatus("init")
+		go vehicleOccupanciesOditiContext.SetStatus("init")
 		manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
 
 		vehicleOccupanciesOditiContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
@@ -453,7 +453,7 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		}
 
 		manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
-
+		go vehicleOccupanciesContext.SetStatus("init")
 		vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
@@ -500,10 +500,11 @@ func VehiclePositions(
 		return
 	}
 
-	vehiclePositionsContext.SetStatus("init")
+	go vehiclePositionsContext.SetStatus("init")
 	manager.SetVehiclePositionsContext(vehiclePositionsContext)
 
 	vehiclePositionsContext.InitContext(
+
 		config.PositionsFilesURI,
 		config.PositionsFilesRefresh,
 		config.PositionsServiceURI,

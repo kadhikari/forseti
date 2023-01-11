@@ -330,7 +330,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
-	freeFloatingsContext.SetStatus("init")
+	go freeFloatingsContext.SetStatus("init")
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
@@ -370,7 +370,7 @@ func Departures(
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 	departuresContext.SetConnectorType(config.DeparturesType)
-	departuresContext.SetStatus("init")
+	go departuresContext.SetStatus("init")
 
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {

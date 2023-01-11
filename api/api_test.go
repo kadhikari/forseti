@@ -92,7 +92,8 @@ func TestStatusApiHasLastUpdateTime(t *testing.T) {
 	assert.True(response.Departures.LastUpdate.Before(time.Now()))
 	assert.Equal(response.Departures.Source, "sytralrt")
 	assert.Equal(response.Departures.SourceStatus, "ok")
-	assert.Equal(response.Departures.LastStatusUpdate, time.Time{})
+	assert.True(response.Departures.LastStatusUpdate.After(startTime))
+	assert.True(response.Departures.LastStatusUpdate.Before(time.Now()))
 	assert.Equal(response.Departures.Message, "")
 }
 
@@ -250,8 +251,8 @@ func TestVehicleOccupanciesAPIWithDataFromFile(t *testing.T) {
 	// Verify additional attributes in /status
 	assert.Equal(status.VehicleOccupancies.Source, "oditi")
 	assert.Equal(status.VehicleOccupancies.SourceStatus, "ok")
-	// LastStatusUpdate never updated
-	assert.Equal(status.VehicleOccupancies.LastStatusUpdate, time.Time{})
+	assert.True(status.VehicleOccupancies.LastStatusUpdate.After(startTime))
+	assert.True(status.VehicleOccupancies.LastStatusUpdate.Before(time.Now()))
 	// Empty message
 	assert.Equal(status.VehicleOccupancies.Message, "")
 }
@@ -316,8 +317,8 @@ func TestStatusInFreeFloatingWithDataFromFile(t *testing.T) {
 	// Verify additional attributes in /status
 	assert.Equal(response.FreeFloatings.Source, "fluctuo")
 	assert.Equal(response.FreeFloatings.SourceStatus, "ok")
-	// LastStatusUpdate never updated
-	assert.Equal(response.FreeFloatings.LastStatusUpdate, time.Time{})
+	assert.True(response.FreeFloatings.LastStatusUpdate.After(startTime))
+	assert.True(response.FreeFloatings.LastStatusUpdate.Before(time.Now()))
 	// Empty message
 	assert.Equal(response.FreeFloatings.Message, "")
 }

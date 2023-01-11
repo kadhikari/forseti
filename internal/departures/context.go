@@ -134,6 +134,7 @@ func (d *DeparturesContext) SetStatus(status string) {
 	d.departuresMutex.Lock()
 	defer d.departuresMutex.Unlock()
 
+	d.lastStatusUpdate = time.Now()
 	d.status = status
 }
 

@@ -147,6 +147,7 @@ func (d *VehicleOccupanciesContext) GetStatus() string {
 func (d *VehicleOccupanciesContext) SetStatus(status string) {
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
+	d.lastStatusUpdate = time.Now()
 	d.status = status
 }
 

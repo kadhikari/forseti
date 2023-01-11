@@ -164,6 +164,7 @@ func (d *VehiclePositions) GetStatus() string {
 func (d *VehiclePositions) SetStatus(status string) {
 	d.mutex.RLock()
 	defer d.mutex.RUnlock()
+	d.lastStatusUpdate = time.Now()
 	d.status = status
 }
 

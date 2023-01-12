@@ -167,6 +167,7 @@ func (d *RennesContext) InitContext(
 	d.setRealTimeVehicleJourneyCode(nil)
 	d.vehiclePositions = &VehiclePositions{}
 	d.vehiclePositions.ManageVehiclePositionsStatus(reloadActive)
+	d.vehiclePositions.SetStatus("init")
 }
 
 // main loop to refresh vehicle_positions

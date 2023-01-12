@@ -330,7 +330,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
-	go freeFloatingsContext.SetStatus("init")
+	freeFloatingsContext.SetStatus("init")
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
@@ -370,7 +370,7 @@ func Departures(
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 	departuresContext.SetConnectorType(config.DeparturesType)
-	go departuresContext.SetStatus("init")
+	departuresContext.SetStatus("init")
 
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
@@ -430,7 +430,6 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 			logrus.Error(err)
 			return
 		}
-		go vehicleOccupanciesOditiContext.SetStatus("init")
 		manager.SetVehicleOccupanciesContext(vehicleOccupanciesOditiContext)
 
 		vehicleOccupanciesOditiContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
@@ -453,7 +452,6 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		}
 
 		manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
-		go vehicleOccupanciesContext.SetStatus("init")
 		vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
@@ -500,7 +498,6 @@ func VehiclePositions(
 		return
 	}
 
-	go vehiclePositionsContext.SetStatus("init")
 	manager.SetVehiclePositionsContext(vehiclePositionsContext)
 
 	vehiclePositionsContext.InitContext(

@@ -79,6 +79,7 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
+	d.voContext.SetStatus("init")
 }
 
 // main loop to refresh vehicle_occupancies from Gtfs-rt flux

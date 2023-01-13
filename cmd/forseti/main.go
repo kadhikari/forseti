@@ -39,6 +39,7 @@ type Config struct {
 	DeparturesType                      string        `mapstructure:"departures-type"`
 	DeparturesServiceSwitch             string        `mapstructure:"departures-service-switch"`
 	DeparturesNotificationsStreamName   string        `mapstructure:"departures-notifications-stream-name"`
+	DeparturesStatusStreamName          string        `mapstructure:"departures-status-stream-name"`
 	DeparturesStreamReadOnlyRoleARN     string        `mapstructure:"departures-stream-read-only-role-arn"`
 	DeparturesNotificationsReloadPeriod time.Duration `mapstructure:"departures-notifications-reload-period"`
 
@@ -116,6 +117,11 @@ func GetConfig() (Config, error) {
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-token", "", "token for departures service source")
 	pflag.String("departures-service-switch", "03:30:00", "Service switch time (format: HH:MM:SS)")
+	pflag.String(
+		"departures-status-stream-name",
+		"",
+		"Name of a AWS Kinesis Status Stream (optional for the connector siri-sm)",
+	)
 	pflag.String(
 		"departures-notifications-stream-name",
 		"",
@@ -407,6 +413,20 @@ func Departures(
 			config.TimeZoneLocation,
 		)
 		go siriSmContext.RefereshDeparturesLoop(departuresContext)
+
+		// If DeparturesStatusStreamName is not empty we should also create a second thread to read kinesis/status
+		var siriSmStatusContext sirism.SiriSmContext = sirism.SiriSmContext{}
+		if config.DeparturesStatusStreamName != "" {
+			siriSmStatusContext.InitContext(
+				config.DeparturesStreamReadOnlyRoleARN,
+				config.DeparturesStatusStreamName,
+				config.DeparturesNotificationsReloadPeriod,
+				config.ConnectionTimeout,
+				serviceSwitchTime,
+				config.TimeZoneLocation,
+			)
+			go siriSmStatusContext.RefereshStatusLoop(departuresContext)
+		}
 	}
 }
 

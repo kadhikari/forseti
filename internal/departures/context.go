@@ -18,6 +18,7 @@ type DeparturesContext struct {
 	wsRefreshTime       time.Duration
 	connectorType       string
 	status              string
+	message             string
 }
 
 func (d *DeparturesContext) UpdateDepartures(departures map[string][]Departure) {
@@ -45,6 +46,13 @@ func (d *DeparturesContext) GetLastStatusUpdate() time.Time {
 	defer d.departuresMutex.RUnlock()
 
 	return d.lastStatusUpdate
+}
+
+func (d *DeparturesContext) SetLastStatusUpdate(t time.Time) {
+	d.departuresMutex.RLock()
+	defer d.departuresMutex.RUnlock()
+
+	d.lastStatusUpdate = t
 }
 
 func (d *DeparturesContext) GetDeparturesByStops(stopsID []string) ([]Departure, error) {
@@ -136,6 +144,18 @@ func (d *DeparturesContext) SetStatus(status string) {
 
 	d.lastStatusUpdate = time.Now()
 	d.status = status
+}
+
+func (d *DeparturesContext) GetMessage() string {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+	return d.message
+}
+
+func (d *DeparturesContext) SetMessage(message string) {
+	d.departuresMutex.Lock()
+	defer d.departuresMutex.Unlock()
+	d.message = message
 }
 
 func keepDirection(departureDirectionType, wantedDirectionType DirectionType) bool {

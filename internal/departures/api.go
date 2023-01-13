@@ -14,6 +14,13 @@ type DeparturesResponse struct {
 func DeparturesApiHandler(context *DeparturesContext) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		response := DeparturesResponse{}
+		/*
+		if context.GetStatus() != "ok" {
+			response.Message = context.GetMessage()
+			c.JSON(http.StatusServiceUnavailable, response)
+			return
+		}
+        */
 		stopID, found := c.GetQueryArray("stop_id")
 		if !found {
 			response.Message = "stopID is required"

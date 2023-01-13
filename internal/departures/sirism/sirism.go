@@ -3,6 +3,7 @@ package sirism
 import (
 	"bytes"
 	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"reflect"
@@ -160,7 +161,7 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 		// Received a notification
 		// TODO: memory optimization
 		var recordBytes []byte = <-d.notificationsStream
-		logrus.Infof("record received (%d bytes)", len(recordBytes))
+		logrus.Infof("notification record received (%d bytes)", len(recordBytes))
 		var notificationBytes []byte
 		// uncompress the gzip record
 		{
@@ -199,6 +200,76 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 			mappedLoadedDepartures := mapDeparturesByStopPointId(d.departures)
 			context.UpdateDepartures(mappedLoadedDepartures)
 			logrus.Info("departures are updated")
+			d.mutex.Unlock()
+		}
+	}
+}
+
+func (d *SiriSmContext) processStatusLoop(context *departures.DeparturesContext) {
+
+	for {
+		// Received a notification
+		// TODO: memory optimization
+		var recordBytes []byte = <-d.notificationsStream
+		logrus.Infof("status record received (%d bytes)", len(recordBytes))
+		var notificationBytes []byte
+		// uncompress the gzip record
+		{
+			// TODO: memory optimization
+			inputBuffer := bytes.NewBuffer(recordBytes)
+			gzipReader, err := gzip.NewReader(inputBuffer)
+			if err != nil {
+				logrus.Errorf(
+					"unexpected error occurred while the gzip decompression of the record, the current record is skipped: %v",
+					err,
+				)
+				continue
+			}
+			// TODO: initialize with 10 MB
+			outputBuffer := bytes.Buffer{}
+			_, err = outputBuffer.ReadFrom(gzipReader)
+			if err != nil {
+				logrus.Errorf(
+					"unexpected error occurred while the gzip decompression of the record, the current record is skipped: %v",
+					err,
+				)
+				continue
+			}
+			notificationBytes = outputBuffer.Bytes()
+		}
+		{
+			d.mutex.Lock()
+			statusData := &KinesisStatus{}
+			err := json.Unmarshal(notificationBytes, &statusData)
+			if err != nil {
+				logrus.Errorf("unexpected error occurred while Unmarshal: %v", err)
+				d.mutex.Unlock()
+				continue
+			}
+
+			// Update status information
+			var statusText string
+			if statusData.Status {
+				statusText = "ok"
+			} else {
+				statusText = "ko"
+			}
+			// dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", statusData.LastUpdate, d.location)
+			// dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05.999999999+01:00", statusData.LastUpdate, d.location)
+			dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", statusData.LastUpdate, d.location)
+			if err != nil {
+				logrus.Info(err)
+				dateLoc = time.Now().In(time.UTC)
+			}
+
+			logrus.Infof("******* new last_status_update = %s", statusData.LastUpdate)
+			logrus.Infof("******* old last_status_update = %s", context.GetLastStatusUpdate().String())
+			if dateLoc.After(context.GetLastStatusUpdate()) {
+				logrus.Infof("******* last_status_update = %s", statusData.LastUpdate)
+				context.SetStatus(statusText)
+				context.SetMessage(statusData.Message)
+				context.SetLastStatusUpdate(dateLoc)
+			}
 			d.mutex.Unlock()
 		}
 	}
@@ -253,6 +324,14 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 	go d.processCleanDeparturesLoop(context)
 }
 
+func (d *SiriSmContext) RefereshStatusLoop(context *departures.DeparturesContext) {
+	// Wait 10 seconds before reloading status notification messages
+	time.Sleep(10 * time.Second)
+
+	// Launch the goroutine that allow consume the input SIRI-SM notifications
+	go d.processStatusLoop(context)
+}
+
 func mapDeparturesByStopPointId(
 	siriSmDepartures map[ItemId]Departure,
 ) map[string][]departures.Departure {
@@ -277,4 +356,10 @@ func mapDeparturesByStopPointId(
 		)
 	}
 	return result
+}
+
+type KinesisStatus struct {
+	Status     bool   `json:"status"`
+	LastUpdate string `json:"last_status_update"`
+	Message    string `json:"message"`
 }

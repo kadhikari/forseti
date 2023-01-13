@@ -336,6 +336,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
+	freeFloatingsContext.SetStatus("init")
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
@@ -374,10 +375,11 @@ func Departures(
 	departuresContext := &departures.DeparturesContext{}
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
+	departuresContext.SetConnectorType(config.DeparturesType)
+	departuresContext.SetStatus("init")
 
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
-
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
 		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
@@ -457,7 +459,6 @@ func VehicleOccupancies(manager *manager.DataManager, config *Config, router *gi
 		}
 
 		manager.SetVehicleOccupanciesContext(vehicleOccupanciesContext)
-
 		vehicleOccupanciesContext.InitContext(config.OccupancyFilesURI, config.OccupancyServiceURI,
 			config.OccupancyServiceToken, config.OccupancyNavitiaURI, config.OccupancyNavitiaToken,
 			config.OccupancyRefresh, config.OccupancyCleanVJ, config.OccupancyCleanVO, config.ConnectionTimeout,
@@ -507,6 +508,7 @@ func VehiclePositions(
 	manager.SetVehiclePositionsContext(vehiclePositionsContext)
 
 	vehiclePositionsContext.InitContext(
+
 		config.PositionsFilesURI,
 		config.PositionsFilesRefresh,
 		config.PositionsServiceURI,

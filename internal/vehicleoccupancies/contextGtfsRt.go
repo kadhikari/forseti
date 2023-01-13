@@ -79,6 +79,7 @@ func (d *VehicleOccupanciesGtfsRtContext) InitContext(filesURI, externalURI url.
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
+	d.voContext.SetStatus("init")
 }
 
 // main loop to refresh vehicle_occupancies from Gtfs-rt flux
@@ -112,12 +113,28 @@ func (d *VehicleOccupanciesGtfsRtContext) GetLastVehicleOccupanciesDataUpdate() 
 	return d.voContext.GetLastVehicleOccupanciesDataUpdate()
 }
 
+func (d *VehicleOccupanciesGtfsRtContext) GetLastStatusUpdate() time.Time {
+	return d.voContext.GetLastStatusUpdate()
+}
+
 func (d *VehicleOccupanciesGtfsRtContext) LoadOccupancyData() bool {
 	return d.voContext.LoadOccupancyData()
 }
 
 func (d *VehicleOccupanciesGtfsRtContext) GetRereshTime() string {
 	return d.voContext.GetRereshTime()
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) GetStatus() string {
+	return d.voContext.GetStatus()
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) SetStatus(status string) {
+	d.voContext.SetStatus(status)
+}
+
+func (d *VehicleOccupanciesGtfsRtContext) GetConnectorType() connectors.ConnectorType {
+	return connectors.Connector_GRFS_RT
 }
 
 /********* PRIVATE FUNCTIONS *********/

@@ -151,7 +151,7 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
-
+	d.voContext.SetStatus("init")
 	err := LoadAllForVehicleOccupancies(d, navitiaURI, navitiaToken, location)
 	if err != nil {
 		logrus.Errorf("Impossible to load data at startup: %s", err)
@@ -199,12 +199,28 @@ func (d *VehicleOccupanciesOditiContext) GetLastVehicleOccupanciesDataUpdate() t
 	return d.voContext.GetLastVehicleOccupanciesDataUpdate()
 }
 
+func (d *VehicleOccupanciesOditiContext) GetLastStatusUpdate() time.Time {
+	return d.voContext.GetLastStatusUpdate()
+}
+
 func (d *VehicleOccupanciesOditiContext) LoadOccupancyData() bool {
 	return d.voContext.LoadOccupancyData()
 }
 
 func (d *VehicleOccupanciesOditiContext) GetRereshTime() string {
 	return d.voContext.GetRereshTime()
+}
+
+func (d *VehicleOccupanciesOditiContext) GetStatus() string {
+	return d.voContext.GetStatus()
+}
+
+func (d *VehicleOccupanciesOditiContext) SetStatus(status string) {
+	d.voContext.SetStatus(status)
+}
+
+func (d *VehicleOccupanciesOditiContext) GetConnectorType() connectors.ConnectorType {
+	return connectors.Connector_ODITI
 }
 
 /********* PRIVATE FUNCTIONS *********/

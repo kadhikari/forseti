@@ -28,9 +28,17 @@ type IVehicleOccupancy interface {
 
 	GetLastVehicleOccupanciesDataUpdate() time.Time
 
+	GetLastStatusUpdate() time.Time
+
 	LoadOccupancyData() bool
 
 	GetRereshTime() string
+
+	GetStatus() string
+
+	SetStatus(status string)
+
+	GetConnectorType() connectors.ConnectorType
 }
 
 // Patern factory Vehicle occupancies

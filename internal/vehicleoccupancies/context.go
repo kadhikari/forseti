@@ -15,9 +15,11 @@ import (
 type VehicleOccupanciesContext struct {
 	VehicleOccupancies           map[string]*VehicleOccupancy
 	lastVehicleOccupanciesUpdate time.Time
+	lastStatusUpdate             time.Time
 	vehicleOccupanciesMutex      sync.RWMutex
 	loadOccupancyData            bool
 	refreshTime                  time.Duration
+	status                       string
 }
 
 func (d *VehicleOccupanciesContext) ManageVehicleOccupancyStatus(activate bool) {
@@ -75,6 +77,13 @@ func (d *VehicleOccupanciesContext) GetLastVehicleOccupanciesDataUpdate() time.T
 	return d.lastVehicleOccupanciesUpdate
 }
 
+func (d *VehicleOccupanciesContext) GetLastStatusUpdate() time.Time {
+	d.vehicleOccupanciesMutex.RLock()
+	defer d.vehicleOccupanciesMutex.RUnlock()
+
+	return d.lastStatusUpdate
+}
+
 func (d *VehicleOccupanciesContext) GetVehiclesOccupancies() (vehicleOccupancies map[string]*VehicleOccupancy) {
 	d.vehicleOccupanciesMutex.RLock()
 	defer d.vehicleOccupanciesMutex.RUnlock()
@@ -127,6 +136,19 @@ func (d *VehicleOccupanciesContext) SetRereshTime(newRefreshTime time.Duration) 
 	d.vehicleOccupanciesMutex.Lock()
 	defer d.vehicleOccupanciesMutex.Unlock()
 	d.refreshTime = newRefreshTime
+}
+
+func (d *VehicleOccupanciesContext) GetStatus() string {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+	return d.status
+}
+
+func (d *VehicleOccupanciesContext) SetStatus(status string) {
+	d.vehicleOccupanciesMutex.Lock()
+	defer d.vehicleOccupanciesMutex.Unlock()
+	d.lastStatusUpdate = time.Now()
+	d.status = status
 }
 
 func getKeyVehicleOccupancy() string {

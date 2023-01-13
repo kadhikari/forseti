@@ -72,6 +72,7 @@ func (d *GtfsRtContext) InitContext(
 	d.location = location
 	d.cleanVp = positionCleanVP
 	d.vehiclePositions.ManageVehiclePositionsStatus(reloadActive)
+	d.vehiclePositions.SetStatus("init")
 }
 
 // main loop to refresh vehicle_positions
@@ -93,6 +94,10 @@ func (d *GtfsRtContext) GetLastVehiclePositionsDataUpdate() time.Time {
 	return d.vehiclePositions.GetLastVehiclePositionsDataUpdate()
 }
 
+func (d *GtfsRtContext) GetLastStatusUpdate() time.Time {
+	return d.vehiclePositions.GetLastStatusUpdate()
+}
+
 func (d *GtfsRtContext) ManageVehiclePositionsStatus(vehiclePositionsActive bool) {
 	d.vehiclePositions.ManageVehiclePositionsStatus(vehiclePositionsActive)
 }
@@ -103,6 +108,14 @@ func (d *GtfsRtContext) LoadPositionsData() bool {
 
 func (d *GtfsRtContext) GetRereshTime() string {
 	return d.connector.GetFilesRefreshTime().String()
+}
+
+func (d *GtfsRtContext) GetStatus() string {
+	return d.vehiclePositions.GetStatus()
+}
+
+func (d *GtfsRtContext) SetStatus(status string) {
+	d.vehiclePositions.SetStatus(status)
 }
 
 func (d *GtfsRtContext) GetConnectorType() connectors.ConnectorType {

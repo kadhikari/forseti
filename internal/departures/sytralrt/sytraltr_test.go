@@ -41,6 +41,8 @@ func TestDeparturesApi(t *testing.T) {
 	require.Nil(err)
 
 	departuresContext := &departures.DeparturesContext{}
+	departuresContext.SetStatus("ok")
+	departuresContext.SetLastStatusUpdate(time.Now())
 
 	c, router := gin.CreateTestContext(httptest.NewRecorder())
 	departures.AddDeparturesEntryPoint(router, departuresContext)

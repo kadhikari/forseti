@@ -189,7 +189,7 @@ func (d *SiriSmContext) processNotificationsLoop(context *departures.DeparturesC
 		}
 		{
 			d.mutex.Lock()
-			logrus.Infof("notification received (%d bytes)", len(notificationBytes))
+			logrus.Infof("notification record received after decompression (%d bytes)", len(notificationBytes))
 			updatedDepartures, cancelledDepartures, err := LoadDeparturesFromByteArray(notificationBytes)
 			if err != nil {
 				logrus.Errorf("record parsing error: %v", err)
@@ -254,18 +254,13 @@ func (d *SiriSmContext) processStatusLoop(context *departures.DeparturesContext)
 			} else {
 				statusText = "ko"
 			}
-			// dateLoc, err := time.ParseInLocation("2006-01-02 15:04:05 +0000 UTC", statusData.LastUpdate, d.location)
-			// dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05.999999999+01:00", statusData.LastUpdate, d.location)
 			dateLoc, err := time.ParseInLocation("2006-01-02T15:04:05Z", statusData.LastUpdate, d.location)
 			if err != nil {
 				logrus.Info(err)
 				dateLoc = time.Now().In(time.UTC)
 			}
 
-			logrus.Infof("******* new last_status_update = %s", statusData.LastUpdate)
-			logrus.Infof("******* old last_status_update = %s", context.GetLastStatusUpdate().String())
 			if dateLoc.After(context.GetLastStatusUpdate()) {
-				logrus.Infof("******* last_status_update = %s", statusData.LastUpdate)
 				context.SetStatus(statusText)
 				context.SetMessage(statusData.Message)
 				context.SetLastStatusUpdate(dateLoc)
@@ -325,9 +320,6 @@ func (d *SiriSmContext) RefereshDeparturesLoop(context *departures.DeparturesCon
 }
 
 func (d *SiriSmContext) RefereshStatusLoop(context *departures.DeparturesContext) {
-	// Wait 10 seconds before reloading status notification messages
-	time.Sleep(10 * time.Second)
-
 	// Launch the goroutine that allow consume the input SIRI-SM notifications
 	go d.processStatusLoop(context)
 }

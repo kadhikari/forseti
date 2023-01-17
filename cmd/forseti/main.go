@@ -342,7 +342,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
-	freeFloatingsContext.SetStatus("init")
+	freeFloatingsContext.SetStatus("ok")
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
@@ -382,14 +382,18 @@ func Departures(
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 	departuresContext.SetConnectorType(config.DeparturesType)
-	departuresContext.SetStatus("init")
+	departuresContext.SetStatus("ok")
 
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
 		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
+		// For backward compatibility we should initialize here
+		departuresContext.SetLastStatusUpdate(time.Now())
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
 	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
+		// For backward compatibility we should initialize here
+		departuresContext.SetLastStatusUpdate(time.Now())
 		var rennesContext rennes.RennesContext = rennes.RennesContext{}
 		rennesContext.InitContext(
 			config.DeparturesFilesURI,

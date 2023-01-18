@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/hove-io/forseti/internal/departures"
@@ -95,6 +96,18 @@ func LoadDeparturesFromByteArray(xmlBytes []byte) ([]Departure, []CancelledDepar
 				destinationName := string(monitoredVehicleJourney.DestinationName)
 				monitoredCall := &monitoredVehicleJourney.MonitoredCall
 				stopPointRef := string(monitoredCall.StopPointRef)
+				departureStatus := strings.ToLower(monitoredCall.DepartureStatus)
+
+				// Manage cancelledDepartures with DepartureStatus == Cancelled or cancelled
+				if departureStatus == "cancelled" {
+					cancelledDeparture := CancelledDeparture{
+						Id:           ItemId(monitoredStopVisit.ItemIdentifier),
+						StopPointRef: StopPointRef(monitoringRef),
+					}
+					cancelledDepartures = append(cancelledDepartures, cancelledDeparture)
+					continue
+				}
+
 				if monitoringRef != stopPointRef {
 					err := fmt.Errorf(
 						"the XML tags <MonitoringRef> and <StopPointRef> mismatch: %s != %s",

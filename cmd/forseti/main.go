@@ -39,6 +39,7 @@ type Config struct {
 	DeparturesType                      string        `mapstructure:"departures-type"`
 	DeparturesServiceSwitch             string        `mapstructure:"departures-service-switch"`
 	DeparturesNotificationsStreamName   string        `mapstructure:"departures-notifications-stream-name"`
+	DeparturesStatusStreamName          string        `mapstructure:"departures-status-stream-name"`
 	DeparturesStreamReadOnlyRoleARN     string        `mapstructure:"departures-stream-read-only-role-arn"`
 	DeparturesNotificationsReloadPeriod time.Duration `mapstructure:"departures-notifications-reload-period"`
 
@@ -116,6 +117,11 @@ func GetConfig() (Config, error) {
 	pflag.Duration("departures-service-refresh", 30*time.Second, "time between refresh of departures data")
 	pflag.String("departures-token", "", "token for departures service source")
 	pflag.String("departures-service-switch", "03:30:00", "Service switch time (format: HH:MM:SS)")
+	pflag.String(
+		"departures-status-stream-name",
+		"",
+		"Name of a AWS Kinesis Status Stream (optional for the connector siri-sm)",
+	)
 	pflag.String(
 		"departures-notifications-stream-name",
 		"",
@@ -336,7 +342,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 
 	freeFloatingsContext := &freefloatings.FreeFloatingsContext{}
 	manager.SetFreeFloatingsContext(freeFloatingsContext)
-	freeFloatingsContext.SetStatus("init")
+	freeFloatingsContext.SetStatus("ok")
 	freefloatings.AddFreeFloatingsEntryPoint(router, freeFloatingsContext)
 	freeFloatingsContext.ManageFreeFloatingsStatus(config.FreeFloatingsActive)
 
@@ -376,14 +382,18 @@ func Departures(
 	manager.SetDeparturesContext(departuresContext)
 	departures.AddDeparturesEntryPoint(router, departuresContext)
 	departuresContext.SetConnectorType(config.DeparturesType)
-	departuresContext.SetStatus("init")
+	departuresContext.SetStatus("ok")
 
 	// Enable the SytralRT connector
 	if config.DeparturesType == string(connectors.Connector_SYTRALRT) {
 		var sytralContext sytralrt.SytralRTContext = sytralrt.SytralRTContext{}
 		sytralContext.InitContext(config.DeparturesFilesURI, config.DeparturesFilesRefresh, config.ConnectionTimeout)
+		// For backward compatibility we should initialize here
+		departuresContext.SetLastStatusUpdate(time.Now())
 		go sytralContext.RefreshDeparturesLoop(departuresContext)
 	} else if config.DeparturesType == string(connectors.Connector_RENNES) { // Enable the Rennes connector
+		// For backward compatibility we should initialize here
+		departuresContext.SetLastStatusUpdate(time.Now())
 		var rennesContext rennes.RennesContext = rennes.RennesContext{}
 		rennesContext.InitContext(
 			config.DeparturesFilesURI,
@@ -407,6 +417,20 @@ func Departures(
 			config.TimeZoneLocation,
 		)
 		go siriSmContext.RefereshDeparturesLoop(departuresContext)
+
+		// If DeparturesStatusStreamName is not empty we should also create a second thread to read kinesis/status
+		var siriSmStatusContext sirism.SiriSmContext = sirism.SiriSmContext{}
+		if config.DeparturesStatusStreamName != "" {
+			siriSmStatusContext.InitContext(
+				config.DeparturesStreamReadOnlyRoleARN,
+				config.DeparturesStatusStreamName,
+				config.DeparturesNotificationsReloadPeriod,
+				config.ConnectionTimeout,
+				serviceSwitchTime,
+				config.TimeZoneLocation,
+			)
+			go siriSmStatusContext.RefereshStatusLoop(departuresContext)
+		}
 	}
 }
 

@@ -151,7 +151,7 @@ func (d *VehicleOccupanciesOditiContext) InitContext(filesURI, externalURI url.U
 	d.voContext = &VehicleOccupanciesContext{}
 	d.voContext.ManageVehicleOccupancyStatus(occupancyActive)
 	d.voContext.SetRereshTime(loadExternalRefresh)
-	d.voContext.SetStatus("init")
+	d.voContext.SetStatus("ok")
 	err := LoadAllForVehicleOccupancies(d, navitiaURI, navitiaToken, location)
 	if err != nil {
 		logrus.Errorf("Impossible to load data at startup: %s", err)

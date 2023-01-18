@@ -132,13 +132,14 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 		var lastDeparturesDataUpdate, lastDeparturesStatusUpdate time.Time
 		var loadDeparturesData bool = true
 		var refreshDeparturesData string = ""
-		var departuresSource, departuresSourceStatus string
+		var departuresSource, departuresSourceStatus, departuresMessage string
 		if manager.GetDeparturesContext() != nil {
 			lastDeparturesDataUpdate = manager.GetDeparturesContext().GetLastDepartureDataUpdate()
 			lastDeparturesStatusUpdate = manager.GetDeparturesContext().GetLastStatusUpdate()
 			departuresSource = manager.GetDeparturesContext().GetConnectorType()
 			refreshDeparturesData = manager.GetDeparturesContext().GetFilesRefeshTime().String()
 			departuresSourceStatus = manager.GetDeparturesContext().GetStatus()
+			departuresMessage = manager.GetDeparturesContext().GetMessage()
 		}
 
 		var lastParkingsDataUpdate time.Time
@@ -186,7 +187,7 @@ func StatusHandler(manager *manager.DataManager) gin.HandlerFunc {
 				refreshDeparturesData,
 				lastDeparturesDataUpdate,
 				lastDeparturesStatusUpdate,
-				"",
+				departuresMessage,
 			},
 		})
 	}

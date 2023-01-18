@@ -417,7 +417,6 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
                         <ns5:LineRef>ILEVIA:Line::L1:LOC</ns5:LineRef>
                         <ns5:FramedVehicleJourneyRef>
                             <ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
-                            <ns5:DatedVehicleJourneyRef>ILEVIA:VehicleJourney::18_15_142600_3_LAMJV_8:LOC</ns5:DatedVehicleJourneyRef>
                         </ns5:FramedVehicleJourneyRef>
                         <ns5:JourneyPatternRef>ILEVIA:JourneyPattern::18_NOT001_HDV018_1:LOC</ns5:JourneyPatternRef>
                         <ns5:JourneyPatternName>18_NOT001_HDV018_1</ns5:JourneyPatternName>

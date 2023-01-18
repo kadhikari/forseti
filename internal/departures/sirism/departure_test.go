@@ -522,7 +522,6 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
 				Id:           ItemId("SIRI:130784050"),
 				StopPointRef: StopPointRef("CER001"),
 			},
-
 		}
 		assert.Equal(
 			expectedCancelledDepartures[0],

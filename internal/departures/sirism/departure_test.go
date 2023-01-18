@@ -235,6 +235,18 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 			},
 			expectedLastCancelledDeparture: nil,
 		},
+		{
+			xmlFileName:                         "notif_siri_lille_cancelled.xml",
+			expectedNumberOfUpdatedDepartures:   0,
+			expectedFirstUpdatedDeparture:       nil,
+			expectedLastUpdatedDeparture:        nil,
+			expectedNumberOfCancelledDepartures: 1,
+			expectedFirstCancelledDeparture: &CancelledDeparture{
+				Id:           ItemId("SIRI:130754436"),
+				StopPointRef: StopPointRef("CER001"),
+			},
+			expectedLastCancelledDeparture: nil,
+		},
 	}
 	for _, test := range tests {
 		uri, err := url.Parse(fmt.Sprintf("file://%s/data_sirism/%s", fixtureDir, test.xmlFileName))

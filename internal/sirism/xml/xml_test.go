@@ -59,6 +59,10 @@ func TestEnvelopeGetTotalNumberOfMonitoredStopVisits(t *testing.T) {
 			xmlFileName:                              "notif_siri_lille_cancellation.xml",
 			expectedTotalNumberOfMonitoredStopVisits: 0,
 		},
+		{
+			xmlFileName:                              "notif_siri_lille_cancelled.xml",
+			expectedTotalNumberOfMonitoredStopVisits: 1,
+		},
 	}
 
 	for _, test := range tests {
@@ -144,7 +148,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CAS001"),
+								StopPointRef:    StopPointRef("CAS001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									5, 32, 0, 0,
@@ -179,7 +184,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CAS001"),
+								StopPointRef:    StopPointRef("CAS001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									6, 2, 0, 0,
@@ -224,7 +230,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CER001"),
+								StopPointRef:    StopPointRef("CER001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									5, 44, 25, 0,
@@ -259,7 +266,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CER001"),
+								StopPointRef:    StopPointRef("CER001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									6, 12, 25, 0,
@@ -294,7 +302,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CER001"),
+								StopPointRef:    StopPointRef("CER001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									6, 14, 34, 0,
@@ -329,7 +338,8 @@ func TestNotificationXmlUnmarshall(t *testing.T) {
 									Space: "http://www.siri.org.uk/siri",
 									Local: "MonitoredCall",
 								},
-								StopPointRef: StopPointRef("CER001"),
+								StopPointRef:    StopPointRef("CER001"),
+								DepartureStatus: "onTime",
 								AimedDepartureTime: customTime(time.Date(
 									2022, time.June, 15,
 									6, 44, 34, 0,
@@ -427,7 +437,8 @@ func TestMonitoredCallUnmarshalXML(t *testing.T) {
 					Space: "http://www.siri.org.uk/siri",
 					Local: "MonitoredCall",
 				},
-				StopPointRef: StopPointRef("CEN001"),
+				StopPointRef:    StopPointRef("CEN001"),
+				DepartureStatus: "onTime",
 				AimedDepartureTime: customTime(time.Date(
 					2022, time.June, 15,
 					7, 2, 0, 000_000_000,
@@ -456,7 +467,8 @@ func TestMonitoredCallUnmarshalXML(t *testing.T) {
 					Space: "http://www.siri.org.uk/siri",
 					Local: "MonitoredCall",
 				},
-				StopPointRef: StopPointRef("CEN001"),
+				StopPointRef:    StopPointRef("CEN001"),
+				DepartureStatus: "onTime",
 				AimedDepartureTime: customTime(time.Date(
 					2022, time.June, 15,
 					7, 2, 0, 000_000_000,

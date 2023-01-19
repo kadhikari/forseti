@@ -235,6 +235,18 @@ func TestExtractDeparturesFromFilePath(t *testing.T) {
 			},
 			expectedLastCancelledDeparture: nil,
 		},
+		{
+			xmlFileName:                         "notif_siri_lille_cancelled.xml",
+			expectedNumberOfUpdatedDepartures:   0,
+			expectedFirstUpdatedDeparture:       nil,
+			expectedLastUpdatedDeparture:        nil,
+			expectedNumberOfCancelledDepartures: 1,
+			expectedFirstCancelledDeparture: &CancelledDeparture{
+				Id:           ItemId("SIRI:130754436"),
+				StopPointRef: StopPointRef("CER001"),
+			},
+			expectedLastCancelledDeparture: nil,
+		},
 	}
 	for _, test := range tests {
 		uri, err := url.Parse(fmt.Sprintf("file://%s/data_sirism/%s", fixtureDir, test.xmlFileName))
@@ -402,6 +414,44 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
 					</ns5:VehicleJourneyRef>
 				</ns5:MonitoredStopVisitCancellation>
 			</ns5:StopMonitoringDelivery>
+			<ns5:StopMonitoringDelivery version="2.0:FR-IDF-2.4">
+                <ns5:ResponseTimestamp>2023-01-10T12:54:47.270+02:00</ns5:ResponseTimestamp>
+                <ns5:RequestMessageRef>SUBHOR_ILEVIA:StopPoint:BP:PRR004:LOC</ns5:RequestMessageRef>
+                <ns5:SubscriberRef>KISIO2</ns5:SubscriberRef>
+                <ns5:SubscriptionRef>SUBHOR_ILEVIA:StopPoint:BP:PRR004:LOC</ns5:SubscriptionRef>
+                <ns5:Status>true</ns5:Status>
+                <ns5:MonitoringRef>ILEVIA:StopPoint:BP:CER001:LOC</ns5:MonitoringRef>
+                <ns5:MonitoredStopVisit>
+                    <ns5:RecordedAtTime>2023-01-10T12:54:47.270+02:00</ns5:RecordedAtTime>
+                    <ns5:ItemIdentifier>SIRI:130784050</ns5:ItemIdentifier>
+                    <ns5:MonitoringRef>ILEVIA:StopPoint:BP:CER001:LOC</ns5:MonitoringRef>
+                    <ns5:MonitoredVehicleJourney>
+                        <ns5:LineRef>ILEVIA:Line::L1:LOC</ns5:LineRef>
+                        <ns5:FramedVehicleJourneyRef>
+                            <ns5:DataFrameRef>ILEVIA:DataFrame::1.0:LOC</ns5:DataFrameRef>
+                        </ns5:FramedVehicleJourneyRef>
+                        <ns5:JourneyPatternRef>ILEVIA:JourneyPattern::18_NOT001_HDV018_1:LOC</ns5:JourneyPatternRef>
+                        <ns5:JourneyPatternName>18_NOT001_HDV018_1</ns5:JourneyPatternName>
+                        <ns5:VehicleMode>bus</ns5:VehicleMode>
+                        <ns5:PublishedLineName>LIGNE 1</ns5:PublishedLineName>
+                        <ns5:DirectionName>ALLER</ns5:DirectionName>
+                        <ns5:OperatorRef>ILEVIA:Operator::ILEVIA:LOC</ns5:OperatorRef>
+                        <ns5:DestinationRef>ILEVIA:StopPoint:BP:HDV018:LOC</ns5:DestinationRef>
+                        <ns5:DestinationName>V. D'ASCQ HOTEL DE VILLE</ns5:DestinationName>
+                        <ns5:Monitored>true</ns5:Monitored>
+                        <ns5:MonitoredCall>
+                            <ns5:StopPointRef>ILEVIA:StopPoint:BP:CER001:LOC</ns5:StopPointRef>
+                            <ns5:Order>18</ns5:Order>
+                            <ns5:StopPointName>LE CERF</ns5:StopPointName>
+                            <ns5:VehicleAtStop>false</ns5:VehicleAtStop>
+                            <ns5:DestinationDisplay>HOTEL DE VILLE</ns5:DestinationDisplay>
+                            <ns5:AimedDepartureTime>2023-01-10T17:54:47.270+02:00</ns5:AimedDepartureTime>
+                            <ns5:ExpectedDepartureTime>2023-01-10T17:54:47.270+02:00</ns5:ExpectedDepartureTime>
+                            <ns5:DepartureStatus>Cancelled</ns5:DepartureStatus>
+                        </ns5:MonitoredCall>
+                    </ns5:MonitoredVehicleJourney>
+                </ns5:MonitoredStopVisit>
+            </ns5:StopMonitoringDelivery>
 		</Notification>
 		<SiriExtension
 			xmlns:ns2="http://www.ifopt.org.uk/acsb"
@@ -479,10 +529,18 @@ func TestLoadDeparturesFromByteArray(t *testing.T) {
 				Id:           ItemId("SIRI:130784051"),
 				StopPointRef: StopPointRef("CAS002"),
 			},
+			{
+				Id:           ItemId("SIRI:130784050"),
+				StopPointRef: StopPointRef("CER001"),
+			},
 		}
 		assert.Equal(
-			expectedCancelledDepartures,
-			getCancelledDepartures,
+			expectedCancelledDepartures[0],
+			getCancelledDepartures[0],
+		)
+		assert.Equal(
+			expectedCancelledDepartures[1],
+			getCancelledDepartures[1],
 		)
 	}
 

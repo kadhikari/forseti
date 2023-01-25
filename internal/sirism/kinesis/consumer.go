@@ -2,6 +2,7 @@ package kinesis
 
 import (
 	"context"
+	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -108,7 +109,8 @@ func InitKinesisConsumer(
 			},
 		)
 		if err != nil {
-			logrus.Errorf("scan error: %v", err)
+			logrus.Errorf("consumer scan error: %v", err)
+			os.Exit(0)
 		}
 	}()
 }

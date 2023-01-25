@@ -42,6 +42,7 @@ type Config struct {
 	DeparturesStatusStreamName          string        `mapstructure:"departures-status-stream-name"`
 	DeparturesStreamReadOnlyRoleARN     string        `mapstructure:"departures-stream-read-only-role-arn"`
 	DeparturesNotificationsReloadPeriod time.Duration `mapstructure:"departures-notifications-reload-period"`
+	DeparturesStatusReloadPeriod        time.Duration `mapstructure:"departures-status-reload-period"`
 
 	ParkingsURIStr  string        `mapstructure:"parkings-uri"`
 	ParkingsRefresh time.Duration `mapstructure:"parkings-refresh"`
@@ -131,6 +132,11 @@ func GetConfig() (Config, error) {
 	pflag.Duration(
 		"departures-notifications-reload-period",
 		3*time.Hour,
+		"The period since which the records are being reloaded (used by the connector siri-sm)",
+	)
+	pflag.Duration(
+		"departures-status-reload-period",
+		300*time.Second,
 		"The period since which the records are being reloaded (used by the connector siri-sm)",
 	)
 
@@ -424,7 +430,7 @@ func Departures(
 			siriSmStatusContext.InitContext(
 				config.DeparturesStreamReadOnlyRoleARN,
 				config.DeparturesStatusStreamName,
-				config.DeparturesNotificationsReloadPeriod,
+				config.DeparturesStatusReloadPeriod,
 				config.ConnectionTimeout,
 				serviceSwitchTime,
 				config.TimeZoneLocation,

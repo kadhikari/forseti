@@ -19,9 +19,9 @@ Input parameters to inform Forseti:
 - `--departures-token` The token for the external service (Required for `rennes`)
 - `--departures-notifications-stream-name` The name of the AWS Kinesis Data Stream (Required for `sirism`)
 - `--departures-status-stream-name` The name of the AWS Kinesis Status Stream (Required for `sirism`)
-- `--departures-notifications-reload-period` The period since which the data records are being reloaded  (Optional but only for
+- `--departures-notifications-reload-period` The period from which the data records are reloaded  (Optional but only for
 `sirism`)
-- `--departures-status-reload-period` The period since which the status records are being reloaded  (Optional but only for
+- `--departures-status-reload-period` The period from which the status records are reloaded  (Optional but only for
 `sirism`)
 - `--departures-stream-read-only-role-arn` The ARN of the role to assume on AWS to read Kinesis Data Stream (Optional but only for
 `sirism`)

@@ -25,6 +25,7 @@ func (d *FluctuoContext) InitContext(
 	loadExternalRefresh time.Duration,
 	token string,
 	connectionTimeout time.Duration,
+	areaId int,
 ) {
 
 	const unusedDuration time.Duration = time.Duration(-1)
@@ -37,6 +38,7 @@ func (d *FluctuoContext) InitContext(
 		unusedDuration,
 		connectionTimeout,
 	)
+	d.connector.SetAreaId(areaId)
 }
 
 func LoadFreeFloatingsData(data *data.Data) ([]freefloatings.FreeFloating, error) {
@@ -73,7 +75,8 @@ func RefreshFreeFloatings(fluctuoContext *FluctuoContext, context *freefloatings
 	}
 	begin := time.Now()
 	urlPath := fluctuoContext.connector.GetUrl()
-	resp, err := CallHttpClient(urlPath.String(), fluctuoContext.connector.GetToken())
+	areaId := fluctuoContext.connector.GetAreaId()
+	resp, err := CallHttpClient(urlPath.String(), fluctuoContext.connector.GetToken(), areaId)
 	if err != nil {
 		freefloatings.FreeFloatingsLoadingErrors.Inc()
 		return err
@@ -105,13 +108,11 @@ func RefreshFreeFloatings(fluctuoContext *FluctuoContext, context *freefloatings
 	return nil
 }
 
-func CallHttpClient(siteHost, token string) (*http.Response, error) {
+func CallHttpClient(siteHost, token string, areaId int) (*http.Response, error) {
 	client := &http.Client{}
 	data := url.Values{}
 	data.Set("query", "query($id: Int!) {area(id: $id) {vehicles{publicId, provider{name}, id, type, attributes ,"+
 		"latitude: lat, longitude: lng, propulsion, battery, deeplink } } }")
-	// Manage area id in the query (Paris id=6)
-	areaId := 6
 	data.Set("variables", fmt.Sprintf("{\"id\": %d}", areaId))
 	req, err := http.NewRequest(
 		"POST",

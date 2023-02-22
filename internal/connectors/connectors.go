@@ -27,6 +27,7 @@ type Connector struct {
 	filesRefreshTime  time.Duration
 	wsRefreshTime     time.Duration
 	connectionTimeout time.Duration
+	areaId            int
 	mutex             sync.Mutex
 }
 
@@ -52,6 +53,18 @@ func (d *Connector) SetToken(token string) {
 	d.mutex.Lock()
 	defer d.mutex.Unlock()
 	d.token = token
+}
+
+func (d *Connector) GetAreaId() int {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	return d.areaId
+}
+
+func (d *Connector) SetAreaId(areaId int) {
+	d.mutex.Lock()
+	defer d.mutex.Unlock()
+	d.areaId = areaId
 }
 
 func (d *Connector) GetHeader() string {

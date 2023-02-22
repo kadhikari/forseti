@@ -18,14 +18,15 @@ Input parameters to inform Forseti:
 - `--free-floatings-refresh-active` active or deactivates the periodic refresh of data for api
 - `--free-floatings-type` The type of flow (Required)(default value = fluctuo, possible values = [fluctuo, citiz])
 - `--free-floatings-username` Username to get token (Required for Citiz)
-- `--free-floatings-password` Password to get token (Required for Citiz) 
+- `--free-floatings-password` Password to get token (Required for Citiz)
+- `--free-floatings-area-id` city id for free floating source (Required for Fluctuo)
 
 Exemple: 
 
 SERVICE FLUCTUO
 ```
 ./forseti --free-floatings-uri "https://path/to/external_service" --free-floatings-token <token_fluctuo> 
---free-floatings-refresh=100s --free-floatings-refresh-active true
+--free-floatings-refresh=100s --free-floatings-refresh-active true --free-floatings-area-id=6
 ```
 
 

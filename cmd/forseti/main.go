@@ -62,6 +62,7 @@ type Config struct {
 	FreeFloatingsType        string        `mapstructure:"free-floatings-type"`
 	FreeFloatingsUserName    string        `mapstructure:"free-floatings-username"`
 	FreeFloatingsPassword    string        `mapstructure:"free-floatings-password"`
+	FreeFloatingsAreaId      int           `mapstructure:"free-floatings-area-id"`
 
 	OccupancyFilesURIStr   string `mapstructure:"occupancy-files-uri"`
 	OccupancyFilesURI      url.URL
@@ -158,6 +159,7 @@ func GetConfig() (Config, error) {
 	pflag.String("free-floatings-type", "fluctuo", "connector type to load data source")
 	pflag.String("free-floatings-username", "", "username for getting API access tokens")
 	pflag.String("free-floatings-password", "", "password for getting API access tokens")
+	pflag.Int("free-floatings-area-id", 6, "city id for free floating source")
 
 	//Passing configurations for vehicle_occupancies
 	pflag.String("occupancy-files-uri", "", "format: [scheme:][//[userinfo@]host][/]path")
@@ -364,7 +366,7 @@ func FreeFloating(manager *manager.DataManager, config *Config, router *gin.Engi
 		var f = fluctuo.FluctuoContext{}
 
 		f.InitContext(config.FreeFloatingsURI, config.FreeFloatingsRefresh, config.FreeFloatingsToken,
-			config.ConnectionTimeout)
+			config.ConnectionTimeout, config.FreeFloatingsAreaId)
 
 		go f.RefreshFreeFloatingLoop(freeFloatingsContext)
 	}

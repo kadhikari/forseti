@@ -3,6 +3,7 @@ package api
 import (
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/hove-io/forseti"
@@ -238,7 +239,12 @@ func customizedGinrus(logger *logrus.Logger, timeFormat string, utc bool) gin.Ha
 			// Append error field if this is an erroneous request.
 			entry.Error(c.Errors.String())
 		} else {
-			entry.Info()
+			if strings.Contains(path, "status") {
+				entry.Debug()
+			} else {
+				entry.Info()
+			}
+
 		}
 	}
 }
